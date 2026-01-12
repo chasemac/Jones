@@ -1,0 +1,34 @@
+[
+  {
+    "id": "moms_basement",
+    "title": "Mom's Basement",
+    "rent": 0,
+    "happiness": -5,
+    "security": "High",
+    "description": "Free, but your soul dies a little every day."
+  },
+  {
+    "id": "shared_apt",
+    "title": "Shared Apartment",
+    "rent": 200,
+    "happiness": 0,
+    "security": "Low",
+    "description": "Cheap, but your roommate eats your food."
+  },
+  {
+    "id": "studio",
+    "title": "Studio Apartment",
+    "rent": 500,
+    "happiness": 5,
+    "security": "Medium",
+    "description": "Your own space. Finally."
+  },
+  {
+    "id": "luxury_condo",
+    "title": "Luxury Condo",
+    "rent": 1200,
+    "happiness": 15,
+    "security": "High",
+    "description": "Doorman, gym, and no rats."
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "gig_driver",
+    "title": "Dash Driver",
+    "type": "gig",
+    "wage": 15,
+    "requirements": { "item": "smartphone" },
+    "description": "Deliver food. No benefits. Wear and tear on your soul."
+  },
+  {
+    "id": "barista",
+    "title": "Barista",
+    "type": "service",
+    "wage": 12,
+    "requirements": {},
+    "promotion": "shift_lead",
+    "description": "Make coffee. Deal with caffeine-deprived customers."
+  },
+  {
+    "id": "shift_lead",
+    "title": "Shift Lead",
+    "type": "service",
+    "wage": 16,
+    "requirements": { "experience": 4, "item": "business_casual" },
+    "promotion": "store_manager",
+    "description": "Herding cats, but the cats are teenagers."
+  },
+  {
+    "id": "junior_dev",
+    "title": "Junior Developer",
+    "type": "tech",
+    "wage": 25,
+    "requirements": { "education": "Bootcamp Certificate", "item": "laptop" },
+    "promotion": "senior_dev",
+    "description": "Fix bugs. Create new bugs. Repeat."
+  },
+  {
+    "id": "admin_assistant",
+    "title": "Admin Assistant",
+    "type": "corporate",
+    "wage": 18,
+    "requirements": { "education": "Associate's", "item": "business_casual" },
+    "promotion": "office_manager",
+    "description": "The glue holding the office together."
+  }
+]

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "smartphone",
+    "name": "Smartphone",
+    "cost": 800,
+    "type": "electronics",
+    "effect": "Unlocks Gig Work"
+  },
+  {
+    "id": "laptop",
+    "name": "Laptop",
+    "cost": 1200,
+    "type": "electronics",
+    "effect": "Unlocks Remote Work & Education"
+  },
+  {
+    "id": "burger",
+    "name": "Greasy Burger",
+    "cost": 5,
+    "type": "food",
+    "effect": "Restores Hunger, -1 Health"
+  },
+  {
+    "id": "casual_clothes",
+    "name": "Casual Clothes",
+    "cost": 50,
+    "type": "clothing",
+    "effect": "Basic requirement"
+  },
+  {
+    "id": "business_casual",
+    "name": "Business Casual",
+    "cost": 200,
+    "type": "clothing",
+    "effect": "Required for Office Jobs"
+  },
+  {
+    "id": "suit",
+    "name": "Professional Suit",
+    "cost": 500,
+    "type": "clothing",
+    "effect": "Required for Management"
+  },
+  {
+    "id": "smart_watch",
+    "name": "Smart Watch",
+    "cost": 300,
+    "type": "electronics",
+    "effect": "Boosts Happiness Recovery"
+  },
+  {
+    "id": "streaming_sub",
+    "name": "Streaming Sub",
+    "cost": 15,
+    "type": "subscription",
+    "effect": "+Happiness/week, -$15/week"
+  }
+]

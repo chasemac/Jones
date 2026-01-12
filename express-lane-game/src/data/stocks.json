@@ -1,0 +1,30 @@
+[
+  {
+    "symbol": "JNES",
+    "name": "Jones Corp",
+    "basePrice": 100,
+    "volatility": 0.1,
+    "description": "Steady growth, low risk."
+  },
+  {
+    "symbol": "TECH",
+    "name": "TechStart",
+    "basePrice": 50,
+    "volatility": 0.3,
+    "description": "High risk, high reward."
+  },
+  {
+    "symbol": "FOOD",
+    "name": "FastFeast",
+    "basePrice": 25,
+    "volatility": 0.05,
+    "description": "Stable dividend payer."
+  },
+  {
+    "symbol": "COIN",
+    "name": "CryptoMeme",
+    "basePrice": 10,
+    "volatility": 0.8,
+    "description": "To the moon... or zero."
+  }
+]

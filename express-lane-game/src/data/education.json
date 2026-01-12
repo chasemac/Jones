@@ -1,0 +1,39 @@
+[
+  {
+    "id": "bootcamp",
+    "title": "Coding Bootcamp",
+    "type": "academic",
+    "cost": 2500,
+    "totalHours": 40,
+    "degree": "Bootcamp Certificate",
+    "description": "Intensive coding course. Unlocks Junior Dev jobs.",
+    "requirements": { "item": "laptop" }
+  },
+  {
+    "id": "community_college",
+    "title": "Associate's Degree",
+    "type": "academic",
+    "cost": 1500,
+    "totalHours": 80,
+    "degree": "Associate's",
+    "description": "General education. Unlocks Admin jobs."
+  },
+  {
+    "id": "electrician_cert",
+    "title": "Electrician Cert",
+    "type": "trade",
+    "cost": 1000,
+    "totalHours": 60,
+    "degree": "Electrician License",
+    "description": "Learn wiring and circuits. High demand."
+  },
+  {
+    "id": "plumbing_license",
+    "title": "Plumbing License",
+    "type": "trade",
+    "cost": 1200,
+    "totalHours": 70,
+    "degree": "Plumbing License",
+    "description": "Dirty work, clean money."
+  }
+]

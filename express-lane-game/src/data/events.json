@@ -1,0 +1,80 @@
+[
+  {
+    "id": "rent_hike",
+    "title": "Rent Hike",
+    "description": "Your landlord 'renovated' the lobby. Rent is up 10%.",
+    "effect": { "type": "rent_increase", "value": 0.1 }
+  },
+  {
+    "id": "stimulus",
+    "title": "Stimulus Check",
+    "description": "The government sent you a check. Don't spend it all in one place.",
+    "effect": { "type": "money", "value": 600 }
+  },
+  {
+    "id": "flu",
+    "title": "Flu Season",
+    "description": "You caught the flu. Lose 20% of your time this week.",
+    "effect": { "type": "time_loss", "value": 0.2 }
+  },
+  {
+    "id": "car_repair",
+    "title": "Car Breakdown",
+    "description": "Your transmission exploded. Mechanics are expensive.",
+    "effect": { "type": "money", "value": -300 }
+  },
+  {
+    "id": "grandma_gift",
+    "title": "Gift from Grandma",
+    "description": "A birthday card with cash! Thanks Nana.",
+    "effect": { "type": "money", "value": 100 }
+  },
+  {
+    "id": "food_poisoning",
+    "title": "Bad Burrito",
+    "description": "That gas station burrito was a mistake. Lose 10 hours.",
+    "effect": { "type": "time_loss", "value": 0.15 }
+  },
+  {
+    "id": "tech_boom",
+    "title": "Tech Boom",
+    "description": "Tech stocks are up! Your savings earned a 10% bonus.",
+    "effect": { "type": "savings_interest_bonus", "value": 0.1 }
+  },
+  {
+    "id": "market_crash",
+    "title": "Market Crash",
+    "description": "The economy took a dive. Your savings lost 10%.",
+    "effect": { "type": "savings_loss", "value": 0.1 }
+  },
+  {
+    "id": "layoff",
+    "title": "Corporate Restructuring",
+    "description": "Your company is 'downsizing'. You have been laid off.",
+    "effect": { "type": "job_loss", "value": true }
+  },
+  {
+    "id": "bonus",
+    "title": "Performance Bonus",
+    "description": "You crushed it this quarter. Here's a bonus.",
+    "effect": { "type": "money", "value": 500 }
+  },
+  {
+    "id": "robbery",
+    "title": "Pickpocketed",
+    "description": "Someone bumped into you on the subway. Your wallet is lighter.",
+    "effect": { "type": "money", "value": -150 }
+  },
+  {
+    "id": "burnout",
+    "title": "Mental Health Day",
+    "description": "You just couldn't get out of bed. Lose 10 Happiness.",
+    "effect": { "type": "happiness", "value": -10 }
+  },
+  {
+    "id": "concert",
+    "title": "Free Concert Tickets",
+    "description": "You won tickets on the radio! Gain 15 Happiness.",
+    "effect": { "type": "happiness", "value": 15 }
+  }
+]
