@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation } from '../engine/constants';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost } from '../engine/constants';
+
+// Returns the ordered list of locations to step through (not including start, including end)
+const ringPath = (fromId, toId) => {
+  const n = LOCATION_ORDER.length;
+  const a = LOCATION_ORDER.indexOf(fromId);
+  const b = LOCATION_ORDER.indexOf(toId);
+  if (a === -1 || b === -1 || a === b) return [];
+  const cw  = (b - a + n) % n;
+  const ccw = (a - b + n) % n;
+  const path = [];
+  if (cw <= ccw) {
+    for (let i = 1; i <= cw; i++) path.push(LOCATION_ORDER[(a + i) % n]);
+  } else {
+    for (let i = 1; i <= ccw; i++) path.push(LOCATION_ORDER[(a - i + n) % n]);
+  }
+  return path;
+};
 import jobsData from '../data/jobs.json';
 import itemsData from '../data/items.json';
 import educationData from '../data/education.json';
@@ -879,8 +896,10 @@ const Board = () => {
   const [showInventory, setShowInventory] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [animLocation, setAnimLocation] = useState(null); // overrides token display pos during travel
   const [floats, setFloats] = useState([]);
   const [weekFlash, setWeekFlash] = useState(false);
+  const animTimers = useRef([]);
 
   const addFloat = (amount) => {
     const id = Date.now() + Math.random();
@@ -923,13 +942,36 @@ const Board = () => {
       setShowPanel(true);
       return;
     }
+
+    // Clear any in-flight animation
+    animTimers.current.forEach(clearTimeout);
+    animTimers.current = [];
+
+    const path = ringPath(state.player.currentLocation, id);
+    const STEP_MS = 300; // ms per stop
+
     setShowPanel(false);
     setIsMoving(true);
+    setAnimLocation(state.player.currentLocation);
+
+    // Step through intermediate locations visually
+    path.forEach((locId, i) => {
+      const t = setTimeout(() => {
+        setAnimLocation(locId);
+      }, (i + 1) * STEP_MS);
+      animTimers.current.push(t);
+    });
+
+    // Dispatch actual state change immediately (reducer handles time cost)
     travel(id);
-    setTimeout(() => {
+
+    // After animation finishes, clear override and open panel
+    const total = setTimeout(() => {
+      setAnimLocation(null);
       setIsMoving(false);
       setShowPanel(true);
-    }, 600);
+    }, (path.length + 1) * STEP_MS);
+    animTimers.current.push(total);
   };
 
   const renderPanelContent = (id) => {
@@ -1002,10 +1044,12 @@ const Board = () => {
       {/* All player tokens */}
       {state.players?.map((p, i) => {
         const isActive = i === state.activePlayerIndex;
+        // Active player uses animLocation during travel, otherwise actual location
+        const displayLocation = isActive && animLocation ? animLocation : p.currentLocation;
         return (
           <PlayerToken
             key={p.name}
-            locationId={p.currentLocation}
+            locationId={displayLocation}
             isMoving={isActive && isMoving}
             label={p.name}
             emoji={p.emoji}
