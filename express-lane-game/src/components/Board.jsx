@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
 import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation } from '../engine/constants';
 import jobsData from '../data/jobs.json';
@@ -85,19 +85,74 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick }) => (
 // ─── Player & Jones tokens ────────────────────────────────────────────────────
 const PlayerToken = ({ locationId, isMoving, label, emoji, colorClass, zIndex }) => {
   const config = LOCATIONS_CONFIG[locationId];
+  const [trail, setTrail] = useState(null);
+  const prevLocation = useRef(locationId);
+
+  useEffect(() => {
+    if (locationId !== prevLocation.current) {
+      const prev = LOCATIONS_CONFIG[prevLocation.current];
+      if (prev) setTrail({ x: prev.pos.x, y: prev.pos.y + 10 });
+      prevLocation.current = locationId;
+      const t = setTimeout(() => setTrail(null), 500);
+      return () => clearTimeout(t);
+    }
+  }, [locationId]);
+
   if (!config) return null;
   return (
+    <>
+      {/* Fading trail at previous position */}
+      {trail && (
+        <div
+          className="absolute w-10 h-10 rounded-full pointer-events-none opacity-0 transition-opacity duration-500"
+          style={{
+            left: `${trail.x}%`,
+            top: `${trail.y}%`,
+            transform: 'translate(-50%, -50%)',
+            background: colorClass.includes('yellow') ? '#facc15' : '#f87171',
+            zIndex: zIndex - 1,
+          }}
+        />
+      )}
+      {/* Main token */}
+      <div
+        className={`absolute w-10 h-10 ${colorClass} border-2 border-white rounded-full flex items-center justify-center text-xl shadow-xl pointer-events-none`}
+        style={{
+          left: `${config.pos.x}%`,
+          top: `${config.pos.y + 10}%`,
+          transform: 'translate(-50%, -50%)',
+          zIndex,
+          transition: 'left 0.6s cubic-bezier(0.4,0,0.2,1), top 0.6s cubic-bezier(0.4,0,0.2,1)',
+          animation: isMoving ? 'tokenBounce 0.3s ease-in-out infinite alternate' : 'none',
+        }}
+        title={label}
+      >
+        {emoji}
+      </div>
+    </>
+  );
+};
+
+// ─── Floating money popup ──────────────────────────────────────────────────────
+const FloatingMoney = ({ amount, id, onDone }) => {
+  const isPositive = amount >= 0;
+  useEffect(() => {
+    const t = setTimeout(onDone, 1200);
+    return () => clearTimeout(t);
+  }, [onDone]);
+  return (
     <div
-      className={`absolute w-10 h-10 ${colorClass} border-2 border-white rounded-full flex items-center justify-center text-xl shadow-xl transition-all duration-700 ease-in-out pointer-events-none ${isMoving ? 'animate-spin' : ''}`}
+      className={`fixed pointer-events-none font-black text-lg z-50 select-none`}
       style={{
-        left: `${config.pos.x}%`,
-        top: `${config.pos.y + 10}%`,   // offset below building
-        transform: 'translate(-50%, -50%)',
-        zIndex,
+        left: '50%',
+        bottom: '80px',
+        transform: 'translateX(-50%)',
+        color: isPositive ? '#22c55e' : '#ef4444',
+        textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+        animation: 'floatUp 1.2s ease-out forwards',
       }}
-      title={label}
     >
-      {emoji}
+      {isPositive ? '+' : ''}{amount < 0 ? '-' : ''}${Math.abs(amount)}
     </div>
   );
 };
@@ -127,7 +182,8 @@ const LocationPanel = ({ locationId, children, onClose }) => {
 };
 
 // ─── HUD ─────────────────────────────────────────────────────────────────────
-const HUD = ({ state, onOpenInventory, onEndWeek, onOpenGoals }) => {
+const HUD = ({ state, onOpenInventory, onEndWeek, onOpenGoals, onToggleMute }) => {
+  const [muted, setMuted] = useState(false);
   const { player, week, economy } = state;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = player.money + player.savings - player.debt;
@@ -199,6 +255,11 @@ const HUD = ({ state, onOpenInventory, onEndWeek, onOpenGoals }) => {
             className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
             title="Goals"
           >🎯</button>
+          <button
+            onClick={() => { onToggleMute(); setMuted(m => !m); }}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
+            title={muted ? 'Unmute' : 'Mute'}
+          >{muted ? '🔇' : '🔊'}</button>
         </div>
         <button
           onClick={onEndWeek}
@@ -813,10 +874,17 @@ const Board = () => {
   const [showInventory, setShowInventory] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
+  const [floats, setFloats] = useState([]);
+  const [weekFlash, setWeekFlash] = useState(false);
+
+  const addFloat = (amount) => {
+    const id = Date.now() + Math.random();
+    setFloats(f => [...f, { id, amount }]);
+  };
 
   // Watch for job application results
-  const prevJobResult = React.useRef(state.lastJobResult);
-  React.useEffect(() => {
+  const prevJobResult = useRef(state.lastJobResult);
+  useEffect(() => {
     if (state.lastJobResult && state.lastJobResult !== prevJobResult.current) {
       setNotification({
         title: state.lastJobResult.success ? "You're Hired!" : "Application Rejected",
@@ -826,6 +894,24 @@ const Board = () => {
       prevJobResult.current = state.lastJobResult;
     }
   }, [state.lastJobResult]);
+
+  // Flash on end week
+  const prevWeek = useRef(state.week);
+  useEffect(() => {
+    if (state.week !== prevWeek.current) {
+      setWeekFlash(true);
+      setTimeout(() => setWeekFlash(false), 600);
+      prevWeek.current = state.week;
+    }
+  }, [state.week]);
+
+  // Track money changes for floating text
+  const prevMoney = useRef(state.player.money);
+  useEffect(() => {
+    const diff = Math.round(state.player.money - prevMoney.current);
+    if (Math.abs(diff) >= 1) addFloat(diff);
+    prevMoney.current = state.player.money;
+  }, [state.player.money]);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
@@ -858,6 +944,30 @@ const Board = () => {
 
   return (
     <div className="relative w-full bg-green-100 rounded-xl overflow-hidden border-4 border-slate-800 shadow-2xl select-none" style={{ height: 'min(680px, calc(100vh - 2rem))' }}>
+
+      {/* CSS keyframes injected once */}
+      <style>{`
+        @keyframes floatUp {
+          0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(-60px); }
+        }
+        @keyframes tokenBounce {
+          0%   { transform: translate(-50%, -50%) scale(1); }
+          100% { transform: translate(-50%, -50%) scale(1.25); }
+        }
+        @keyframes weekFlash {
+          0%   { opacity: 0.6; }
+          100% { opacity: 0; }
+        }
+      `}</style>
+
+      {/* Week-end flash overlay */}
+      {weekFlash && (
+        <div
+          className="absolute inset-0 bg-white pointer-events-none z-40"
+          style={{ animation: 'weekFlash 0.6s ease-out forwards' }}
+        />
+      )}
 
       {/* Map background */}
       <MapBackground />
@@ -907,12 +1017,23 @@ const Board = () => {
         </LocationPanel>
       )}
 
+      {/* Floating money popups */}
+      {floats.map(f => (
+        <FloatingMoney
+          key={f.id}
+          amount={f.amount}
+          id={f.id}
+          onDone={() => setFloats(prev => prev.filter(x => x.id !== f.id))}
+        />
+      ))}
+
       {/* HUD */}
       <HUD
         state={state}
         onOpenInventory={() => setShowInventory(true)}
         onEndWeek={endWeek}
         onOpenGoals={() => setShowGoals(true)}
+        onToggleMute={actions.toggleMute}
       />
 
       {/* Modals (layered, highest z-index last) */}
