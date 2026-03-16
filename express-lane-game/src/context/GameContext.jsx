@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { gameReducer, buildInitialState } from '../engine/gameReducer';
-import { playSound } from '../utils/sound';
+import { playSound, toggleMute, isMuted } from '../utils/sound';
 
 const GameContext = createContext();
 export const useGame = () => useContext(GameContext);
@@ -44,9 +44,19 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (state.week !== prevWeek.current) {
       playSound('turn');
+      setTimeout(() => playSound('home'), 600);
       prevWeek.current = state.week;
     }
   }, [state.week]);
+
+  // Victory sound
+  const prevStatus = React.useRef(state.gameStatus);
+  useEffect(() => {
+    if (state.gameStatus === 'won' && prevStatus.current !== 'won') {
+      setTimeout(() => playSound('victory'), 300);
+    }
+    prevStatus.current = state.gameStatus;
+  }, [state.gameStatus]);
 
   // ── Action creators (stable refs via useCallback not needed — tiny wrappers) ─
   const actions = {
@@ -70,6 +80,9 @@ export const GameProvider = ({ children }) => {
     sellStock: (symbol, quantity) => dispatch({ type: 'SELL_STOCK', symbol, quantity }),
     endWeek: () => dispatch({ type: 'END_WEEK' }),
     dismissEvent: () => dispatch({ type: 'DISMISS_EVENT' }),
+    applyForJobWithSound: (job, success) => { playSound(success ? 'success' : 'error'); dispatch({ type: 'APPLY_FOR_JOB', job }); },
+    toggleMute: () => { toggleMute(); },
+    getMuted: () => isMuted,
   };
 
   const value = { state, dispatch, ...actions };
