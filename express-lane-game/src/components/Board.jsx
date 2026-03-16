@@ -937,6 +937,40 @@ const Board = () => {
     prevMoney.current = state.player.money;
   }, [state.player.money]);
 
+  // When time runs out, animate player walking home then end the week
+  useEffect(() => {
+    if (!state.awaitingEndWeek) return;
+
+    const from = state.player.currentLocation;
+    const home = 'leasing_office';
+
+    if (from === home) {
+      endWeek();
+      return;
+    }
+
+    const path = ringPath(from, home);
+    const STEP_MS = 300;
+
+    animTimers.current.forEach(clearTimeout);
+    animTimers.current = [];
+    setShowPanel(false);
+    setIsMoving(true);
+    setAnimLocation(from);
+
+    path.forEach((locId, i) => {
+      const t = setTimeout(() => setAnimLocation(locId), (i + 1) * STEP_MS);
+      animTimers.current.push(t);
+    });
+
+    const done = setTimeout(() => {
+      setAnimLocation(null);
+      setIsMoving(false);
+      endWeek();
+    }, (path.length + 1) * STEP_MS);
+    animTimers.current.push(done);
+  }, [state.awaitingEndWeek]);
+
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
       setShowPanel(true);

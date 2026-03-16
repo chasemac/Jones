@@ -114,8 +114,10 @@ const checkEndConditions = (state) => {
 };
 
 // ─── Auto end-week if time hits 0 ─────────────────────────────────────────────
+// Instead of ending the week immediately, set a flag so the UI can animate
+// the player walking home first, then dispatch END_WEEK.
 const autoEndIfNeeded = (s) =>
-  activePlayer(s).timeRemaining <= 0 ? gameReducer(s, { type: 'END_WEEK' }) : s;
+  activePlayer(s).timeRemaining <= 0 ? { ...s, awaitingEndWeek: true } : s;
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 export const gameReducer = (state, action) => {
@@ -157,7 +159,7 @@ export const gameReducer = (state, action) => {
       const newTime = activePlayer(s).timeRemaining - cost;
       s = updateActivePlayer(s, p => ({ ...p, currentLocation: locationId, timeRemaining: newTime }));
 
-      if (newTime <= 0) return gameReducer(s, { type: 'END_WEEK' });
+      if (newTime <= 0) return { ...s, awaitingEndWeek: true };
       return s;
     }
 
@@ -366,7 +368,7 @@ export const gameReducer = (state, action) => {
 
     // ── End Week ──────────────────────────────────────────────────────────────
     case 'END_WEEK': {
-      let s = { ...state };
+      let s = { ...state, awaitingEndWeek: false };
 
       // ── Multiplayer: mark active player done, advance if others remain ──────
       s = updateActivePlayer(s, p => ({ ...p, weekDone: true }));
