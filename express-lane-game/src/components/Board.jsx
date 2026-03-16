@@ -1,805 +1,936 @@
 import React, { useState } from 'react';
-import { useGame, LOCATION_ORDER } from '../context/GameContext';
+import { useGame } from '../context/GameContext';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation } from '../engine/constants';
 import jobsData from '../data/jobs.json';
 import itemsData from '../data/items.json';
 import educationData from '../data/education.json';
 import housingData from '../data/housing.json';
 import stocksData from '../data/stocks.json';
 
-// --- Configuration ---
+// ─── Location config: label, emoji, board position (% from top-left) ─────────
 const LOCATIONS_CONFIG = {
-  leasing_office: { 
-    emoji: '🏢', 
-    label: 'Leasing', 
-    color: '#9333ea', // purple-600
-    posClass: 'top-4 left-4',
-    svgPoint: { x: 15, y: 15 }
-  },
-  quick_eats: { 
-    emoji: '🍔', 
-    label: 'Quick Eats', 
-    color: '#ea580c', // orange-600
-    posClass: 'top-4 left-1/2 -translate-x-1/2',
-    svgPoint: { x: 50, y: 10 }
-  },
-  public_library: { 
-    emoji: '📚', 
-    label: 'Library', 
-    color: '#059669', // emerald-600
-    posClass: 'top-4 right-4',
-    svgPoint: { x: 85, y: 15 }
-  },
-  trendsetters: { 
-    emoji: '👕', 
-    label: 'TrendSetters', 
-    color: '#db2777', // pink-600
-    posClass: 'top-1/2 right-4 -translate-y-1/2',
-    svgPoint: { x: 90, y: 50 }
-  },
-  coffee_shop: {
-    emoji: '☕',
-    label: 'Coffee Shop',
-    color: '#78350f', // amber-900
-    posClass: 'bottom-32 right-4',
-    svgPoint: { x: 85, y: 85 }
-  },
-  city_college: { 
-    emoji: '🎓', 
-    label: 'College', 
-    color: '#2563eb', // blue-600
-    posClass: 'bottom-32 left-1/2 -translate-x-1/2',
-    svgPoint: { x: 50, y: 90 }
-  },
-  tech_store: { 
-    emoji: '📱', 
-    label: 'Tech Store', 
-    color: '#475569', // slate-600
-    posClass: 'bottom-32 left-4',
-    svgPoint: { x: 15, y: 85 }
-  },
-  neobank: { 
-    emoji: '🏦', 
-    label: 'NeoBank', 
-    color: '#4f46e5', // indigo-600
-    posClass: 'top-1/2 left-4 -translate-y-1/2',
-    svgPoint: { x: 10, y: 50 }
-  },
-  blacks_market: {
-    emoji: '🕶️',
-    label: "Black's Market",
-    color: '#1e293b', // slate-800
-    posClass: 'bottom-4 right-4',
-    svgPoint: { x: 90, y: 90 }
-  }
+  leasing_office:  { emoji: '🏢', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 10 } },
+  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 2  } },
+  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 2  } },
+  trendsetters:    { emoji: '👕', label: 'TrendSetters',  color: '#db2777', pos: { x: 88, y: 20 } },
+  coffee_shop:     { emoji: '☕', label: 'Coffee Shop',   color: '#78350f', pos: { x: 88, y: 55 } },
+  blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 72, y: 80 } },
+  city_college:    { emoji: '🎓', label: 'City College',  color: '#2563eb', pos: { x: 38, y: 80 } },
+  tech_store:      { emoji: '📱', label: 'Tech Store',    color: '#475569', pos: { x: 5,  y: 80 } },
+  neobank:         { emoji: '🏦', label: 'NeoBank',       color: '#4f46e5', pos: { x: 5,  y: 45 } },
 };
 
-const TRACK_POSITIONS = {
-  leasing_office: { top: '0%', left: '0%' },
-  quick_eats: { top: '0%', left: '50%' },
-  public_library: { top: '0%', left: '100%' },
-  trendsetters: { top: '50%', left: '100%' },
-  coffee_shop: { top: '75%', left: '100%' },
-  blacks_market: { top: '100%', left: '100%' },
-  city_college: { top: '100%', left: '50%' },
-  tech_store: { top: '100%', left: '0%' },
-  neobank: { top: '50%', left: '0%' }
-};
+// ─── Map background SVG ───────────────────────────────────────────────────────
+const MapBackground = () => (
+  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+    {/* Green park areas */}
+    <ellipse cx="50%" cy="45%" rx="18%" ry="14%" fill="#bbf7d0" opacity="0.6" />
+    <circle cx="50%" cy="45%" r="8%" fill="#86efac" opacity="0.5" />
+    {/* Road network */}
+    <path d="M15% 15% Q50% 5% 85% 15%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
+    <path d="M15% 85% Q50% 95% 85% 85%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
+    <path d="M10% 15% Q5% 45% 10% 85%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
+    <path d="M90% 25% Q95% 45% 90% 75%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
+    {/* Center-to-edges paths */}
+    <line x1="50%" y1="45%" x2="15%" y2="15%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="50%" y2="5%"  stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="88%" y2="25%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="88%" y2="60%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="75%" y2="83%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="50%" y2="83%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="15%" y2="83%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    <line x1="50%" y1="45%" x2="10%" y2="48%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
+    {/* Decorative trees */}
+    <text x="45%" y="43%" fontSize="2%" textAnchor="middle">🌳</text>
+    <text x="55%" y="43%" fontSize="2%" textAnchor="middle">🌳</text>
+    <text x="50%" y="50%" fontSize="2%" textAnchor="middle">🌳</text>
+    <text x="30%" y="35%" fontSize="1.5%" textAnchor="middle">🏠</text>
+    <text x="65%" y="60%" fontSize="1.5%" textAnchor="middle">🏠</text>
+    <text x="35%" y="60%" fontSize="1.5%" textAnchor="middle">🏠</text>
+  </svg>
+);
 
-// --- Sub-Components ---
-
-const InnerTrack = ({ currentLocation, isTraveling, jonesLocation }) => {
-  const pos = TRACK_POSITIONS[currentLocation] || { top: '50%', left: '50%' };
-  const jonesPos = TRACK_POSITIONS[jonesLocation] || { top: '50%', left: '50%' };
-
-  return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50%] h-[50%] border-8 border-slate-200/50 rounded-3xl pointer-events-none z-0">
-       {/* Track Line */}
-       <div className="absolute inset-0 border-4 border-dashed border-slate-400/30 rounded-2xl" />
-       
-       {/* Jones Token */}
-       <div 
-         className="absolute w-14 h-14 bg-red-500 border-4 border-white rounded-full flex items-center justify-center text-2xl shadow-xl transition-all duration-1000 ease-in-out z-0 opacity-80"
-         style={{ 
-            top: jonesPos.top, 
-            left: jonesPos.left,
-            transform: 'translate(-50%, -50%)'
-         }}
-         title="The Joneses"
-       >
-         🤑
-       </div>
-
-       {/* Player Token */}
-       <div 
-         className={`absolute w-16 h-16 bg-yellow-400 border-4 border-white rounded-full flex items-center justify-center text-3xl shadow-xl transition-all duration-700 ease-in-out z-10
-            ${isTraveling ? 'animate-spin' : 'animate-bounce'}
-         `}
-         style={{ 
-            top: pos.top, 
-            left: pos.left,
-            transform: 'translate(-50%, -50%)'
-         }}
-       >
-         😎
-       </div>
-    </div>
-  );
-};
-
-const BuildingNode = ({ config, isCurrent, onClick, isTraveling }) => (
-  <div 
+// ─── Building node ────────────────────────────────────────────────────────────
+const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick }) => (
+  <div
     onClick={onClick}
-    className={`absolute ${config.posClass} flex flex-col items-center cursor-pointer transition-transform duration-300 hover:scale-110 z-10 group`}
+    className={`absolute flex flex-col items-center cursor-pointer transition-all duration-200 hover:scale-110 z-10 group
+      ${isTraveling ? 'pointer-events-none opacity-60' : ''}
+    `}
+    style={{
+      left: `${config.pos.x}%`,
+      top: `${config.pos.y}%`,
+      transform: 'translate(-50%, -50%)',
+    }}
   >
-    <div 
-      className={`w-20 h-20 md:w-24 md:h-24 bg-white border-4 rounded-xl shadow-lg flex items-center justify-center text-4xl md:text-5xl relative
-        ${isCurrent ? 'ring-4 ring-yellow-400 scale-110' : 'opacity-90 hover:opacity-100'}
-        ${isTraveling ? 'cursor-wait opacity-50' : ''}
+    <div
+      className={`w-16 h-16 bg-white border-4 rounded-xl shadow-lg flex items-center justify-center text-3xl relative
+        ${isCurrent ? 'ring-4 ring-yellow-400 scale-110 shadow-2xl' : 'opacity-90 hover:opacity-100'}
       `}
       style={{ borderColor: config.color }}
     >
       {config.emoji}
       {isCurrent && (
-        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce">
-          HERE
+        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[10px] font-black px-1 py-0.5 rounded-full animate-bounce">
+          YOU
         </div>
       )}
     </div>
-    <div className="mt-2 bg-slate-800 text-white text-xs md:text-sm font-bold px-3 py-1 rounded-full shadow-md border border-slate-600 group-hover:bg-slate-700">
+    <div className="mt-1 bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow whitespace-nowrap">
       {config.label}
     </div>
   </div>
 );
 
-
-
-const CentralPanel = ({ locationId, children, onClose }) => {
+// ─── Player & Jones tokens ────────────────────────────────────────────────────
+const PlayerToken = ({ locationId, isMoving, label, emoji, colorClass, zIndex }) => {
   const config = LOCATIONS_CONFIG[locationId];
   if (!config) return null;
+  return (
+    <div
+      className={`absolute w-10 h-10 ${colorClass} border-2 border-white rounded-full flex items-center justify-center text-xl shadow-xl transition-all duration-700 ease-in-out pointer-events-none ${isMoving ? 'animate-spin' : ''}`}
+      style={{
+        left: `${config.pos.x}%`,
+        top: `${config.pos.y + 10}%`,   // offset below building
+        transform: 'translate(-50%, -50%)',
+        zIndex,
+      }}
+      title={label}
+    >
+      {emoji}
+    </div>
+  );
+};
+
+// ─── Central location panel ───────────────────────────────────────────────────
+const LocationPanel = ({ locationId, children, onClose }) => {
+  const config = LOCATIONS_CONFIG[locationId];
+  if (!config) return null;
+  return (
+    <div className="absolute inset-x-4 top-4 bottom-28 bg-white border-4 border-slate-800 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden">
+      <div className="bg-slate-100 border-b-2 border-slate-200 px-4 py-3 flex justify-between items-center flex-shrink-0">
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+          <span className="text-2xl">{config.emoji}</span> {config.label}
+        </h2>
+        <button
+          onClick={onClose}
+          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-4 py-1.5 rounded-full text-sm shadow transition hover:scale-105 flex items-center gap-1"
+        >
+          DONE 👉
+        </button>
+      </div>
+      <div className="flex-grow p-4 overflow-y-auto bg-slate-50">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// ─── HUD ─────────────────────────────────────────────────────────────────────
+const HUD = ({ state, onOpenInventory, onEndWeek, onOpenGoals }) => {
+  const { player, week, economy } = state;
+  const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
+  const netWorth = player.money + player.savings - player.debt;
+
+  const economyColor = economy === 'Boom' ? 'text-green-400' : economy === 'Depression' ? 'text-red-400' : 'text-slate-400';
+  const happinessFace = player.happiness >= 80 ? '😁' : player.happiness >= 60 ? '🙂' : player.happiness >= 40 ? '😐' : player.happiness >= 20 ? '😟' : '😫';
 
   return (
-    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-2xl h-[60%] bg-white border-4 border-slate-800 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-      {/* Header */}
-      <div className="bg-slate-100 border-b-2 border-slate-200 p-4 flex justify-between items-center">
-        <h2 className="text-2xl font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
-          <span className="text-3xl">{config.emoji}</span> {config.label}
-        </h2>
-        <div className="w-10 h-10 bg-white border-2 border-slate-300 rounded-lg flex items-center justify-center text-2xl shadow-inner">
-          🙂
+    <div className="absolute bottom-0 left-0 right-0 h-24 bg-slate-900 border-t-4 border-slate-700 flex items-center justify-between px-3 z-30 shadow-2xl gap-2">
+
+      {/* Week + Economy */}
+      <div className="flex flex-col items-center min-w-[52px]">
+        <div className="text-3xl">🕒</div>
+        <div className="text-slate-400 text-[10px] font-bold uppercase">Wk {week}</div>
+        <div className={`text-[9px] font-bold ${economyColor}`}>{economy}</div>
+      </div>
+
+      {/* Happiness */}
+      <div className="flex flex-col items-center" title={`Happiness: ${player.happiness}/100 (Goal: ${goals.happiness})`}>
+        <div className="text-3xl">{happinessFace}</div>
+        <div className="w-14 h-1.5 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
+          <div
+            className={`h-full transition-all duration-500 ${player.happiness < 30 ? 'bg-red-500' : 'bg-yellow-400'}`}
+            style={{ width: `${player.happiness}%` }}
+          />
+        </div>
+        <div className="text-[9px] text-slate-500">{player.happiness}%</div>
+      </div>
+
+      {/* Time bar */}
+      <div className="flex-grow flex flex-col gap-0.5 min-w-0">
+        <div className="flex justify-between text-[9px] text-slate-400 uppercase font-bold">
+          <span>Time</span>
+          <span>{player.timeRemaining}h / {player.maxTime}h</span>
+        </div>
+        <div className="h-4 bg-slate-800 rounded-full border border-slate-600 overflow-hidden">
+          <div
+            className={`h-full transition-all duration-500 ${player.timeRemaining < 15 ? 'bg-red-500' : 'bg-blue-500'}`}
+            style={{ width: `${(player.timeRemaining / player.maxTime) * 100}%` }}
+          />
+        </div>
+        {/* Education + Job */}
+        <div className="flex gap-2 text-[9px]">
+          <span className="text-slate-400">🎓 {player.education}</span>
+          <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-grow p-6 overflow-y-auto bg-slate-50">
-        {children}
+      {/* Money */}
+      <div className="flex flex-col items-end gap-1">
+        <div className="bg-black/50 px-2 py-1 rounded border border-slate-700 font-mono text-green-400 text-lg min-w-[100px] text-right">
+          ${player.money.toFixed(0)}
+        </div>
+        <div className="text-[9px] text-slate-500 text-right">
+          Net Worth: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${netWorth.toFixed(0)}</span>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="bg-slate-800 p-3 flex justify-center">
-        <button 
-          onClick={onClose}
-          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-8 py-2 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2"
+      {/* Action buttons */}
+      <div className="flex flex-col gap-1">
+        <div className="flex gap-1">
+          <button
+            onClick={onOpenInventory}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
+            title="Inventory"
+          >🎒</button>
+          <button
+            onClick={onOpenGoals}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
+            title="Goals"
+          >🎯</button>
+        </div>
+        <button
+          onClick={onEndWeek}
+          className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded shadow border-b-2 border-red-800 active:border-b-0 active:translate-y-px transition-all text-xs uppercase"
         >
-          <span>DONE</span> 👉
+          End Week
         </button>
       </div>
     </div>
   );
 };
 
-const NotificationModal = ({ title, message, type, onClose }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-    <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 transform scale-100 animate-in zoom-in-95 duration-200">
-      <div className={`text-center mb-4 text-4xl ${type === 'success' ? 'animate-bounce' : ''}`}>
-        {type === 'success' ? '🎉' : '🚫'}
+// ─── Goals modal ──────────────────────────────────────────────────────────────
+const GoalsModal = ({ state, onClose }) => {
+  const { player, difficulty } = state;
+  const goals = DIFFICULTY_PRESETS[difficulty].goals;
+  const netWorth = player.money + player.savings - player.debt;
+
+  const items = [
+    {
+      label: 'Wealth (Net Worth)',
+      current: `$${Math.max(0, netWorth).toFixed(0)}`,
+      goal: `$${goals.wealth}`,
+      pct: Math.min(100, (Math.max(0, netWorth) / goals.wealth) * 100),
+      met: netWorth >= goals.wealth,
+    },
+    {
+      label: 'Happiness',
+      current: `${player.happiness}`,
+      goal: `${goals.happiness}`,
+      pct: Math.min(100, (player.happiness / goals.happiness) * 100),
+      met: player.happiness >= goals.happiness,
+    },
+    {
+      label: 'Education',
+      current: player.education,
+      goal: goals.education,
+      pct: meetsEducation(player.education, goals.education) ? 100 : 40,
+      met: meetsEducation(player.education, goals.education),
+    },
+    {
+      label: 'Career (min. wage)',
+      current: player.job ? `${player.job.title} ($${player.job.wage}/hr)` : 'Unemployed',
+      goal: `$${goals.careerWage}/hr`,
+      pct: Math.min(100, ((player.job?.wage || 0) / goals.careerWage) * 100),
+      met: player.job && player.job.wage >= goals.careerWage,
+    },
+  ];
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals <span className="text-xs font-normal text-slate-500 normal-case">({DIFFICULTY_PRESETS[difficulty].label})</span></h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+        </div>
+        <p className="text-xs text-slate-500 mb-4">Achieve ALL four goals to win.</p>
+        <div className="space-y-4">
+          {items.map((item) => (
+            <div key={item.label}>
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-sm font-bold text-slate-700">{item.met ? '✅' : '⬜'} {item.label}</span>
+                <span className="text-xs text-slate-500">{item.current} / {item.goal}</span>
+              </div>
+              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${item.met ? 'bg-green-500' : 'bg-blue-500'}`}
+                  style={{ width: `${item.pct}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-      <h3 className={`text-2xl font-black text-center mb-2 uppercase ${type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
-        {title}
-      </h3>
-      <p className="text-slate-600 text-center mb-6 font-medium">
-        {message}
-      </p>
-      <button 
-        onClick={onClose}
-        className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition shadow-lg"
-      >
-        OKAY
+    </div>
+  );
+};
+
+// ─── Notification modal ───────────────────────────────────────────────────────
+const NotificationModal = ({ title, message, type, onClose }) => (
+  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4">
+      <div className="text-center text-4xl mb-3">{type === 'success' ? '🎉' : '🚫'}</div>
+      <h3 className={`text-xl font-black text-center mb-2 uppercase ${type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{title}</h3>
+      <p className="text-slate-600 text-center text-sm mb-4">{message}</p>
+      <button onClick={onClose} className="w-full bg-slate-800 text-white font-bold py-2 rounded-xl hover:bg-slate-700 transition">OKAY</button>
+    </div>
+  </div>
+);
+
+// ─── Inventory modal ──────────────────────────────────────────────────────────
+const InventoryModal = ({ inventory, onClose, onSell }) => (
+  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 max-h-[80vh] flex flex-col">
+      <div className="flex justify-between items-center mb-4 border-b-2 border-slate-200 pb-2">
+        <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+      </div>
+      <div className="flex-grow overflow-y-auto space-y-2">
+        {inventory.length === 0 ? (
+          <div className="text-center text-slate-400 py-8 italic">Your pockets are empty.</div>
+        ) : inventory.map((item, i) => (
+          <div key={i} className="flex justify-between items-center p-2 bg-slate-50 border rounded-lg">
+            <div>
+              <div className="font-bold text-sm">{item.name}</div>
+              <div className="text-xs text-slate-400">{item.effect}</div>
+            </div>
+            <div className="text-xs text-slate-500">${item.cost}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Event modal ──────────────────────────────────────────────────────────────
+const EventModal = ({ event, onClose }) => (
+  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4">
+      <div className="text-center text-4xl mb-2">📰</div>
+      <h3 className="text-lg font-black text-center text-slate-800 mb-2">{event.title}</h3>
+      <p className="text-slate-600 text-center text-sm mb-2">{event.description}</p>
+      {event.effectDesc && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-center text-sm font-bold text-yellow-800 mb-4">
+          {event.effectDesc}
+        </div>
+      )}
+      <button onClick={onClose} className="w-full bg-slate-800 text-white font-bold py-2 rounded-xl hover:bg-slate-700 transition">
+        Got it
       </button>
     </div>
   </div>
 );
 
-const JonesStatus = ({ jones }) => (
-  <div className="absolute top-32 left-4 bg-white/90 backdrop-blur border-2 border-slate-800 rounded-xl p-3 shadow-xl z-10 w-48 transform -rotate-2 hover:rotate-0 transition-transform duration-300 hidden md:block">
-    <div className="flex items-center gap-2 border-b border-slate-300 pb-2 mb-2">
-      <div className="text-2xl">😎</div>
-      <div>
-        <div className="text-xs font-bold uppercase text-slate-500">The Joneses</div>
-        <div className="text-sm font-bold leading-none">{jones.jobTitle}</div>
+// ─── Jones sidebar ────────────────────────────────────────────────────────────
+const JonesSidebar = ({ jones, difficulty }) => {
+  const goals = DIFFICULTY_PRESETS[difficulty].goals;
+  return (
+    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-10 w-44 hidden md:block">
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
+        <div className="text-2xl">🤑</div>
+        <div>
+          <div className="text-[10px] font-bold uppercase text-slate-500">The Joneses</div>
+          <div className="text-xs font-bold">{jones.jobTitle}</div>
+        </div>
+      </div>
+      <div className="space-y-1 text-[10px]">
+        <div className="flex justify-between">
+          <span className="text-slate-500">💰 Net Worth</span>
+          <span className="font-mono font-bold text-green-600">${jones.netWorth.toLocaleString()}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">😊 Happiness</span>
+          <span className="font-mono font-bold">{jones.happiness}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">🎓 Education</span>
+          <span className="font-mono font-bold">{jones.education}</span>
+        </div>
       </div>
     </div>
-    <div className="flex justify-between items-end">
-      <div className="text-xs text-slate-500 font-bold uppercase">Net Worth</div>
-      <div className="font-mono font-bold text-green-600">${jones.netWorth.toLocaleString()}</div>
-    </div>
+  );
+};
+
+// ─── Notification feed ────────────────────────────────────────────────────────
+const NotificationFeed = ({ history }) => (
+  <div className="absolute bottom-28 left-4 w-56 max-h-40 overflow-y-auto bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 z-10">
+    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1 sticky top-0 bg-slate-900/90 pb-1">🔔 Log</div>
+    {history.length === 0
+      ? <div className="text-[10px] text-slate-500 italic">No events yet...</div>
+      : history.slice(0, 8).map((entry, i) => (
+          <div key={i} className="text-[10px] text-slate-300 border-b border-slate-700 last:border-0 py-0.5">{entry}</div>
+        ))}
   </div>
 );
 
-const InventoryModal = ({ inventory, onClose }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-    <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4 transform scale-100 animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
-      <div className="flex justify-between items-center mb-4 border-b-2 border-slate-200 pb-2">
-        <h3 className="text-2xl font-black text-slate-800 uppercase flex items-center gap-2">
-          <span>🎒</span> Inventory
-        </h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+// ─── Location panel content renderers ────────────────────────────────────────
+
+const QuickEatsContent = ({ state, actions }) => {
+  const { player } = state;
+  const hasPhone = player.inventory.some(i => i.id === 'smartphone');
+  const foodItems = itemsData.filter(i => i.type === 'food');
+  return (
+    <div className="grid grid-cols-2 gap-4 h-full">
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Menu</h3>
+        {foodItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => actions.buyItem(item)}
+            className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-orange-50 mb-1 text-sm"
+          >
+            <span>🍔 {item.name}</span>
+            <span className="font-mono">${item.cost}</span>
+          </button>
+        ))}
+        <div className="mt-2 text-xs text-slate-400">Hunger: {player.hunger}/100</div>
       </div>
-      
-      <div className="flex-grow overflow-y-auto space-y-2 pr-2">
-        {inventory.length === 0 ? (
-            <div className="text-center text-slate-500 py-8 italic">Your pockets are empty.</div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Gig Work (4hrs)</h3>
+        {hasPhone ? (
+          <button
+            onClick={actions.gigWork}
+            disabled={player.timeRemaining < 4}
+            className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm"
+          >
+            <div>
+              <div className="font-bold">🚗 Delivery Run</div>
+              <div className="text-xs text-slate-500">Economy adjusted</div>
+            </div>
+            <span className="font-mono text-green-600">+$60</span>
+          </button>
         ) : (
-            inventory.map((item, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                    <div className="font-bold text-slate-700">{item.name}</div>
-                    <div className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase font-bold">{item.type}</div>
-                </div>
-            ))
+          <div className="text-xs text-slate-400 italic p-2 bg-slate-100 rounded">
+            Need a 📱 Smartphone to unlock gig work.
+          </div>
         )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const HUD = ({ week, money, timeRemaining, maxTime, happiness, onOpenInventory, endWeek }) => {
-    // Happiness Face Logic
-    let face = '😐';
-    if (happiness >= 80) face = '😁';
-    else if (happiness >= 60) face = '🙂';
-    else if (happiness >= 40) face = '😐';
-    else if (happiness >= 20) face = '😟';
-    else face = '😫';
+const LibraryContent = ({ state, actions, setNotification }) => {
+  const { player } = state;
+  const availableJobs = jobsData.filter(j => j.id !== 'gig_driver');
+  const isCorpEmployee = player.job?.type === 'corporate';
+  const hasLaptop = player.inventory.some(i => i.id === 'laptop');
 
-    return (
-  <div className="absolute bottom-0 left-0 right-0 h-24 bg-slate-900 border-t-4 border-slate-700 flex items-center justify-between px-4 md:px-8 z-30 shadow-2xl">
-    
-    {/* Week Clock */}
-    <div className="flex flex-col items-center">
-      <div className="text-4xl">🕒</div>
-      <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mt-1">Week {week}</div>
-    </div>
+  const handleApply = (job) => {
+    const prev = state;
+    actions.applyForJob(job);
+    // Notification will come from lastJobResult — handled in Board
+  };
 
-    {/* Stats & Time */}
-    <div className="flex-grow mx-4 md:mx-8 flex items-center gap-4 md:gap-8">
-        {/* Happiness */}
-        <div className="flex flex-col items-center" title={`Happiness: ${happiness}%`}>
-            <div className="text-4xl">{face}</div>
-            <div className="w-16 h-2 bg-slate-800 rounded-full mt-1 overflow-hidden border border-slate-600">
-                <div className={`h-full ${happiness < 30 ? 'bg-red-500' : 'bg-yellow-400'}`} style={{ width: `${happiness}%` }}></div>
-            </div>
+  return (
+    <div className="grid grid-cols-2 gap-4 h-full">
+      <div className="flex flex-col">
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📋 Job Board</h3>
+        <div className="flex-grow overflow-y-auto space-y-1">
+          {availableJobs.map(job => (
+            <button
+              key={job.id}
+              onClick={() => handleApply(job)}
+              className="w-full text-left p-2 bg-white border hover:border-emerald-400 rounded text-xs group"
+            >
+              <div className="flex justify-between">
+                <span className="font-bold group-hover:text-emerald-600">{job.title}</span>
+                <span className="font-mono">${job.wage}/hr</span>
+              </div>
+              <div className="text-slate-400">
+                {job.requirements?.education ? `${job.requirements.education} · ` : 'Entry Level · '}
+                {job.requirements?.experience ? `${job.requirements.experience}wks exp` : ''}
+              </div>
+            </button>
+          ))}
         </div>
-
-        {/* Time Bar (Center) */}
-        <div className="flex-grow hidden md:flex flex-col gap-1">
-        <div className="flex justify-between text-xs text-slate-400 uppercase font-bold">
-            <span>Time Remaining</span>
-            <span>{timeRemaining}h / {maxTime}h</span>
-        </div>
-        <div className="h-6 bg-slate-800 rounded-full border border-slate-600 overflow-hidden relative">
-            <div 
-            className={`h-full transition-all duration-500 ${timeRemaining < 20 ? 'bg-red-500' : 'bg-blue-500'}`}
-            style={{ width: `${(timeRemaining / maxTime) * 100}%` }}
-            />
-            {/* Grid lines for time */}
-            <div className="absolute inset-0 flex justify-between px-2">
-                {[...Array(10)].map((_, i) => <div key={i} className="w-px h-full bg-slate-900/20"></div>)}
-            </div>
-        </div>
-        </div>
-    </div>
-
-    {/* Actions */}
-    <div className="flex items-center gap-4">
-      <button 
-        onClick={onOpenInventory}
-        className="bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg border border-slate-500 shadow active:translate-y-1 transition"
-        title="Inventory"
-      >
-        🎒
-      </button>
-
-      <div className="bg-black/50 p-3 rounded-lg border border-slate-700 font-mono text-green-400 text-xl md:text-2xl shadow-inner min-w-[120px] text-right">
-        ${money.toFixed(2)}
       </div>
-      <button 
-        onClick={endWeek}
-        className="bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-3 rounded-lg shadow border-b-4 border-red-800 active:border-b-0 active:translate-y-1 transition-all text-sm uppercase"
-      >
-        End Week
-      </button>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Remote Work</h3>
+        {isCorpEmployee && hasLaptop ? (
+          <button
+            onClick={actions.work}
+            disabled={player.timeRemaining < 8}
+            className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded hover:bg-emerald-100 disabled:opacity-50 text-sm"
+          >
+            <div className="font-bold">Work Shift (8h)</div>
+            <div className="text-xs text-emerald-700">{player.job.title} · ${player.job.wage}/hr</div>
+          </button>
+        ) : isCorpEmployee && !hasLaptop ? (
+          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Need a 💻 Laptop for remote work.</div>
+        ) : (
+          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Corporate employees can work remotely here with a laptop.</div>
+        )}
+      </div>
     </div>
-  </div>
-)};
+  );
+};
 
-const NewsFeed = ({ history }) => (
-  <div className="absolute bottom-28 right-4 w-64 max-h-48 overflow-y-auto bg-white/80 backdrop-blur border border-slate-300 rounded-lg shadow-lg p-2 z-20 hidden md:block">
-    <h4 className="text-xs font-bold uppercase text-slate-500 mb-2 sticky top-0 bg-white/80 backdrop-blur pb-1 border-b border-slate-200">
-      🔔 Notifications
-    </h4>
-    <div className="flex flex-col gap-2">
-      {history.length === 0 && <div className="text-xs text-slate-400 italic">No news yet...</div>}
-      {history.slice(0, 10).map((entry, i) => (
-        <div key={i} className="text-xs border-b border-slate-200 last:border-0 pb-1">
-          {entry}
+const TrendSettersContent = ({ state, actions }) => {
+  const { player } = state;
+  const clothing = itemsData.filter(i => i.type === 'clothing');
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col items-center justify-center bg-pink-50 rounded-lg p-4">
+        <div className="text-7xl mb-2">👗</div>
+        <div className="text-xs font-bold text-pink-800 text-center">Dress for success</div>
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Clothing</h3>
+        {clothing.map(item => {
+          const owned = player.inventory.some(i => i.id === item.id);
+          return (
+            <button
+              key={item.id}
+              onClick={() => !owned && actions.buyItem(item)}
+              disabled={owned}
+              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 disabled:opacity-60 text-sm"
+            >
+              <span>{item.name}</span>
+              <span className="font-mono text-xs">{owned ? '✅ OWNED' : `$${item.cost}`}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const CoffeeShopContent = ({ state, actions }) => {
+  const { player } = state;
+  const isServiceEmployee = player.job?.type === 'service';
+  const foodItems = itemsData.filter(i => i.type === 'food');
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Menu</h3>
+        <button
+          onClick={() => actions.buyItem({ id: 'espresso', name: 'Espresso', cost: 5, type: 'food', hungerRestore: 10, happinessBoost: 8, timeToEat: 0.5 })}
+          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 mb-1 text-sm"
+        >
+          <span>☕ Espresso</span>
+          <span className="font-mono">$5</span>
+        </button>
+        <button
+          onClick={() => actions.buyItem({ id: 'pastry', name: 'Pastry', cost: 8, type: 'food', hungerRestore: 20, happinessBoost: 6, timeToEat: 0.5 })}
+          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 text-sm"
+        >
+          <span>🥐 Croissant</span>
+          <span className="font-mono">$8</span>
+        </button>
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only</h3>
+        {isServiceEmployee ? (
+          <button
+            onClick={actions.work}
+            disabled={player.timeRemaining < 8}
+            className="w-full p-3 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 disabled:opacity-50 text-sm"
+          >
+            <div className="font-bold">Work Shift (8h)</div>
+            <div className="text-xs text-amber-800">{player.job.title} · ${player.job.wage}/hr</div>
+          </button>
+        ) : (
+          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Apply for a service job at the Library to work here.</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const BlacksMarketContent = ({ state, actions }) => {
+  const { player } = state;
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Pawn Shop</h3>
+        <p className="text-xs italic text-slate-500 mb-2">"50¢ on the dollar, take it or leave it."</p>
+        {player.inventory.length === 0 ? (
+          <div className="text-xs text-slate-400 italic">Nothing to sell.</div>
+        ) : player.inventory.map((item, i) => (
+          <div key={i} className="flex justify-between items-center p-2 bg-white border rounded mb-1 text-xs">
+            <span>{item.name}</span>
+            <button
+              onClick={() => actions.sellItem(item)}
+              className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold hover:bg-red-200"
+            >
+              ${Math.floor(item.cost * 0.5)}
+            </button>
+          </div>
+        ))}
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Ticket Booth</h3>
+        <button
+          onClick={() => {
+            if (player.money >= 10) {
+              actions.buyItem({ id: `lottery_${Date.now()}`, name: 'Lottery Ticket', cost: 10, type: 'food', hungerRestore: 0, happinessBoost: Math.random() < 0.05 ? 50 : -2, timeToEat: 0 });
+            }
+          }}
+          disabled={player.money < 10}
+          className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 mb-2 text-sm"
+        >
+          <div className="font-bold">🎰 Lottery ($10)</div>
+          <div className="text-xs text-yellow-700">5% to win big</div>
+        </button>
+        <button
+          onClick={() => actions.buyItem({ id: 'concert', name: 'Concert Ticket', cost: 150, type: 'food', hungerRestore: 0, happinessBoost: 20, timeToEat: 3 })}
+          disabled={player.money < 150}
+          className="w-full p-3 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 disabled:opacity-50 text-sm"
+        >
+          <div className="font-bold">🎸 Rock Concert ($150)</div>
+          <div className="text-xs text-purple-700">+20 Happiness</div>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const CityCollegeContent = ({ state, actions }) => {
+  const { player } = state;
+  return (
+    <div className="h-full flex flex-col gap-3">
+      {player.currentCourse && (
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <h3 className="font-bold text-blue-800 text-sm">{player.currentCourse.title}</h3>
+          <div className="w-full bg-blue-200 h-3 rounded-full mt-1 overflow-hidden">
+            <div className="bg-blue-600 h-full" style={{ width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%` }} />
+          </div>
+          <div className="text-xs mt-1 text-blue-700">{player.currentCourse.progress}/{player.currentCourse.totalHours} hrs</div>
+          <button
+            onClick={actions.study}
+            disabled={player.timeRemaining < 10}
+            className="mt-2 bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 text-xs"
+          >
+            Study 10hrs
+          </button>
         </div>
-      ))}
+      )}
+      <div className="flex-grow overflow-y-auto space-y-1">
+        {educationData.map(course => {
+          const eduReq = course.requirements?.education;
+          const canEnroll = !eduReq || meetsEducation(player.education, eduReq);
+          const alreadyDone = meetsEducation(player.education, course.degree);
+          return (
+            <button
+              key={course.id}
+              onClick={() => canEnroll && !alreadyDone && !player.currentCourse && actions.enroll(course)}
+              disabled={!canEnroll || alreadyDone || !!player.currentCourse}
+              className="w-full flex justify-between items-center p-2 border rounded hover:bg-blue-50 disabled:opacity-50 text-xs"
+            >
+              <div className="text-left">
+                <div className="font-bold">
+                  {alreadyDone ? '✅ ' : ''}{course.title}
+                </div>
+                <div className="text-slate-400">{course.totalHours}hrs · {course.description}</div>
+              </div>
+              <span className="font-mono font-bold ml-2">${course.cost}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-// --- Main Board Component ---
+const TechStoreContent = ({ state, actions }) => {
+  const { player } = state;
+  const isTechEmployee = player.job?.type === 'tech';
+  const electronics = itemsData.filter(i => i.type === 'electronics');
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Products</h3>
+        {electronics.map(item => {
+          const owned = player.inventory.some(i => i.id === item.id);
+          return (
+            <button
+              key={item.id}
+              onClick={() => !owned && actions.buyItem(item)}
+              disabled={owned}
+              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-blue-50 disabled:opacity-60 text-xs"
+            >
+              <div className="text-left">
+                <div className="font-bold">{item.name}</div>
+                <div className="text-slate-400">{item.effect}</div>
+              </div>
+              <span className="font-mono">{owned ? '✅' : `$${item.cost}`}</span>
+            </button>
+          );
+        })}
+        {/* Streaming sub */}
+        {itemsData.filter(i => i.type === 'subscription').map(item => {
+          const owned = player.inventory.some(i => i.id === item.id);
+          return (
+            <button
+              key={item.id}
+              onClick={() => !owned && actions.buyItem(item)}
+              disabled={owned}
+              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-blue-50 disabled:opacity-60 text-xs mt-2"
+            >
+              <div className="text-left">
+                <div className="font-bold">{item.name}</div>
+                <div className="text-slate-400">{item.effect}</div>
+              </div>
+              <span className="font-mono">{owned ? '✅' : `$${item.cost}`}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Tech Work</h3>
+        {isTechEmployee ? (
+          <button
+            onClick={actions.work}
+            disabled={player.timeRemaining < 8}
+            className="w-full p-3 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
+          >
+            <div className="font-bold">Code Sprint (8h)</div>
+            <div className="text-xs text-blue-700">{player.job.title} · ${player.job.wage}/hr</div>
+          </button>
+        ) : (
+          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Tech employees work here. Apply at the Library.</div>
+        )}
+      </div>
+    </div>
+  );
+};
 
+const NeoBankContent = ({ state, actions }) => {
+  const { player } = state;
+  const [depositAmt, setDepositAmt] = useState(100);
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-3">
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1">Banking</h3>
+        <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
+          <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1%/wk)</div>
+          <div className="text-2xl font-mono mb-2">${player.savings}</div>
+          <div className="flex gap-1">
+            <input
+              type="number"
+              value={depositAmt}
+              onChange={e => setDepositAmt(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-20 border rounded px-1 py-0.5 text-xs"
+              min="1"
+            />
+            <button onClick={() => actions.bankTransaction('deposit', depositAmt)} className="flex-1 bg-white border border-indigo-200 py-0.5 rounded hover:bg-indigo-100 text-xs">Dep</button>
+            <button onClick={() => actions.bankTransaction('withdraw', depositAmt)} className="flex-1 bg-white border border-indigo-200 py-0.5 rounded hover:bg-indigo-100 text-xs">W/D</button>
+          </div>
+        </div>
+        <div className="bg-red-50 p-3 rounded border border-red-100">
+          <div className="text-xs font-bold text-red-700 mb-1">Debt (5%/wk)</div>
+          <div className="text-2xl font-mono mb-2 text-red-600">${player.debt}</div>
+          <div className="flex gap-1">
+            <button onClick={() => actions.bankTransaction('repay', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Pay ${depositAmt}</button>
+            <button onClick={() => actions.bankTransaction('borrow', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Borrow</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📈 Stocks</h3>
+        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+          {stocksData.map(stock => {
+            const currentPrice = state.market[stock.symbol];
+            const owned = player.portfolio?.[stock.symbol] || 0;
+            const isUp = currentPrice >= stock.basePrice;
+            return (
+              <div key={stock.symbol} className="bg-white p-2 rounded border text-xs">
+                <div className="flex justify-between mb-1">
+                  <span className="font-bold">{stock.symbol}</span>
+                  <span className={`font-mono ${isUp ? 'text-green-600' : 'text-red-600'}`}>${currentPrice}</span>
+                </div>
+                <div className="text-slate-400 mb-1">{stock.name}</div>
+                <div className="flex justify-between text-slate-500 mb-1">
+                  <span>Owned: {owned}</span>
+                  <span>Value: ${owned * currentPrice}</span>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => actions.buyStock(stock.symbol, 1)} className="flex-1 bg-green-100 text-green-800 py-0.5 rounded hover:bg-green-200">Buy</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 10)} className="flex-1 bg-green-100 text-green-800 py-0.5 rounded hover:bg-green-200">Buy10</button>
+                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-0.5 rounded hover:bg-red-200 disabled:opacity-40">Sell</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LeasingOfficeContent = ({ state, actions }) => {
+  const { player } = state;
+  return (
+    <div className="space-y-3">
+      <div className="bg-purple-50 p-3 rounded border border-purple-100">
+        <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
+        <div className="text-lg font-bold">{player.housing?.title || 'Homeless'}</div>
+        <div className="text-sm text-slate-500">Rent: ${player.housing?.rent}/week · Security: {player.housing?.security}</div>
+      </div>
+      <div className="space-y-2">
+        {housingData.map(h => (
+          <button
+            key={h.id}
+            onClick={() => actions.rentApartment(h)}
+            disabled={player.housing?.id === h.id}
+            className="w-full flex justify-between items-center p-3 border rounded hover:bg-purple-50 disabled:bg-purple-100 disabled:opacity-70 text-sm"
+          >
+            <div className="text-left">
+              <div className="font-bold">{h.title}</div>
+              <div className="text-xs text-slate-400">{h.description}</div>
+            </div>
+            <div className="text-right">
+              <div className="font-mono font-bold">${h.rent}/wk</div>
+              <div className="text-xs text-slate-400">{h.security} security</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { 
-    player, jones, week, spendTime, updateMoney, logEvent, endWeek,
-    applyForJob, workCurrentJob, buyItem, sellItem, inventory, enroll, study, rentApartment, travelTo, bankTransaction, isTraveling, history,
-    market, buyStock, sellStock
-  } = useGame();
+  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent } = useGame();
+
+  const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock };
 
   const [showPanel, setShowPanel] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showInventory, setShowInventory] = useState(false);
+  const [showGoals, setShowGoals] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
 
-  const handleTravel = async (id) => {
-    if (player.currentLocation === id) {
-      setShowPanel(true);
-    } else {
-      setShowPanel(false);
-      await travelTo(id);
-      setShowPanel(true);
+  // Watch for job application results
+  const prevJobResult = React.useRef(state.lastJobResult);
+  React.useEffect(() => {
+    if (state.lastJobResult && state.lastJobResult !== prevJobResult.current) {
+      setNotification({
+        title: state.lastJobResult.success ? "You're Hired!" : "Application Rejected",
+        message: state.lastJobResult.message,
+        type: state.lastJobResult.success ? 'success' : 'error',
+      });
+      prevJobResult.current = state.lastJobResult;
     }
+  }, [state.lastJobResult]);
+
+  const handleTravel = (id) => {
+    if (state.player.currentLocation === id) {
+      setShowPanel(true);
+      return;
+    }
+    setShowPanel(false);
+    setIsMoving(true);
+    travel(id);
+    setTimeout(() => {
+      setIsMoving(false);
+      setShowPanel(true);
+    }, 600);
   };
 
-  const handleApply = (job) => {
-    const result = applyForJob(job);
-    setNotification({ ...result, type: result.success ? 'success' : 'error' });
-  };
-
-  // --- Content Renderers ---
-  // (Refactored to fit the new 2-column or list layout)
-
-  const renderContent = (id) => {
-    switch(id) {
-      case 'quick_eats':
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
-            <div className="space-y-4">
-              <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Menu</h3>
-              <button onClick={() => { if(spendTime(1)) { updateMoney(-10); logEvent("Ate Fast Food"); } }} className="w-full flex justify-between items-center p-3 bg-white border rounded hover:bg-orange-50 transition">
-                <span>🍔 Burger Meal</span>
-                <span className="font-mono font-bold">$10.00</span>
-              </button>
-              <div className="text-center text-6xl py-4 opacity-50">🍟</div>
-            </div>
-            <div className="space-y-4">
-              <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Gigs</h3>
-              <button onClick={() => { if(spendTime(10)) { updateMoney(150); logEvent("Worked Gig"); } }} className="w-full flex justify-between items-center p-3 bg-white border rounded hover:bg-green-50 transition">
-                <div>
-                    <div className="font-bold">🚗 Delivery Driver</div>
-                    <div className="text-xs text-slate-500">10 Hours</div>
-                </div>
-                <span className="font-mono font-bold text-green-600">+$150.00</span>
-              </button>
-            </div>
-          </div>
-        );
-
-      case 'public_library': {
-        const availableJobs = jobsData.filter(j => j.id !== 'gig_driver');
-        return (
-          <div className="h-full flex flex-col">
-             <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-lg mb-4">
-                <h3 className="font-bold text-emerald-800 mb-2">Public Computers</h3>
-                <p className="text-sm text-slate-600 mb-4">Use the free internet to apply for jobs or learn new skills.</p>
-             </div>
-             
-             <div className="flex-grow overflow-y-auto space-y-2">
-                <h3 className="font-bold text-slate-500 text-sm uppercase mb-2">Job Listings</h3>
-                {availableJobs.map(job => (
-                    <button key={job.id} onClick={() => handleApply(job)} className="w-full text-left p-3 bg-white border hover:border-emerald-400 rounded flex justify-between items-center group">
-                        <div>
-                            <div className="font-bold group-hover:text-emerald-600">{job.title}</div>
-                            <div className="text-xs text-slate-500">
-                                {job.requirements?.experience ? `${job.requirements.experience}y Exp` : 'Entry Level'}
-                                {job.requirements?.education ? ` • ${job.requirements.education}` : ''}
-                            </div>
-                        </div>
-                        <span className="font-mono font-bold">${job.wage}/hr</span>
-                    </button>
-                ))}
-             </div>
-          </div>
-        );
-      }
-
-      case 'coffee_shop': {
-        const isEmployee = player.job && (player.job.type === 'service');
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Menu</h3>
-                    <button onClick={() => { if(spendTime(0.5)) { updateMoney(-5); logEvent("Drank Coffee"); } }} className="w-full flex justify-between items-center p-3 bg-white border rounded hover:bg-amber-50 transition">
-                        <span>☕ Espresso</span>
-                        <span className="font-mono font-bold">$5.00</span>
-                    </button>
-                    <button onClick={() => { if(spendTime(0.5)) { updateMoney(-8); logEvent("Ate Pastry"); } }} className="w-full flex justify-between items-center p-3 bg-white border rounded hover:bg-amber-50 transition">
-                        <span>🥐 Croissant</span>
-                        <span className="font-mono font-bold">$8.00</span>
-                    </button>
-                </div>
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Staff Only</h3>
-                    {isEmployee ? (
-                        <button onClick={workCurrentJob} className="w-full flex justify-between items-center p-3 bg-amber-100 border border-amber-300 rounded hover:bg-amber-200 transition">
-                            <div>
-                                <div className="font-bold">Work Shift</div>
-                                <div className="text-xs text-amber-800">8 Hours</div>
-                            </div>
-                            <span className="font-mono font-bold text-amber-900">Earn Wages</span>
-                        </button>
-                    ) : (
-                        <div className="p-4 bg-slate-100 text-slate-500 text-center rounded italic">
-                            You don't work here. Apply at the Library!
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-      }
-
-      case 'trendsetters':
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col items-center justify-center bg-pink-50 rounded-lg p-4">
-                    <div className="text-8xl mb-4">👗</div>
-                    <div className="text-center font-bold text-pink-800">New Arrivals</div>
-                </div>
-                <div className="space-y-2">
-                    {itemsData.filter(i => i.type === 'clothing').map(item => (
-                        <button 
-                            key={item.id} 
-                            onClick={() => buyItem(item)} 
-                            disabled={inventory.some(i => i.id === item.id)}
-                            className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-400 hover:bg-pink-50 disabled:opacity-50"
-                        >
-                            <span>{item.name}</span>
-                            <span className="font-mono">{inventory.some(i => i.id === item.id) ? 'OWNED' : `$${item.cost}`}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        );
-
-      case 'tech_store': {
-        const isEmployee = player.job && (player.job.type === 'tech');
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Products</h3>
-                    {itemsData.filter(i => i.type === 'electronics').map(item => (
-                        <button 
-                            key={item.id} 
-                            onClick={() => buyItem(item)} 
-                            disabled={inventory.some(i => i.id === item.id)}
-                            className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-400 hover:bg-blue-50 disabled:opacity-50"
-                        >
-                            <span>{item.name}</span>
-                            <span className="font-mono">{inventory.some(i => i.id === item.id) ? 'OWNED' : `$${item.cost}`}</span>
-                        </button>
-                    ))}
-                </div>
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Work</h3>
-                    {isEmployee ? (
-                        <button onClick={workCurrentJob} className="w-full flex justify-between items-center p-3 bg-blue-100 border border-blue-300 rounded hover:bg-blue-200 transition">
-                            <div>
-                                <div className="font-bold">Code Sprint</div>
-                                <div className="text-xs text-blue-800">8 Hours</div>
-                            </div>
-                            <span className="font-mono font-bold text-blue-900">Earn Wages</span>
-                        </button>
-                    ) : (
-                        <div className="p-4 bg-slate-100 text-slate-500 text-center rounded italic">
-                            Tech jobs available. Apply at the Library!
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-      }
-
-      case 'city_college':
-        return (
-            <div className="h-full flex flex-col">
-                {player.currentCourse ? (
-                    <div className="bg-blue-50 p-4 rounded-lg mb-4 text-center">
-                        <h3 className="font-bold text-blue-800">{player.currentCourse.title}</h3>
-                        <div className="w-full bg-blue-200 h-4 rounded-full mt-2 overflow-hidden">
-                            <div className="bg-blue-600 h-full" style={{ width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%` }}></div>
-                        </div>
-                        <div className="text-xs mt-1">{player.currentCourse.progress}/{player.currentCourse.totalHours} Hours</div>
-                        <button onClick={study} className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-full font-bold hover:bg-blue-700">Study (10h)</button>
-                    </div>
-                ) : (
-                    <div className="text-center p-4 text-slate-500">Enroll in a course to advance your career.</div>
-                )}
-                <div className="flex-grow overflow-y-auto space-y-4">
-                    <div>
-                        <h3 className="font-bold text-slate-500 text-sm uppercase mb-2">Academic Degrees</h3>
-                        <div className="space-y-2">
-                            {educationData.filter(c => c.type === 'academic').map(course => (
-                                <button key={course.id} onClick={() => enroll(course)} className="w-full flex justify-between items-center p-3 border rounded hover:bg-blue-50">
-                                    <div className="text-left">
-                                        <div className="font-bold">{course.title}</div>
-                                        <div className="text-xs text-slate-500">{course.totalHours} Hours Total</div>
-                                    </div>
-                                    <span className="font-mono font-bold">${course.cost}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-500 text-sm uppercase mb-2">Trade School</h3>
-                        <div className="space-y-2">
-                            {educationData.filter(c => c.type === 'trade').map(course => (
-                                <button key={course.id} onClick={() => enroll(course)} className="w-full flex justify-between items-center p-3 border rounded hover:bg-orange-50 border-orange-200">
-                                    <div className="text-left">
-                                        <div className="font-bold text-orange-900">{course.title}</div>
-                                        <div className="text-xs text-slate-500">{course.totalHours} Hours Total</div>
-                                    </div>
-                                    <span className="font-mono font-bold text-orange-700">${course.cost}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-
-      case 'leasing_office':
-        return (
-            <div className="space-y-4">
-                <div className="bg-purple-50 p-4 rounded border border-purple-100">
-                    <div className="text-xs uppercase text-purple-600 font-bold">Current Residence</div>
-                    <div className="text-xl font-bold">{player.housing?.title || "Homeless"}</div>
-                    <div className="text-sm">Rent: ${player.housing?.rent || 0}/week</div>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                    {housingData.map(h => (
-                        <button key={h.id} onClick={() => rentApartment(h)} disabled={player.housing?.id === h.id} className="flex justify-between items-center p-3 border rounded hover:bg-purple-50 disabled:bg-purple-100 disabled:opacity-70">
-                            <span>{h.title}</span>
-                            <span className="font-mono">${h.rent}/wk</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        );
-
-      case 'neobank': {
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Banking</h3>
-                    <div className="bg-indigo-50 p-4 rounded border border-indigo-100">
-                        <h3 className="font-bold text-indigo-800 mb-2">Savings (1% APY)</h3>
-                        <div className="text-3xl font-mono mb-4">${player.savings}</div>
-                        <div className="flex gap-2">
-                            <button onClick={() => bankTransaction('deposit', 100)} className="flex-1 bg-white border border-indigo-200 py-1 rounded hover:bg-indigo-100">Dep $100</button>
-                            <button onClick={() => bankTransaction('withdraw', 100)} className="flex-1 bg-white border border-indigo-200 py-1 rounded hover:bg-indigo-100">W/D $100</button>
-                        </div>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded border border-red-100">
-                        <h3 className="font-bold text-red-800 mb-2">Debt (5% APR)</h3>
-                        <div className="text-3xl font-mono mb-4 text-red-600">${player.debt}</div>
-                        <div className="flex gap-2">
-                            <button onClick={() => bankTransaction('repay', 100)} className="flex-1 bg-white border border-red-200 py-1 rounded hover:bg-red-100">Pay $100</button>
-                            <button onClick={() => bankTransaction('borrow', 100)} className="flex-1 bg-white border border-red-200 py-1 rounded hover:bg-red-100">Borrow $100</button>
-                        </div>
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Stock Market</h3>
-                    <div className="space-y-2 h-64 overflow-y-auto pr-2">
-                        {stocksData.map(stock => {
-                            const currentPrice = market[stock.symbol];
-                            const owned = player.portfolio?.[stock.symbol] || 0;
-                            const isUp = currentPrice >= stock.basePrice;
-                            
-                            return (
-                                <div key={stock.symbol} className="bg-white p-3 rounded border shadow-sm">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <span className="font-bold">{stock.symbol}</span>
-                                        <span className={`font-mono ${isUp ? 'text-green-600' : 'text-red-600'}`}>
-                                            ${currentPrice}
-                                        </span>
-                                    </div>
-                                    <div className="text-xs text-slate-500 mb-2">{stock.name} - {stock.description}</div>
-                                    <div className="flex justify-between items-center bg-slate-50 p-2 rounded mb-2">
-                                        <span className="text-xs font-bold text-slate-600">Owned: {owned}</span>
-                                        <span className="text-xs text-slate-400">Value: ${owned * currentPrice}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => buyStock(stock.symbol, 1)} className="flex-1 bg-green-100 text-green-800 text-xs font-bold py-1 rounded hover:bg-green-200">Buy</button>
-                                        <button onClick={() => buyStock(stock.symbol, 10)} className="flex-1 bg-green-100 text-green-800 text-xs font-bold py-1 rounded hover:bg-green-200">Buy 10</button>
-                                        <button onClick={() => sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 text-xs font-bold py-1 rounded hover:bg-red-200 disabled:opacity-50">Sell</button>
-                                        <button onClick={() => sellStock(stock.symbol, owned)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 text-xs font-bold py-1 rounded hover:bg-red-200 disabled:opacity-50">Sell All</button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-        );
-      }
-
-      case 'blacks_market':
-        return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Pawn Shop</h3>
-                    <div className="bg-slate-100 p-4 rounded text-sm text-slate-600 mb-2">
-                        "I'll give you 50% of what you paid. Take it or leave it."
-                    </div>
-                    <div className="space-y-2 h-64 overflow-y-auto pr-2">
-                        {inventory.length === 0 ? (
-                            <div className="text-center text-slate-400 italic py-4">Nothing to sell...</div>
-                        ) : (
-                            inventory.map((item, i) => (
-                                <div key={i} className="flex justify-between items-center p-3 bg-white border rounded shadow-sm">
-                                    <div>
-                                        <div className="font-bold">{item.name}</div>
-                                        <div className="text-xs text-slate-500">Paid: ${item.cost}</div>
-                                    </div>
-                                    <button 
-                                        onClick={() => sellItem(item)}
-                                        className="bg-red-100 text-red-800 px-3 py-1 rounded text-sm font-bold hover:bg-red-200"
-                                    >
-                                        Sell ${Math.floor(item.cost * 0.5)}
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-300 pb-2">Ticket Booth</h3>
-                    <div className="space-y-2">
-                        <button 
-                            onClick={() => {
-                                if (player.money >= 10) {
-                                    updateMoney(-10);
-                                    if (Math.random() < 0.05) { // 5% chance
-                                        updateMoney(500);
-                                        logEvent("WINNER! You won $500 in the lottery!");
-                                    } else {
-                                        logEvent("Lost the lottery. Better luck next time.");
-                                    }
-                                } else {
-                                    logEvent("Not enough money for a ticket.");
-                                }
-                            }}
-                            className="w-full p-4 bg-yellow-100 border border-yellow-300 rounded hover:bg-yellow-200 flex justify-between items-center"
-                        >
-                            <div className="text-left">
-                                <div className="font-bold text-yellow-900">Lottery Ticket</div>
-                                <div className="text-xs text-yellow-700">Win Big! (Maybe)</div>
-                            </div>
-                            <span className="font-mono font-bold text-yellow-800">$10</span>
-                        </button>
-
-                        <button 
-                            onClick={() => {
-                                if (player.money >= 150) {
-                                    updateMoney(-150);
-                                    // Add happiness directly here since we don't have a setHappiness exposed easily, 
-                                    // but we can use a "consumable" pattern or just rely on the fact that we can't easily set happiness from here without exposing it.
-                                    // Wait, I can't set happiness directly from here.
-                                    // I should probably make a "buyExperience" function or just use buyItem with a special item.
-                                    // For now, I'll just log it and maybe add a "Concert Ticket" item that is auto-consumed?
-                                    // Actually, let's just use buyItem with a fake item.
-                                    buyItem({ id: 'concert', name: 'Concert Ticket', cost: 150, type: 'food', effect: 'Huge Fun' }); 
-                                    // Note: buyItem handles 'food' type by adding happiness. I'll use that hack for now or update buyItem.
-                                } else {
-                                    logEvent("Not enough money for tickets.");
-                                }
-                            }}
-                            className="w-full p-4 bg-purple-100 border border-purple-300 rounded hover:bg-purple-200 flex justify-between items-center"
-                        >
-                            <div className="text-left">
-                                <div className="font-bold text-purple-900">Rock Concert</div>
-                                <div className="text-xs text-purple-700">Boost Happiness (+5)</div>
-                            </div>
-                            <span className="font-mono font-bold text-purple-800">$150</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-
-      default:
-        return <div>Select a location</div>;
+  const renderPanelContent = (id) => {
+    switch (id) {
+      case 'quick_eats':     return <QuickEatsContent state={state} actions={actions} />;
+      case 'public_library': return <LibraryContent state={state} actions={actions} setNotification={setNotification} />;
+      case 'trendsetters':   return <TrendSettersContent state={state} actions={actions} />;
+      case 'coffee_shop':    return <CoffeeShopContent state={state} actions={actions} />;
+      case 'blacks_market':  return <BlacksMarketContent state={state} actions={actions} />;
+      case 'city_college':   return <CityCollegeContent state={state} actions={actions} />;
+      case 'tech_store':     return <TechStoreContent state={state} actions={actions} />;
+      case 'neobank':        return <NeoBankContent state={state} actions={actions} />;
+      case 'leasing_office': return <LeasingOfficeContent state={state} actions={actions} />;
+      default:               return <div className="text-slate-400 italic text-center p-8">Nothing here yet.</div>;
     }
   };
 
   return (
-    <div className="relative w-full h-[700px] bg-slate-200 rounded-xl overflow-hidden border-4 border-slate-800 shadow-2xl select-none">
-      {/* Background Map */}
-      <div className="absolute inset-0 bg-[#e2e8f0] opacity-50">
-        {/* Decorative city blocks/grid could go here */}
-      </div>
-      
-      {/* Inner Track & Player Token */}
-      <InnerTrack 
-        currentLocation={player.currentLocation} 
-        isTraveling={isTraveling} 
-        jonesLocation={jones.currentLocation}
-      />
+    <div className="relative w-full bg-green-100 rounded-xl overflow-hidden border-4 border-slate-800 shadow-2xl select-none" style={{ height: 'min(680px, calc(100vh - 2rem))' }}>
 
-      {/* Jones Status Tracker */}
-      <JonesStatus jones={jones} />
-
-      {/* News Feed */}
-      <NewsFeed history={history} />
+      {/* Map background */}
+      <MapBackground />
 
       {/* Buildings */}
       {LOCATION_ORDER.map(id => (
-        <BuildingNode 
+        <BuildingNode
           key={id}
           id={id}
           config={LOCATIONS_CONFIG[id]}
-          isCurrent={player.currentLocation === id}
-          isTraveling={isTraveling}
+          isCurrent={state.player.currentLocation === id}
+          isTraveling={isMoving}
           onClick={() => handleTravel(id)}
         />
       ))}
 
-      {/* Central Panel */}
-      {showPanel && !isTraveling && (
-        <CentralPanel 
-          locationId={player.currentLocation} 
-          onClose={() => setShowPanel(false)}
-        >
-          {renderContent(player.currentLocation)}
-        </CentralPanel>
+      {/* Jones token */}
+      <PlayerToken
+        locationId={state.jones.currentLocation}
+        isMoving={false}
+        label="The Joneses"
+        emoji="🤑"
+        colorClass="bg-red-400"
+        zIndex={9}
+      />
+
+      {/* Player token */}
+      <PlayerToken
+        locationId={state.player.currentLocation}
+        isMoving={isMoving}
+        label="You"
+        emoji="😎"
+        colorClass="bg-yellow-400"
+        zIndex={11}
+      />
+
+      {/* Jones sidebar */}
+      <JonesSidebar jones={state.jones} difficulty={state.difficulty} />
+
+      {/* Notification feed */}
+      <NotificationFeed history={state.history} />
+
+      {/* Location panel */}
+      {showPanel && !isMoving && (
+        <LocationPanel locationId={state.player.currentLocation} onClose={() => setShowPanel(false)}>
+          {renderPanelContent(state.player.currentLocation)}
+        </LocationPanel>
       )}
 
       {/* HUD */}
-      <HUD 
-        week={week} 
-        money={player.money} 
-        timeRemaining={player.timeRemaining} 
-        maxTime={player.maxTime}
-        happiness={player.happiness}
+      <HUD
+        state={state}
         onOpenInventory={() => setShowInventory(true)}
-        endWeek={endWeek}
+        onEndWeek={endWeek}
+        onOpenGoals={() => setShowGoals(true)}
       />
 
-      {/* Inventory Modal */}
+      {/* Modals (layered, highest z-index last) */}
       {showInventory && (
-        <InventoryModal 
-            inventory={inventory} 
-            onClose={() => setShowInventory(false)} 
-        />
+        <InventoryModal inventory={state.player.inventory} onClose={() => setShowInventory(false)} />
       )}
-
-      {/* Notification Modal */}
+      {showGoals && (
+        <GoalsModal state={state} onClose={() => setShowGoals(false)} />
+      )}
+      {state.pendingEvent && (
+        <EventModal event={state.pendingEvent} onClose={dismissEvent} />
+      )}
       {notification && (
-        <NotificationModal 
-          title={notification.title} 
-          message={notification.message} 
-          type={notification.type} 
-          onClose={() => setNotification(null)} 
+        <NotificationModal
+          title={notification.title}
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
         />
       )}
     </div>

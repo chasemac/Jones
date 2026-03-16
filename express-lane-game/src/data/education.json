@@ -2,7 +2,7 @@
   {
     "id": "bootcamp",
     "title": "Coding Bootcamp",
-    "type": "academic",
+    "type": "tech",
     "cost": 2500,
     "totalHours": 40,
     "degree": "Bootcamp Certificate",
@@ -10,13 +10,33 @@
     "requirements": { "item": "laptop" }
   },
   {
-    "id": "community_college",
+    "id": "associates",
     "title": "Associate's Degree",
     "type": "academic",
     "cost": 1500,
     "totalHours": 80,
     "degree": "Associate's",
-    "description": "General education. Unlocks Admin jobs."
+    "description": "General education. Unlocks Admin Assistant & Store Manager."
+  },
+  {
+    "id": "bachelors",
+    "title": "Bachelor's Degree",
+    "type": "academic",
+    "cost": 4000,
+    "totalHours": 120,
+    "degree": "Bachelor's",
+    "description": "4-year degree. Unlocks Office Manager & Senior Developer.",
+    "requirements": { "education": "Associate's" }
+  },
+  {
+    "id": "masters",
+    "title": "Master's Degree",
+    "type": "academic",
+    "cost": 7000,
+    "totalHours": 160,
+    "degree": "Master's",
+    "description": "Advanced degree. Unlocks Director & Tech Lead roles.",
+    "requirements": { "education": "Bachelor's" }
   },
   {
     "id": "electrician_cert",
@@ -25,7 +45,7 @@
     "cost": 1000,
     "totalHours": 60,
     "degree": "Electrician License",
-    "description": "Learn wiring and circuits. High demand."
+    "description": "Learn wiring and circuits. High demand skill."
   },
   {
     "id": "plumbing_license",

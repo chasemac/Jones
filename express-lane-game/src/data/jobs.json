@@ -5,7 +5,8 @@
     "type": "gig",
     "wage": 15,
     "requirements": { "item": "smartphone" },
-    "description": "Deliver food. No benefits. Wear and tear on your soul."
+    "description": "Deliver food. No benefits. Wear and tear on your soul.",
+    "promotion": null
   },
   {
     "id": "barista",
@@ -13,8 +14,8 @@
     "type": "service",
     "wage": 12,
     "requirements": {},
-    "promotion": "shift_lead",
-    "description": "Make coffee. Deal with caffeine-deprived customers."
+    "description": "Make coffee. Deal with caffeine-deprived customers.",
+    "promotion": "shift_lead"
   },
   {
     "id": "shift_lead",
@@ -22,17 +23,17 @@
     "type": "service",
     "wage": 16,
     "requirements": { "experience": 4, "item": "business_casual" },
-    "promotion": "store_manager",
-    "description": "Herding cats, but the cats are teenagers."
+    "description": "Herding cats, but the cats are teenagers.",
+    "promotion": "store_manager"
   },
   {
-    "id": "junior_dev",
-    "title": "Junior Developer",
-    "type": "tech",
-    "wage": 25,
-    "requirements": { "education": "Bootcamp Certificate", "item": "laptop" },
-    "promotion": "senior_dev",
-    "description": "Fix bugs. Create new bugs. Repeat."
+    "id": "store_manager",
+    "title": "Store Manager",
+    "type": "service",
+    "wage": 22,
+    "requirements": { "experience": 8, "education": "Associate's", "item": "business_casual" },
+    "description": "You're the adult in the room now.",
+    "promotion": null
   },
   {
     "id": "admin_assistant",
@@ -40,7 +41,52 @@
     "type": "corporate",
     "wage": 18,
     "requirements": { "education": "Associate's", "item": "business_casual" },
-    "promotion": "office_manager",
-    "description": "The glue holding the office together."
+    "description": "The glue holding the office together.",
+    "promotion": "office_manager"
+  },
+  {
+    "id": "office_manager",
+    "title": "Office Manager",
+    "type": "corporate",
+    "wage": 28,
+    "requirements": { "experience": 6, "education": "Bachelor's", "item": "business_casual" },
+    "description": "You manage the people who manage the coffee.",
+    "promotion": "director"
+  },
+  {
+    "id": "director",
+    "title": "Director",
+    "type": "corporate",
+    "wage": 50,
+    "requirements": { "experience": 10, "education": "Master's", "item": "suit" },
+    "description": "Corner office. Existential dread included.",
+    "promotion": null
+  },
+  {
+    "id": "junior_dev",
+    "title": "Junior Developer",
+    "type": "tech",
+    "wage": 25,
+    "requirements": { "education": "Bootcamp Certificate", "item": "laptop" },
+    "description": "Fix bugs. Create new bugs. Repeat.",
+    "promotion": "senior_dev"
+  },
+  {
+    "id": "senior_dev",
+    "title": "Senior Developer",
+    "type": "tech",
+    "wage": 40,
+    "requirements": { "experience": 6, "education": "Bachelor's", "item": "laptop" },
+    "description": "Now you fix other people's bugs too.",
+    "promotion": "tech_lead"
+  },
+  {
+    "id": "tech_lead",
+    "title": "Tech Lead",
+    "type": "tech",
+    "wage": 60,
+    "requirements": { "experience": 10, "education": "Master's", "item": "laptop" },
+    "description": "Half coding, half explaining why it takes so long.",
+    "promotion": null
   }
 ]
