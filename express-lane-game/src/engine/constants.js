@@ -74,6 +74,17 @@ export const LOCATION_ORDER = [
   'neobank',
 ];
 
+// Travel cost = minimum steps around the ring (clockwise or counterclockwise)
+export const travelCost = (fromId, toId) => {
+  const n = LOCATION_ORDER.length;
+  const a = LOCATION_ORDER.indexOf(fromId);
+  const b = LOCATION_ORDER.indexOf(toId);
+  if (a === -1 || b === -1) return 1;
+  const cw = (b - a + n) % n;
+  const ccw = (a - b + n) % n;
+  return Math.min(cw, ccw);
+};
+
 // Job types → where you work
 export const JOB_WORK_LOCATION = {
   service: 'coffee_shop',

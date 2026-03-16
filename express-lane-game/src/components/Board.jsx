@@ -182,7 +182,7 @@ const LocationPanel = ({ locationId, children, onClose }) => {
 };
 
 // ─── HUD ─────────────────────────────────────────────────────────────────────
-const HUD = ({ state, onOpenInventory, onEndWeek, onOpenGoals, onToggleMute }) => {
+const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const [muted, setMuted] = useState(false);
   const { player, week, economy } = state;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
@@ -261,12 +261,9 @@ const HUD = ({ state, onOpenInventory, onEndWeek, onOpenGoals, onToggleMute }) =
             title={muted ? 'Unmute' : 'Mute'}
           >{muted ? '🔇' : '🔊'}</button>
         </div>
-        <button
-          onClick={onEndWeek}
-          className="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-1 rounded shadow border-b-2 border-red-800 active:border-b-0 active:translate-y-px transition-all text-xs uppercase"
-        >
-          End Week
-        </button>
+        <div className="text-[9px] text-slate-500 text-center mt-0.5">
+          Time runs out → new week
+        </div>
       </div>
     </div>
   );
@@ -835,6 +832,14 @@ const LeasingOfficeContent = ({ state, actions }) => {
   const { player } = state;
   return (
     <div className="space-y-3">
+      {/* Sleep / End Week button */}
+      <button
+        onClick={actions.endWeek}
+        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95"
+      >
+        😴 Sleep — End Week
+        <span className="text-xs font-normal opacity-75">({player.timeRemaining}h remaining)</span>
+      </button>
       <div className="bg-purple-50 p-3 rounded border border-purple-100">
         <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
         <div className="text-lg font-bold">{player.housing?.title || 'Homeless'}</div>
@@ -865,9 +870,9 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent } = useGame();
+  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, toggleMute } = useGame();
 
-  const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock };
+  const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, toggleMute };
 
   const [showPanel, setShowPanel] = useState(true);
   const [notification, setNotification] = useState(null);
@@ -994,15 +999,32 @@ const Board = () => {
         zIndex={9}
       />
 
-      {/* Player token */}
-      <PlayerToken
-        locationId={state.player.currentLocation}
-        isMoving={isMoving}
-        label="You"
-        emoji="😎"
-        colorClass="bg-yellow-400"
-        zIndex={11}
-      />
+      {/* All player tokens */}
+      {state.players?.map((p, i) => {
+        const isActive = i === state.activePlayerIndex;
+        return (
+          <PlayerToken
+            key={p.name}
+            locationId={p.currentLocation}
+            isMoving={isActive && isMoving}
+            label={p.name}
+            emoji={p.emoji}
+            colorClass={isActive ? 'bg-yellow-400' : 'bg-slate-400 opacity-60'}
+            zIndex={isActive ? 11 : 10}
+          />
+        );
+      })}
+
+      {/* Multiplayer turn banner */}
+      {state.players?.length > 1 && (
+        <div
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full font-black text-sm shadow-lg text-white flex items-center gap-2"
+          style={{ background: state.player?.color || '#6366f1' }}
+        >
+          {state.player?.emoji} {state.player?.name}'s Turn
+          <span className="text-xs font-normal opacity-75">Wk {state.week}</span>
+        </div>
+      )}
 
       {/* Jones sidebar */}
       <JonesSidebar jones={state.jones} difficulty={state.difficulty} />
@@ -1031,9 +1053,8 @@ const Board = () => {
       <HUD
         state={state}
         onOpenInventory={() => setShowInventory(true)}
-        onEndWeek={endWeek}
         onOpenGoals={() => setShowGoals(true)}
-        onToggleMute={actions.toggleMute}
+        onToggleMute={toggleMute}
       />
 
       {/* Modals (layered, highest z-index last) */}

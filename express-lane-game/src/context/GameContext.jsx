@@ -60,7 +60,7 @@ export const GameProvider = ({ children }) => {
 
   // ── Action creators (stable refs via useCallback not needed — tiny wrappers) ─
   const actions = {
-    initGame: (difficulty) => dispatch({ type: 'INIT_GAME', difficulty }),
+    initGame: (difficulty, playerCount) => dispatch({ type: 'INIT_GAME', difficulty, playerCount: playerCount || 1 }),
     startGame: () => dispatch({ type: 'START_GAME' }),
     resetGame: () => {
       localStorage.removeItem(SAVE_KEY);
@@ -85,7 +85,11 @@ export const GameProvider = ({ children }) => {
     getMuted: () => isMuted,
   };
 
-  const value = { state, dispatch, ...actions };
+  // Derived helpers consumed by UI
+  const activePlayer = state.players?.[state.activePlayerIndex] ?? state.players?.[0];
+  const enrichedState = { ...state, player: activePlayer };
+
+  const value = { state: enrichedState, dispatch, ...actions };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
