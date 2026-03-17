@@ -18,13 +18,17 @@
     "name": "Greasy Burger",
     "cost": 5,
     "type": "food",
-    "effect": "Restores Hunger, -1 Health"
+    "hungerRestore": 40,
+    "happinessBoost": 3,
+    "timeToEat": 1,
+    "effect": "Restores Hunger"
   },
   {
     "id": "casual_clothes",
     "name": "Casual Clothes",
     "cost": 50,
     "type": "clothing",
+    "clothingWear": 100,
     "effect": "Basic requirement"
   },
   {
@@ -32,6 +36,7 @@
     "name": "Business Casual",
     "cost": 200,
     "type": "clothing",
+    "clothingWear": 100,
     "effect": "Required for Office Jobs"
   },
   {
@@ -39,14 +44,15 @@
     "name": "Professional Suit",
     "cost": 500,
     "type": "clothing",
-    "effect": "Required for Management"
+    "clothingWear": 100,
+    "effect": "Required for Management; deters Wild Willy"
   },
   {
     "id": "smart_watch",
     "name": "Smart Watch",
     "cost": 300,
     "type": "electronics",
-    "effect": "Boosts Happiness Recovery"
+    "effect": "+5 Happiness/week"
   },
   {
     "id": "streaming_sub",
@@ -54,5 +60,22 @@
     "cost": 15,
     "type": "subscription",
     "effect": "+Happiness/week, -$15/week"
+  },
+  {
+    "id": "concert_ticket",
+    "name": "Concert Ticket",
+    "cost": 60,
+    "type": "entertainment",
+    "happinessBoost": 20,
+    "relaxationBoost": 15,
+    "effect": "+20 Happiness, +15 Relaxation (one-time)"
+  },
+  {
+    "id": "hot_tub",
+    "name": "Hot Tub",
+    "cost": 2000,
+    "type": "appliance",
+    "relaxationPerWeek": 3,
+    "effect": "+3 Relaxation/week (prevents burnout)"
   }
 ]

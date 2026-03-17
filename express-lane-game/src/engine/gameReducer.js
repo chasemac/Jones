@@ -21,6 +21,8 @@ export const buildPlayer = (index, startingMoney) => ({
   emoji: PLAYER_EMOJIS[index],
   money: startingMoney,
   happiness: 50,
+  dependability: 50,  // 0-100; career goal metric, decays -3/week, +5 per shift worked
+  relaxation: 50,     // 0-100; decays -5/week, hitting 0 forces a Doctor visit
   maxTime: 60,
   timeRemaining: 60,
   education: 'High School',
@@ -100,7 +102,7 @@ const checkEndConditions = (state) => {
       netWorth >= goals.wealth &&
       p.happiness >= goals.happiness &&
       meetsEducation(p.education, goals.education) &&
-      p.job && p.job.wage >= goals.careerWage
+      p.dependability >= goals.careerDependability
     ) {
       return { ...state, gameStatus: 'won', winner: p.name };
     }
@@ -145,14 +147,32 @@ export const gameReducer = (state, action) => {
 
       let s = state;
 
-      // Wild Willy: 30% chance when leaving Black's Market (only in Low-security housing)
+      // Wild Willy: deterred by a suit
+      const hasSuit = player.inventory.some(i => i.id === 'suit');
+
+      // 30% chance when leaving Black's Market in Low-security housing
       if (player.currentLocation === 'blacks_market' && player.housing.security === 'Low' && Math.random() < 0.3) {
-        const stolen = Math.floor(player.money * 0.5);
-        if (stolen > 0) {
-          s = log(s, `👹 WILD WILLY stole $${stolen} from you!`);
-          s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen }));
+        if (hasSuit) {
+          s = log(s, `👹 Wild Willy saw your suit and backed off.`);
         } else {
-          s = log(s, `👹 Wild Willy tried to rob you, but you're broke!`);
+          const stolen = Math.floor(player.money * 0.5);
+          if (stolen > 0) {
+            s = log(s, `👹 WILD WILLY stole $${stolen} from you!`);
+            s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen }));
+          } else {
+            s = log(s, `👹 Wild Willy tried to rob you, but you're broke!`);
+          }
+        }
+      }
+
+      // 20% chance when leaving NeoBank with >$500 in Low-security housing
+      if (player.currentLocation === 'neobank' && player.housing.security === 'Low' && player.money > 500 && Math.random() < 0.2) {
+        if (hasSuit) {
+          s = log(s, `👹 Wild Willy clocked your suit and kept walking.`);
+        } else {
+          const stolen = Math.floor(activePlayer(s).money * 0.3);
+          s = log(s, `👹 WILD WILLY ambushed you leaving the bank! Stole $${stolen}!`);
+          s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen }));
         }
       }
 
@@ -179,6 +199,7 @@ export const gameReducer = (state, action) => {
         money: p.money + earnings,
         timeRemaining: p.timeRemaining - 8,
         job: { ...p.job, weeksWorked: newWeeksWorked },
+        dependability: Math.min(100, p.dependability + 5),
       }));
       return autoEndIfNeeded(s);
     }
@@ -213,6 +234,9 @@ export const gameReducer = (state, action) => {
         const itemName = job.requirements.item.replace(/_/g, ' ');
         return { ...log(state, `Rejected! Need: ${itemName}.`), lastJobResult: { success: false, message: `You need: ${itemName}.` } };
       }
+      if (job.requirements?.dependability && player.dependability < job.requirements.dependability) {
+        return { ...log(state, `Rejected! Need ${job.requirements.dependability} dependability (you have ${player.dependability}).`), lastJobResult: { success: false, message: `Need ${job.requirements.dependability} dependability.` } };
+      }
 
       let s = log(state, `${player.name} hired as ${job.title}!`);
       s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: p.job?.weeksWorked || 0 } }));
@@ -238,6 +262,18 @@ export const gameReducer = (state, action) => {
           timeRemaining: Math.max(0, p.timeRemaining - (item.timeToEat || 1)),
         }));
         return autoEndIfNeeded(s);
+      }
+
+      // Entertainment items (concert tickets etc): apply boosts immediately, don't add to inventory
+      if (item.type === 'entertainment') {
+        let s = log(state, `Enjoyed ${item.name}! +${item.happinessBoost || 0} happiness, +${item.relaxationBoost || 0} relaxation.`);
+        s = updateActivePlayer(s, p => ({
+          ...p,
+          money: p.money - item.cost,
+          happiness: Math.min(100, p.happiness + (item.happinessBoost || 0)),
+          relaxation: Math.min(100, p.relaxation + (item.relaxationBoost || 0)),
+        }));
+        return s;
       }
 
       const alreadyOwned = player.inventory.some(i => i.id === item.id);
@@ -412,6 +448,45 @@ export const gameReducer = (state, action) => {
           playerLog.push(`${np.name}: streaming sub -$15.`);
         }
         np.happiness = Math.min(100, Math.max(0, np.happiness + happinessDelta));
+
+        // 3b. Dependability decay
+        let depDelta = -3;
+        if (!np.job) depDelta -= 5; // unemployed penalty
+        np.dependability = Math.min(100, Math.max(0, np.dependability + depDelta));
+
+        // 3c. Relaxation decay
+        let relaxDelta = -5;
+        if (np.inventory.some(i => i.id === 'hot_tub')) relaxDelta += 3; // hot tub passive
+        if (np.housing.id === 'luxury_condo') relaxDelta += 3; // luxury living
+        np.relaxation = Math.max(0, Math.min(100, np.relaxation + relaxDelta));
+
+        // 3d. Clothing wear (each clothing item loses 10 durability/week)
+        const wornOut = [];
+        np.inventory = np.inventory.map(item => {
+          if (item.clothingWear !== undefined) {
+            const newWear = item.clothingWear - 10;
+            if (newWear <= 0) { wornOut.push(item); return null; }
+            return { ...item, clothingWear: newWear };
+          }
+          return item;
+        }).filter(Boolean);
+
+        for (const worn of wornOut) {
+          playerLog.push(`${np.name}: ${worn.name} wore out!`);
+          // If worn item was required for current job, lose the job
+          if (np.job && np.job.requirements?.item === worn.id) {
+            np.job = null;
+            playerLog.push(`${np.name}: lost their job — need proper clothing!`);
+          }
+        }
+
+        // 3e. Relaxation bottomed out → forced doctor visit
+        if (np.relaxation === 0) {
+          const doctorCost = 200;
+          np.money = Math.max(0, np.money - doctorCost);
+          np.maxTime = Math.max(20, np.maxTime - 5);
+          playerLog.push(`${np.name}: exhaustion sent them to the doctor! -$${doctorCost}, -5h next week.`);
+        }
 
         // 4. Debt interest
         if (np.debt > 0) {

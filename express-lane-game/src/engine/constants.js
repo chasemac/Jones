@@ -26,17 +26,23 @@ export const ECONOMY_WAGE_MULTIPLIER = {
   Boom: 1.3,
 };
 
+export const ECONOMY_PRICE_MULTIPLIER = {
+  Depression: 0.7,
+  Normal: 1.0,
+  Boom: 1.4,
+};
+
 // ─── Difficulty Presets ───────────────────────────────────────────────────────
-// goals.careerWage = minimum hourly wage required to meet career goal
+// goals.careerDependability = min dependability required to meet career goal
 export const DIFFICULTY_PRESETS = {
   easy: {
     label: 'Baby Steps',
     startingMoney: 1500,
     goals: {
-      wealth: 2000,       // net worth target
-      happiness: 60,      // happiness target (out of 100)
-      education: "Associate's", // minimum education
-      careerWage: 16,     // minimum job wage to qualify
+      wealth: 2000,
+      happiness: 60,
+      education: "Associate's",
+      careerDependability: 50,
     },
   },
   normal: {
@@ -46,7 +52,7 @@ export const DIFFICULTY_PRESETS = {
       wealth: 10000,
       happiness: 80,
       education: "Bachelor's",
-      careerWage: 28,
+      careerDependability: 65,
     },
   },
   hard: {
@@ -56,7 +62,7 @@ export const DIFFICULTY_PRESETS = {
       wealth: 25000,
       happiness: 85,
       education: "Master's",
-      careerWage: 50,
+      careerDependability: 80,
     },
   },
 };

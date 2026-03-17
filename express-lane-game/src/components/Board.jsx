@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost } from '../engine/constants';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER } from '../engine/constants';
+
+// Adjust item price by economy state
+const adjustedPrice = (baseCost, economy) =>
+  Math.round(baseCost * (ECONOMY_PRICE_MULTIPLIER[economy] || 1));
 
 // Returns the ordered list of locations to step through (not including start, including end)
 const ringPath = (fromId, toId) => {
@@ -230,20 +234,34 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         <div className="text-[9px] text-slate-500">{player.happiness}%</div>
       </div>
 
-      {/* Time bar */}
+      {/* Time bar + stats */}
       <div className="flex-grow flex flex-col gap-0.5 min-w-0">
         <div className="flex justify-between text-[9px] text-slate-400 uppercase font-bold">
           <span>Time</span>
           <span>{player.timeRemaining}h / {player.maxTime}h</span>
         </div>
-        <div className="h-4 bg-slate-800 rounded-full border border-slate-600 overflow-hidden">
+        <div className="h-3 bg-slate-800 rounded-full border border-slate-600 overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ${player.timeRemaining < 15 ? 'bg-red-500' : 'bg-blue-500'}`}
             style={{ width: `${(player.timeRemaining / player.maxTime) * 100}%` }}
           />
         </div>
+        {/* Dependability */}
+        <div className="flex items-center gap-1">
+          <span className="text-[8px] text-slate-400 w-16 shrink-0">🎯 Dep {player.dependability ?? 50}</span>
+          <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${player.dependability ?? 50}%` }} />
+          </div>
+        </div>
+        {/* Relaxation */}
+        <div className="flex items-center gap-1">
+          <span className="text-[8px] text-slate-400 w-16 shrink-0">🛁 Relax {player.relaxation ?? 50}</span>
+          <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
+          </div>
+        </div>
         {/* Education + Job */}
-        <div className="flex gap-2 text-[9px]">
+        <div className="flex gap-2 text-[8px]">
           <span className="text-slate-400">🎓 {player.education}</span>
           <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
         </div>
@@ -315,11 +333,11 @@ const GoalsModal = ({ state, onClose }) => {
       met: meetsEducation(player.education, goals.education),
     },
     {
-      label: 'Career (min. wage)',
-      current: player.job ? `${player.job.title} ($${player.job.wage}/hr)` : 'Unemployed',
-      goal: `$${goals.careerWage}/hr`,
-      pct: Math.min(100, ((player.job?.wage || 0) / goals.careerWage) * 100),
-      met: player.job && player.job.wage >= goals.careerWage,
+      label: 'Dependability (Career)',
+      current: `${player.dependability ?? 50}`,
+      goal: `${goals.careerDependability}`,
+      pct: Math.min(100, ((player.dependability ?? 50) / goals.careerDependability) * 100),
+      met: (player.dependability ?? 50) >= goals.careerDependability,
     },
   ];
 
@@ -453,23 +471,26 @@ const NotificationFeed = ({ history }) => (
 // ─── Location panel content renderers ────────────────────────────────────────
 
 const QuickEatsContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
   const hasPhone = player.inventory.some(i => i.id === 'smartphone');
   const foodItems = itemsData.filter(i => i.type === 'food');
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Menu</h3>
-        {foodItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => actions.buyItem(item)}
-            className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-orange-50 mb-1 text-sm"
-          >
-            <span>🍔 {item.name}</span>
-            <span className="font-mono">${item.cost}</span>
-          </button>
-        ))}
+        {foodItems.map(item => {
+          const price = adjustedPrice(item.cost, economy);
+          return (
+            <button
+              key={item.id}
+              onClick={() => actions.buyItem({ ...item, cost: price })}
+              className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-orange-50 mb-1 text-sm"
+            >
+              <span>🍔 {item.name}</span>
+              <span className="font-mono">${price}</span>
+            </button>
+          );
+        })}
         <div className="mt-2 text-xs text-slate-400">Hunger: {player.hunger}/100</div>
       </div>
       <div>
@@ -525,7 +546,8 @@ const LibraryContent = ({ state, actions, setNotification }) => {
               </div>
               <div className="text-slate-400">
                 {job.requirements?.education ? `${job.requirements.education} · ` : 'Entry Level · '}
-                {job.requirements?.experience ? `${job.requirements.experience}wks exp` : ''}
+                {job.requirements?.experience ? `${job.requirements.experience}wks · ` : ''}
+                {job.requirements?.dependability ? `🎯${job.requirements.dependability} dep` : ''}
               </div>
             </button>
           ))}
@@ -553,27 +575,51 @@ const LibraryContent = ({ state, actions, setNotification }) => {
 };
 
 const TrendSettersContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
   const clothing = itemsData.filter(i => i.type === 'clothing');
+  const appliances = itemsData.filter(i => i.type === 'appliance');
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="flex flex-col items-center justify-center bg-pink-50 rounded-lg p-4">
         <div className="text-7xl mb-2">👗</div>
         <div className="text-xs font-bold text-pink-800 text-center">Dress for success</div>
+        <div className="text-[10px] text-pink-600 mt-1">Clothes wear out over time!</div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Clothing</h3>
         {clothing.map(item => {
-          const owned = player.inventory.some(i => i.id === item.id);
+          const owned = player.inventory.find(i => i.id === item.id);
+          const price = adjustedPrice(item.cost, economy);
           return (
             <button
               key={item.id}
-              onClick={() => !owned && actions.buyItem(item)}
+              onClick={() => actions.buyItem({ ...item, cost: price })}
+              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 text-sm"
+            >
+              <div className="text-left">
+                <div>{item.name}</div>
+                {owned && <div className="text-[9px] text-slate-400">Durability: {owned.clothingWear}%</div>}
+              </div>
+              <span className="font-mono text-xs">{owned ? `🔄 $${price}` : `$${price}`}</span>
+            </button>
+          );
+        })}
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">Appliances</h3>
+        {appliances.map(item => {
+          const owned = player.inventory.some(i => i.id === item.id);
+          const price = adjustedPrice(item.cost, economy);
+          return (
+            <button
+              key={item.id}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
               disabled={owned}
               className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 disabled:opacity-60 text-sm"
             >
-              <span>{item.name}</span>
-              <span className="font-mono text-xs">{owned ? '✅ OWNED' : `$${item.cost}`}</span>
+              <div className="text-left">
+                <div>{item.name}</div>
+                <div className="text-[9px] text-slate-400">{item.effect}</div>
+              </div>
+              <span className="font-mono text-xs">{owned ? '✅' : `$${price}`}</span>
             </button>
           );
         })}
@@ -625,7 +671,9 @@ const CoffeeShopContent = ({ state, actions }) => {
 };
 
 const BlacksMarketContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
+  const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
+  const concertPrice = adjustedPrice(concertTicket.cost, economy);
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
@@ -644,13 +692,16 @@ const BlacksMarketContent = ({ state, actions }) => {
             </button>
           </div>
         ))}
+        <div className="mt-3 text-[10px] text-slate-400 bg-slate-100 p-2 rounded italic">
+          ⚠️ Watch out for Wild Willy leaving this area!
+        </div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Ticket Booth</h3>
         <button
           onClick={() => {
             if (player.money >= 10) {
-              actions.buyItem({ id: `lottery_${Date.now()}`, name: 'Lottery Ticket', cost: 10, type: 'food', hungerRestore: 0, happinessBoost: Math.random() < 0.05 ? 50 : -2, timeToEat: 0 });
+              actions.buyItem({ id: `lottery_${Date.now()}`, name: 'Lottery Ticket', cost: 10, type: 'entertainment', happinessBoost: Math.random() < 0.05 ? 50 : -2, relaxationBoost: 0 });
             }
           }}
           disabled={player.money < 10}
@@ -660,12 +711,12 @@ const BlacksMarketContent = ({ state, actions }) => {
           <div className="text-xs text-yellow-700">5% to win big</div>
         </button>
         <button
-          onClick={() => actions.buyItem({ id: 'concert', name: 'Concert Ticket', cost: 150, type: 'food', hungerRestore: 0, happinessBoost: 20, timeToEat: 3 })}
-          disabled={player.money < 150}
+          onClick={() => actions.buyItem({ ...concertTicket, cost: concertPrice })}
+          disabled={player.money < concertPrice}
           className="w-full p-3 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 disabled:opacity-50 text-sm"
         >
-          <div className="font-bold">🎸 Rock Concert ($150)</div>
-          <div className="text-xs text-purple-700">+20 Happiness</div>
+          <div className="font-bold">🎸 Concert Ticket (${concertPrice})</div>
+          <div className="text-xs text-purple-700">+{concertTicket.happinessBoost} Happiness, +{concertTicket.relaxationBoost} Relaxation</div>
         </button>
       </div>
     </div>
@@ -720,7 +771,7 @@ const CityCollegeContent = ({ state, actions }) => {
 };
 
 const TechStoreContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
   const isTechEmployee = player.job?.type === 'tech';
   const electronics = itemsData.filter(i => i.type === 'electronics');
   return (
@@ -729,10 +780,11 @@ const TechStoreContent = ({ state, actions }) => {
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Products</h3>
         {electronics.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
+          const price = adjustedPrice(item.cost, economy);
           return (
             <button
               key={item.id}
-              onClick={() => !owned && actions.buyItem(item)}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
               disabled={owned}
               className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-blue-50 disabled:opacity-60 text-xs"
             >
@@ -740,7 +792,7 @@ const TechStoreContent = ({ state, actions }) => {
                 <div className="font-bold">{item.name}</div>
                 <div className="text-slate-400">{item.effect}</div>
               </div>
-              <span className="font-mono">{owned ? '✅' : `$${item.cost}`}</span>
+              <span className="font-mono">{owned ? '✅' : `$${price}`}</span>
             </button>
           );
         })}

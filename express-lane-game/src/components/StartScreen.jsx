@@ -39,7 +39,7 @@ const StartScreen = () => {
             { icon: '💰', label: 'Wealth',     desc: 'Hit your net worth target' },
             { icon: '😊', label: 'Happiness',  desc: 'Keep your spirits up' },
             { icon: '🎓', label: 'Education',  desc: 'Earn the right degree' },
-            { icon: '💼', label: 'Career',     desc: 'Land a high-paying job' },
+            { icon: '🎯', label: 'Career',     desc: 'Build your dependability' },
           ].map(g => (
             <div key={g.label} className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
               <div className="text-2xl mb-1">{g.icon}</div>
@@ -72,7 +72,7 @@ const StartScreen = () => {
                     <div>💰 Net Worth: ${preset.goals.wealth.toLocaleString()}</div>
                     <div>😊 Happiness: {preset.goals.happiness}</div>
                     <div>🎓 Edu: {preset.goals.education}</div>
-                    <div>💼 Wage: ${preset.goals.careerWage}/hr</div>
+                    <div>🎯 Dep: {preset.goals.careerDependability}</div>
                   </div>
                 </button>
               );
