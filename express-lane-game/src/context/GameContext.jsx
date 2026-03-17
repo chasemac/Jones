@@ -80,6 +80,7 @@ export const GameProvider = ({ children }) => {
     sellStock: (symbol, quantity) => dispatch({ type: 'SELL_STOCK', symbol, quantity }),
     endWeek: () => dispatch({ type: 'END_WEEK' }),
     dismissEvent: () => dispatch({ type: 'DISMISS_EVENT' }),
+    dismissWeekSummary: () => dispatch({ type: 'DISMISS_WEEK_SUMMARY' }),
     applyForJobWithSound: (job, success) => { playSound(success ? 'success' : 'error'); dispatch({ type: 'APPLY_FOR_JOB', job }); },
     toggleMute: () => { toggleMute(); },
     getMuted: () => isMuted,

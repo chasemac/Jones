@@ -3,17 +3,17 @@ import { useGame } from '../context/GameContext';
 import { DIFFICULTY_PRESETS } from '../engine/constants';
 
 const VictoryModal = () => {
-  const { state, initGame, startGame } = useGame();
+  const { state, initGame } = useGame();
 
   if (state.gameStatus === 'playing' || state.gameStatus === 'start') return null;
 
   const isWin = state.gameStatus === 'won';
-  const { player, week, jones, difficulty } = state;
+  const { week, jones, difficulty } = state;
+  const player = state.players?.find(p => p.name === state.winner) ?? state.player;
   const netWorth = player.money + player.savings - player.debt;
 
   const handlePlayAgain = () => {
-    initGame(difficulty);
-    setTimeout(() => startGame(), 0);
+    initGame(difficulty, state.playerCount || 1);
   };
 
   return (
@@ -21,7 +21,7 @@ const VictoryModal = () => {
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center">
         <div className="text-6xl mb-4">{isWin ? '🏆' : '💀'}</div>
         <h2 className={`text-3xl font-black mb-2 ${isWin ? 'text-green-600' : 'text-red-600'}`}>
-          {isWin ? 'You Made It!' : 'Game Over'}
+          {isWin ? `${player.name} Wins!` : 'Game Over'}
         </h2>
         <p className="text-slate-600 mb-6">
           {isWin
