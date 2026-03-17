@@ -1531,48 +1531,50 @@ const Board = () => {
         />
       )}
 
-      {/* Map background */}
-      <MapBackground />
+      {/* Padded map area — keeps buildings away from container edges */}
+      <div className="absolute inset-x-5 top-4 bottom-24">
+        {/* Map background */}
+        <MapBackground />
 
-      {/* Buildings */}
-      {LOCATION_ORDER.map(id => (
-        <BuildingNode
-          key={id}
-          id={id}
-          config={LOCATIONS_CONFIG[id]}
-          isCurrent={state.player.currentLocation === id}
-          isTraveling={isMoving}
-          onClick={() => handleTravel(id)}
-        />
-      ))}
-
-      {/* Jones token */}
-      <PlayerToken
-        locationId={state.jones.currentLocation}
-        isMoving={false}
-        label="The Joneses"
-        emoji="🤑"
-        colorClass="bg-red-400"
-        zIndex={9}
-      />
-
-      {/* All player tokens */}
-      {state.players?.map((p, i) => {
-        const isActive = i === state.activePlayerIndex;
-        // Active player uses animLocation during travel, otherwise actual location
-        const displayLocation = isActive && animLocation ? animLocation : p.currentLocation;
-        return (
-          <PlayerToken
-            key={p.name}
-            locationId={displayLocation}
-            isMoving={isActive && isMoving}
-            label={p.name}
-            emoji={p.emoji}
-            colorClass={isActive ? 'bg-yellow-400' : 'bg-slate-400 opacity-60'}
-            zIndex={isActive ? 11 : 10}
+        {/* Buildings */}
+        {LOCATION_ORDER.map(id => (
+          <BuildingNode
+            key={id}
+            id={id}
+            config={LOCATIONS_CONFIG[id]}
+            isCurrent={state.player.currentLocation === id}
+            isTraveling={isMoving}
+            onClick={() => handleTravel(id)}
           />
-        );
-      })}
+        ))}
+
+        {/* Jones token */}
+        <PlayerToken
+          locationId={state.jones.currentLocation}
+          isMoving={false}
+          label="The Joneses"
+          emoji="🤑"
+          colorClass="bg-red-400"
+          zIndex={9}
+        />
+
+        {/* All player tokens */}
+        {state.players?.map((p, i) => {
+          const isActive = i === state.activePlayerIndex;
+          const displayLocation = isActive && animLocation ? animLocation : p.currentLocation;
+          return (
+            <PlayerToken
+              key={p.name}
+              locationId={displayLocation}
+              isMoving={isActive && isMoving}
+              label={p.name}
+              emoji={p.emoji}
+              colorClass={isActive ? 'bg-yellow-400' : 'bg-slate-400 opacity-60'}
+              zIndex={isActive ? 11 : 10}
+            />
+          );
+        })}
+      </div>
 
       {/* Multiplayer turn banner */}
       {state.players?.length > 1 && (
