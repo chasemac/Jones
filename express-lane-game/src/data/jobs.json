@@ -88,5 +88,32 @@
     "requirements": { "experience": 10, "dependability": 75, "education": "Master's", "item": "laptop" },
     "description": "Half coding, half explaining why it takes so long.",
     "promotion": null
+  },
+  {
+    "id": "electrician",
+    "title": "Electrician",
+    "type": "trade",
+    "wage": 28,
+    "requirements": { "dependability": 40, "education": "Electrician License" },
+    "description": "Wire homes. Charge by the hour.",
+    "promotion": "master_electrician"
+  },
+  {
+    "id": "plumber",
+    "title": "Plumber",
+    "type": "trade",
+    "wage": 30,
+    "requirements": { "dependability": 40, "education": "Plumbing License" },
+    "description": "Dirty work, clean money.",
+    "promotion": null
+  },
+  {
+    "id": "master_electrician",
+    "title": "Master Electrician",
+    "type": "trade",
+    "wage": 45,
+    "requirements": { "experience": 8, "dependability": 60, "education": "Engineering Certificate" },
+    "description": "High voltage. Higher pay.",
+    "promotion": null
   }
 ]

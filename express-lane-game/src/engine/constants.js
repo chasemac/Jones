@@ -99,6 +99,7 @@ export const JOB_WORK_LOCATION = {
   tech: 'tech_store',
   corporate: 'public_library',
   gig: 'quick_eats',
+  trade: 'public_library',
 };
 
 // ─── Jones AI Data ────────────────────────────────────────────────────────────

@@ -260,6 +260,15 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
           </div>
         </div>
+        {/* Hunger */}
+        {player.hunger >= 40 && (
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] text-slate-400 w-16 shrink-0">🍽️ Hunger {player.hunger}</span>
+            <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500' : 'bg-orange-400'}`} style={{ width: `${player.hunger}%` }} />
+            </div>
+          </div>
+        )}
         {/* Education + Job */}
         <div className="flex gap-2 text-[8px]">
           <span className="text-slate-400">🎓 {player.education}</span>
@@ -414,6 +423,9 @@ const EventModal = ({ event, onClose }) => (
       <div className="text-center text-4xl mb-2">📰</div>
       <h3 className="text-lg font-black text-center text-slate-800 mb-2">{event.title}</h3>
       <p className="text-slate-600 text-center text-sm mb-2">{event.description}</p>
+      {event.playerName && event.playerName !== 'Player 1' && (
+        <div className="text-xs text-slate-500 text-center mb-2">Affects: {event.playerName}</div>
+      )}
       {event.effectDesc && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-center text-sm font-bold text-yellow-800 mb-4">
           {event.effectDesc}
@@ -548,6 +560,7 @@ const LibraryContent = ({ state, actions, setNotification }) => {
   const { player } = state;
   const availableJobs = jobsData.filter(j => j.id !== 'gig_driver');
   const isCorpEmployee = player.job?.type === 'corporate';
+  const isTradeEmployee = player.job?.type === 'trade';
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
 
   const handleApply = (job) => {
@@ -596,6 +609,60 @@ const LibraryContent = ({ state, actions, setNotification }) => {
         ) : (
           <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Corporate employees can work remotely here with a laptop.</div>
         )}
+        {/* Promotion check for corp employees */}
+        {isCorpEmployee && (() => {
+          const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+          if (!nextJob) return null;
+          const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
+          const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
+          const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
+          const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
+          if (meetsExp && meetsEdu && meetsDep && meetsItem) {
+            return (
+              <button
+                onClick={() => actions.applyForJob(nextJob)}
+                className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
+              >
+                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+              </button>
+            );
+          }
+          return null;
+        })()}
+
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">🔧 Trade Dispatch</h3>
+        {isTradeEmployee ? (
+          <button
+            onClick={actions.work}
+            disabled={player.timeRemaining < 8}
+            className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-sm"
+          >
+            <div className="font-bold">Go to Site (8h)</div>
+            <div className="text-xs text-yellow-700">{player.job.title} · ${player.job.wage}/hr</div>
+          </button>
+        ) : (
+          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers get dispatched here.</div>
+        )}
+        {/* Promotion check for trade employees */}
+        {isTradeEmployee && (() => {
+          const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+          if (!nextJob) return null;
+          const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
+          const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
+          const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
+          const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
+          if (meetsExp && meetsEdu && meetsDep && meetsItem) {
+            return (
+              <button
+                onClick={() => actions.applyForJob(nextJob)}
+                className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
+              >
+                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+              </button>
+            );
+          }
+          return null;
+        })()}
       </div>
     </div>
   );
@@ -681,14 +748,36 @@ const CoffeeShopContent = ({ state, actions }) => {
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only</h3>
         {isServiceEmployee ? (
-          <button
-            onClick={actions.work}
-            disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 disabled:opacity-50 text-sm"
-          >
-            <div className="font-bold">Work Shift (8h)</div>
-            <div className="text-xs text-amber-800">{player.job.title} · ${player.job.wage}/hr</div>
-          </button>
+          <>
+            <button
+              onClick={actions.work}
+              disabled={player.timeRemaining < 8}
+              className="w-full p-3 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 disabled:opacity-50 text-sm"
+            >
+              <div className="font-bold">Work Shift (8h)</div>
+              <div className="text-xs text-amber-800">{player.job.title} · ${player.job.wage}/hr</div>
+            </button>
+            {/* Promotion check */}
+            {(() => {
+              const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+              if (!nextJob) return null;
+              const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
+              const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
+              const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
+              const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
+              if (meetsExp && meetsEdu && meetsDep && meetsItem) {
+                return (
+                  <button
+                    onClick={() => actions.applyForJob(nextJob)}
+                    className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
+                  >
+                    🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+                  </button>
+                );
+              }
+              return null;
+            })()}
+          </>
         ) : (
           <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Apply for a service job at the Library to work here.</div>
         )}
@@ -873,14 +962,36 @@ const TechStoreContent = ({ state, actions }) => {
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Tech Work</h3>
         {isTechEmployee ? (
-          <button
-            onClick={actions.work}
-            disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
-          >
-            <div className="font-bold">Code Sprint (8h)</div>
-            <div className="text-xs text-blue-700">{player.job.title} · ${player.job.wage}/hr</div>
-          </button>
+          <>
+            <button
+              onClick={actions.work}
+              disabled={player.timeRemaining < 8}
+              className="w-full p-3 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
+            >
+              <div className="font-bold">Code Sprint (8h)</div>
+              <div className="text-xs text-blue-700">{player.job.title} · ${player.job.wage}/hr</div>
+            </button>
+            {/* Promotion check */}
+            {(() => {
+              const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+              if (!nextJob) return null;
+              const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
+              const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
+              const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
+              const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
+              if (meetsExp && meetsEdu && meetsDep && meetsItem) {
+                return (
+                  <button
+                    onClick={() => actions.applyForJob(nextJob)}
+                    className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
+                  >
+                    🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+                  </button>
+                );
+              }
+              return null;
+            })()}
+          </>
         ) : (
           <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Tech employees work here. Apply at the Library.</div>
         )}
