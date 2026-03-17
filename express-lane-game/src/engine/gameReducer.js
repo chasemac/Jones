@@ -142,8 +142,10 @@ export const gameReducer = (state, action) => {
       if (player.currentLocation === locationId) return state;
 
       const cost = travelCost(player.currentLocation, locationId);
-      if (player.timeRemaining < cost) {
-        return log(state, `Not enough time to travel there (need ${cost}h, have ${player.timeRemaining}h).`);
+      const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
+      const effectiveCost = Math.max(1, cost - travelBonus);
+      if (player.timeRemaining < effectiveCost) {
+        return log(state, `Not enough time to travel there (need ${effectiveCost}h, have ${player.timeRemaining}h).`);
       }
 
       let s = state;
@@ -177,7 +179,7 @@ export const gameReducer = (state, action) => {
         }
       }
 
-      const newTime = activePlayer(s).timeRemaining - cost;
+      const newTime = activePlayer(s).timeRemaining - effectiveCost;
       s = updateActivePlayer(s, p => ({ ...p, currentLocation: locationId, timeRemaining: newTime }));
 
       if (newTime <= 0) return { ...s, awaitingEndWeek: true };
@@ -292,6 +294,20 @@ export const gameReducer = (state, action) => {
 
       const alreadyOwned = player.inventory.some(i => i.id === item.id);
       if (alreadyOwned && item.type !== 'food') return log(state, `You already own ${item.name}.`);
+      // Allow vehicle upgrade (bicycle → car): remove old vehicle when buying a better one
+      if (item.type === 'vehicle') {
+        const existingVehicle = player.inventory.find(i => i.type === 'vehicle' && i.id !== item.id);
+        if (existingVehicle) {
+          // Replace old vehicle
+          let s = log(state, `Traded in ${existingVehicle.name} for ${item.name}.`);
+          s = updateActivePlayer(s, p => ({
+            ...p,
+            money: p.money - item.cost + Math.floor(existingVehicle.cost * 0.5),
+            inventory: [...p.inventory.filter(i => i.id !== existingVehicle.id), item],
+          }));
+          return s;
+        }
+      }
 
       let s = log(state, `Bought ${item.name} for $${item.cost}.`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item] }));
@@ -474,6 +490,14 @@ export const gameReducer = (state, action) => {
           np.money = Math.max(0, np.money - 15);
           playerLog.push(`${np.name}: streaming sub -$15.`);
         }
+        if (np.inventory.some(i => i.id === 'health_insurance')) {
+          np.money = Math.max(0, np.money - 50);
+          playerLog.push(`${np.name}: health insurance premium -$50.`);
+        }
+        if (np.inventory.some(i => i.id === 'car')) {
+          np.money = Math.max(0, np.money - 60);
+          playerLog.push(`${np.name}: car gas -$60.`);
+        }
         np.happiness = Math.min(100, Math.max(0, np.happiness + happinessDelta));
 
         // 3b. Dependability decay
@@ -509,7 +533,8 @@ export const gameReducer = (state, action) => {
 
         // 3e. Relaxation bottomed out → forced doctor visit
         if (np.relaxation === 0) {
-          const doctorCost = 200;
+          const hasInsurance = np.inventory.some(i => i.id === 'health_insurance');
+          const doctorCost = hasInsurance ? 50 : 200;
           np.money = Math.max(0, np.money - doctorCost);
           np.maxTimeReduction = (np.maxTimeReduction || 0) + 5;
           playerLog.push(`${np.name}: exhaustion sent them to the doctor! -$${doctorCost}, -5h next week.`);
