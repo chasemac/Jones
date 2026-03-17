@@ -474,10 +474,17 @@ const QuickEatsContent = ({ state, actions }) => {
   const { player, economy } = state;
   const hasPhone = player.inventory.some(i => i.id === 'smartphone');
   const foodItems = itemsData.filter(i => i.type === 'food');
+  const groceryItem = itemsData.find(i => i.id === 'groceries');
+  const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
+  const hasFreezer = player.inventory.some(i => i.id === 'freezer');
+  const hasStorage = hasFridge || hasFreezer;
+  const storedServings = player.inventory.filter(i => i.id === 'groceries').length;
+  const maxStorage = hasFreezer ? 4 : hasFridge ? 2 : 0;
+  const groceryPrice = adjustedPrice(groceryItem.cost, economy);
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Menu</h3>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Fast Food Menu</h3>
         {foodItems.map(item => {
           const price = adjustedPrice(item.cost, economy);
           return (
@@ -491,6 +498,26 @@ const QuickEatsContent = ({ state, actions }) => {
             </button>
           );
         })}
+        <div className="mt-2 border-t border-slate-200 pt-2">
+          <h3 className="font-bold text-sm pb-1 mb-1">🛒 Grocery Run</h3>
+          {hasStorage ? (
+            <button
+              onClick={() => actions.buyItem({ ...groceryItem, cost: groceryPrice })}
+              disabled={storedServings >= maxStorage || player.money < groceryPrice}
+              className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-xs"
+            >
+              <div>
+                <div className="font-bold">Groceries (1 week)</div>
+                <div className="text-slate-500">{storedServings}/{maxStorage} stored</div>
+              </div>
+              <span className="font-mono">${groceryPrice}</span>
+            </button>
+          ) : (
+            <div className="text-[10px] text-slate-400 italic p-2 bg-slate-100 rounded">
+              Buy a 🧊 Fridge at TrendSetters to store groceries and save money on food.
+            </div>
+          )}
+        </div>
         <div className="mt-2 text-xs text-slate-400">Hunger: {player.hunger}/100</div>
       </div>
       <div>
@@ -725,6 +752,9 @@ const BlacksMarketContent = ({ state, actions }) => {
 
 const CityCollegeContent = ({ state, actions }) => {
   const { player } = state;
+  const studyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
+  const textbook = itemsData.find(i => i.id === 'textbook');
+  const ownsTextbook = player.inventory.some(i => i.id === 'textbook');
   return (
     <div className="h-full flex flex-col gap-3">
       {player.currentCourse && (
@@ -734,19 +764,39 @@ const CityCollegeContent = ({ state, actions }) => {
             <div className="bg-blue-600 h-full" style={{ width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%` }} />
           </div>
           <div className="text-xs mt-1 text-blue-700">{player.currentCourse.progress}/{player.currentCourse.totalHours} hrs</div>
+          {studyBonus > 0 && (
+            <div className="text-[10px] text-green-600 mt-0.5">📚 Study bonus: +{studyBonus}hrs/session</div>
+          )}
           <button
             onClick={actions.study}
             disabled={player.timeRemaining < 10}
             className="mt-2 bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 text-xs"
           >
-            Study 10hrs
+            Study 10hrs {studyBonus > 0 ? `(+${studyBonus} bonus)` : ''}
           </button>
         </div>
+      )}
+      {/* Textbook purchase */}
+      {!ownsTextbook && (
+        <button
+          onClick={() => actions.buyItem(textbook)}
+          disabled={player.money < textbook.cost}
+          className="w-full flex justify-between items-center p-2 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-xs"
+        >
+          <div>
+            <div className="font-bold">📚 Buy Textbook</div>
+            <div className="text-slate-500">Reduces hours needed per study session</div>
+          </div>
+          <span className="font-mono">${textbook.cost}</span>
+        </button>
       )}
       <div className="flex-grow overflow-y-auto space-y-1">
         {educationData.map(course => {
           const eduReq = course.requirements?.education;
-          const canEnroll = !eduReq || meetsEducation(player.education, eduReq);
+          const itemReq = course.requirements?.item;
+          const eduOk = !eduReq || meetsEducation(player.education, eduReq);
+          const itemOk = !itemReq || player.inventory.some(i => i.id === itemReq);
+          const canEnroll = eduOk && itemOk;
           const alreadyDone = meetsEducation(player.education, course.degree);
           return (
             <button
@@ -757,9 +807,14 @@ const CityCollegeContent = ({ state, actions }) => {
             >
               <div className="text-left">
                 <div className="font-bold">
-                  {alreadyDone ? '✅ ' : ''}{course.title}
+                  {alreadyDone ? '✅ ' : !canEnroll ? '🔒 ' : ''}{course.title}
                 </div>
-                <div className="text-slate-400">{course.totalHours}hrs · {course.description}</div>
+                <div className="text-slate-400">
+                  {course.totalHours}hrs
+                  {eduReq && !eduOk ? ` · Needs ${eduReq}` : ''}
+                  {itemReq && !itemOk ? ` · Needs ${itemReq.replace(/_/g, ' ')}` : ''}
+                  {canEnroll && !alreadyDone ? ` · ${course.description}` : ''}
+                </div>
               </div>
               <span className="font-mono font-bold ml-2">${course.cost}</span>
             </button>

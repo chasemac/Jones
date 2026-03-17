@@ -264,6 +264,19 @@ export const gameReducer = (state, action) => {
         return autoEndIfNeeded(s);
       }
 
+      // Food storage items (groceries): require fridge/freezer, add to inventory as consumable
+      if (item.type === 'food_storage') {
+        const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
+        const hasFreezer = player.inventory.some(i => i.id === 'freezer');
+        if (!hasFridge && !hasFreezer) return log(state, "You need a Refrigerator or Freezer to store groceries!");
+        const maxStorage = hasFreezer ? 4 : 2;
+        const currentServings = player.inventory.filter(i => i.id === 'groceries').length;
+        if (currentServings >= maxStorage) return log(state, `Storage full! (${currentServings}/${maxStorage} servings)`);
+        let s = log(state, `Bought groceries (+1 week of food stored).`);
+        s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item] }));
+        return s;
+      }
+
       // Entertainment items (concert tickets etc): apply boosts immediately, don't add to inventory
       if (item.type === 'entertainment') {
         let s = log(state, `Enjoyed ${item.name}! +${item.happinessBoost || 0} happiness, +${item.relaxationBoost || 0} relaxation.`);
@@ -307,6 +320,9 @@ export const gameReducer = (state, action) => {
       const player = activePlayer(state);
 
       if (player.currentCourse) return log(state, "Already enrolled in a course. Finish it first.");
+      if (course.requirements?.education && !meetsEducation(player.education, course.requirements.education)) {
+        return log(state, `Need ${course.requirements.education} to enroll in ${course.title}.`);
+      }
       if (course.requirements?.item && !player.inventory.some(i => i.id === course.requirements.item)) {
         return log(state, `Need a ${course.requirements.item.replace(/_/g, ' ')} to enroll.`);
       }
@@ -323,7 +339,9 @@ export const gameReducer = (state, action) => {
       if (!player.currentCourse) return log(state, "Not enrolled in any course.");
       if (player.timeRemaining < 10) return log(state, "Need 10 hours to study.");
 
-      const newProgress = player.currentCourse.progress + 10;
+      // Extra credit: laptop and textbooks each add bonus progress
+      const studyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
+      const newProgress = player.currentCourse.progress + 10 + studyBonus;
 
       if (newProgress >= player.currentCourse.totalHours) {
         let s = log(state, `${player.name} completed ${player.currentCourse.title}! Earned: ${player.currentCourse.degree}.`);
@@ -367,6 +385,14 @@ export const gameReducer = (state, action) => {
         money -= payAmount; debt -= payAmount;
         msg = `Repaid $${payAmount} of debt.`;
       } else if (transactionType === 'borrow') {
+        // Loan cap: max $5000 total debt
+        if (debt >= 5000) {
+          const s2 = updateActivePlayer(
+            log(state, `Loan denied! You already have $${debt} in debt.`),
+            p => ({ ...p, happiness: Math.max(0, p.happiness - 5) })
+          );
+          return { ...s2, lastJobResult: { success: false, message: 'Loan denied. -5 happiness.' } };
+        }
         debt += amount; money += amount;
         msg = `Borrowed $${amount}.`;
       }
@@ -502,13 +528,22 @@ export const gameReducer = (state, action) => {
           if (interest > 0) playerLog.push(`${np.name}: savings +$${interest}.`);
         }
 
-        // 6. Hunger → time penalty
-        if (np.hunger > 75) {
-          np.maxTime = Math.max(30, BASE_MAX_TIME - 15);
-          playerLog.push(`${np.name}: starving! -15h next week.`);
-        } else if (np.hunger > 40) {
-          np.maxTime = Math.max(40, BASE_MAX_TIME - 5);
-          playerLog.push(`${np.name}: hungry, -5h next week.`);
+        // 6. Food storage — consume 1 serving from fridge/freezer if available
+        const hasFridge = np.inventory.some(i => i.id === 'refrigerator');
+        const hasFreezer = np.inventory.some(i => i.id === 'freezer');
+        const hasStorage = hasFridge || hasFreezer;
+        const groceryIdx = np.inventory.findIndex(i => i.id === 'groceries');
+        if (hasStorage && groceryIdx !== -1) {
+          // Consume one serving of groceries; reduces hunger significantly
+          np.inventory = np.inventory.filter((_, idx) => idx !== groceryIdx);
+          np.hunger = Math.max(0, np.hunger - 60);
+          playerLog.push(`${np.name}: ate from fridge. Hunger down.`);
+        }
+
+        // 7. Hunger → time penalty (authentic: flat -20h if starving)
+        if (np.hunger >= 80) {
+          np.maxTime = Math.max(20, BASE_MAX_TIME - 20);
+          playerLog.push(`${np.name}: starving! -20h next week.`);
         } else {
           np.maxTime = BASE_MAX_TIME;
         }
