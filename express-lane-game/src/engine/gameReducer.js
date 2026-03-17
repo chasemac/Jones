@@ -7,6 +7,7 @@ import {
   JONES_CAREER_TRACK,
   JONES_EDUCATION_TRACK,
   travelCost,
+  calculateDeposit,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
@@ -377,8 +378,7 @@ export const gameReducer = (state, action) => {
       const player = activePlayer(state);
 
       // Moving to more expensive housing requires a deposit (2 weeks rent)
-      const isUpgrade = housing.rent > (player.housing?.rent ?? 0);
-      const deposit = isUpgrade ? housing.rent * 2 : 0;
+      const deposit = calculateDeposit(housing.rent, player.housing?.rent ?? 0);
 
       if (deposit > 0 && player.money < deposit) {
         return log(state, `Can't afford the $${deposit} deposit for ${housing.title} (2 weeks rent).`);
@@ -493,19 +493,13 @@ export const gameReducer = (state, action) => {
         let happinessDelta = -3;
         happinessDelta += np.housing.happiness || 0;
         if (np.job) happinessDelta += 2; else happinessDelta -= 3;
-        if (np.inventory.some(i => i.id === 'smart_watch')) happinessDelta += 5;
-        if (np.inventory.some(i => i.id === 'streaming_sub')) {
-          happinessDelta += 4;
-          np.money = Math.max(0, np.money - 15);
-          playerLog.push(`${np.name}: streaming sub -$15.`);
-        }
-        if (np.inventory.some(i => i.id === 'health_insurance')) {
-          np.money = Math.max(0, np.money - 50);
-          playerLog.push(`${np.name}: health insurance premium -$50.`);
-        }
-        if (np.inventory.some(i => i.id === 'car')) {
-          np.money = Math.max(0, np.money - 60);
-          playerLog.push(`${np.name}: car gas -$60.`);
+        // Data-driven weekly item effects (weeklyFee, weeklyHappinessBoost)
+        for (const item of np.inventory) {
+          if (item.weeklyHappinessBoost) happinessDelta += item.weeklyHappinessBoost;
+          if (item.weeklyFee) {
+            np.money = Math.max(0, np.money - item.weeklyFee);
+            playerLog.push(`${np.name}: ${item.name} -$${item.weeklyFee}.`);
+          }
         }
         np.happiness = Math.min(100, Math.max(0, np.happiness + happinessDelta));
 
@@ -625,47 +619,47 @@ export const gameReducer = (state, action) => {
         const ep = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
         const skipEvent = (event.id === 'bonus' || event.id === 'overtime') && !ep.job;
         if (!skipEvent) {
-        let effectDesc = '';
-        switch (event.effect.type) {
-          case 'money':
-            ep.money = Math.max(0, ep.money + event.effect.value);
-            effectDesc = event.effect.value >= 0 ? `+$${event.effect.value}` : `-$${Math.abs(event.effect.value)}`;
-            break;
-          case 'time_loss':
-            ep.maxTime = Math.max(20, ep.maxTime - Math.floor(ep.maxTime * event.effect.value));
-            ep.timeRemaining = ep.maxTime;
-            effectDesc = `-${Math.floor(event.effect.value * 100)}% time next week`;
-            break;
-          case 'rent_increase': {
-            const extra = Math.floor(ep.housing.rent * event.effect.value);
-            ep.money = Math.max(0, ep.money - extra);
-            effectDesc = `-$${extra} extra rent`;
-            break;
+          let effectDesc = '';
+          switch (event.effect.type) {
+            case 'money':
+              ep.money = Math.max(0, ep.money + event.effect.value);
+              effectDesc = event.effect.value >= 0 ? `+$${event.effect.value}` : `-$${Math.abs(event.effect.value)}`;
+              break;
+            case 'time_loss':
+              ep.maxTime = Math.max(20, ep.maxTime - Math.floor(ep.maxTime * event.effect.value));
+              ep.timeRemaining = ep.maxTime;
+              effectDesc = `-${Math.floor(event.effect.value * 100)}% time next week`;
+              break;
+            case 'rent_increase': {
+              const extra = Math.floor(ep.housing.rent * event.effect.value);
+              ep.money = Math.max(0, ep.money - extra);
+              effectDesc = `-$${extra} extra rent`;
+              break;
+            }
+            case 'savings_interest_bonus': {
+              const bonus = Math.floor(ep.savings * event.effect.value);
+              ep.savings += bonus;
+              effectDesc = `+$${bonus} savings bonus`;
+              break;
+            }
+            case 'savings_loss': {
+              const loss = Math.floor(ep.savings * event.effect.value);
+              ep.savings = Math.max(0, ep.savings - loss);
+              effectDesc = `-$${loss} from savings`;
+              break;
+            }
+            case 'happiness':
+              ep.happiness = Math.min(100, Math.max(0, ep.happiness + event.effect.value));
+              effectDesc = `${event.effect.value > 0 ? '+' : ''}${event.effect.value} happiness`;
+              break;
+            case 'job_loss':
+              if (ep.job) { ep.job = null; effectDesc = 'you lost your job!'; }
+              else effectDesc = 'no effect';
+              break;
+            default: break;
           }
-          case 'savings_interest_bonus': {
-            const bonus = Math.floor(ep.savings * event.effect.value);
-            ep.savings += bonus;
-            effectDesc = `+$${bonus} savings bonus`;
-            break;
-          }
-          case 'savings_loss': {
-            const loss = Math.floor(ep.savings * event.effect.value);
-            ep.savings = Math.max(0, ep.savings - loss);
-            effectDesc = `-$${loss} from savings`;
-            break;
-          }
-          case 'happiness':
-            ep.happiness = Math.min(100, Math.max(0, ep.happiness + event.effect.value));
-            effectDesc = `${event.effect.value > 0 ? '+' : ''}${event.effect.value} happiness`;
-            break;
-          case 'job_loss':
-            if (ep.job) { ep.job = null; effectDesc = 'you lost your job!'; }
-            else effectDesc = 'no effect';
-            break;
-          default: break;
+          pendingEvent = { title: event.title, description: event.description, effectDesc, playerName: ep.name };
         }
-        pendingEvent = { title: event.title, description: event.description, effectDesc, playerName: ep.name };
-        } // end !skipEvent
       }
 
       // 11. Jones AI

@@ -19,6 +19,19 @@ export const meetsEducation = (playerEdu, requiredEdu) => {
   return p >= r;
 };
 
+// Returns 0–100 progress toward education goal using rank hierarchy
+export const getEducationProgress = (playerEdu, goalEdu) => {
+  const maxRank = EDUCATION_RANK[goalEdu] ?? 1;
+  const curRank = EDUCATION_RANK[playerEdu] ?? 0;
+  return Math.min(100, Math.round((curRank / maxRank) * 100));
+};
+
+// Shared net-worth formula used across HUD, Goals, Victory, Header
+export const calculateNetWorth = (player) => player.money + player.savings - player.debt;
+
+// Deposit required when upgrading housing (2 weeks of new rent; 0 for downgrades)
+export const calculateDeposit = (newRent, currentRent) => (newRent > currentRent ? newRent * 2 : 0);
+
 // ─── Economy States ───────────────────────────────────────────────────────────
 export const ECONOMY_STATES = ['Depression', 'Normal', 'Boom'];
 

@@ -53,6 +53,7 @@
     "name": "Smart Watch",
     "cost": 300,
     "type": "electronics",
+    "weeklyHappinessBoost": 5,
     "effect": "+5 Happiness/week"
   },
   {
@@ -60,7 +61,9 @@
     "name": "Streaming Sub",
     "cost": 15,
     "type": "subscription",
-    "effect": "+Happiness/week, -$15/week"
+    "weeklyFee": 15,
+    "weeklyHappinessBoost": 4,
+    "effect": "+4 Happiness/week, -$15/week"
   },
   {
     "id": "textbook",
@@ -116,6 +119,7 @@
     "name": "Health Insurance",
     "cost": 50,
     "type": "subscription",
+    "weeklyFee": 50,
     "effect": "Reduces doctor bill to $50 (from $200); -$50/week premium"
   },
   {
@@ -132,6 +136,7 @@
     "cost": 2000,
     "type": "vehicle",
     "travelBonus": 2,
+    "weeklyFee": 60,
     "effect": "Travel costs 2 fewer hours; -$60/week gas"
   }
 ]
