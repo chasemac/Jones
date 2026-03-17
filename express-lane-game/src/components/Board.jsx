@@ -49,8 +49,8 @@ import stocksData from '../data/stocks.json';
 // ─── Location config: label, emoji, board position (% from top-left) ─────────
 const LOCATIONS_CONFIG = {
   leasing_office:  { emoji: '🏢', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 10 } },
-  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 2  } },
-  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 2  } },
+  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 10 } },
+  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 10 } },
   trendsetters:    { emoji: '👕', label: 'TrendSetters',  color: '#db2777', pos: { x: 88, y: 20 } },
   coffee_shop:     { emoji: '☕', label: 'Coffee Shop',   color: '#78350f', pos: { x: 88, y: 55 } },
   blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 72, y: 80 } },
@@ -64,13 +64,13 @@ const LOCATIONS_CONFIG = {
 // coords (e.g. x:5, y:10) match exactly. Path data only accepts numeric units,
 // not "5%" strings, so the viewBox is required for % equivalence.
 // Ring road traces all 9 building positions in LOCATION_ORDER (Monopoly-style).
-const RING_PATH = "M 5 10 L 38 2 L 72 2 L 88 20 L 88 55 L 72 80 L 38 80 L 5 80 Z";
+const RING_PATH = "M 5 10 L 38 10 L 72 10 L 88 20 L 88 55 L 72 80 L 38 80 L 5 80 Z";
 
 const MapBackground = () => (
   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 100 100" preserveAspectRatio="none">
     {/* Green interior park fill — inset from the ring */}
-    <path d="M 12 13 L 38 6 L 72 6 L 83 22 L 83 53 L 70 76 L 38 76 L 12 76 Z"
+    <path d="M 12 14 L 38 14 L 72 14 L 83 22 L 83 53 L 70 76 L 38 76 L 12 76 Z"
       fill="#dcfce7" stroke="none" />
     <ellipse cx="48" cy="44" rx="14" ry="10" fill="#bbf7d0" opacity="0.6" />
 
