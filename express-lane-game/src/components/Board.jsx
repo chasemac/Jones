@@ -49,8 +49,8 @@ import stocksData from '../data/stocks.json';
 // ─── Location config: label, emoji, board position (% from top-left) ─────────
 const LOCATIONS_CONFIG = {
   leasing_office:  { emoji: '🏢', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 10 } },
-  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 2  } },
-  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 2  } },
+  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 10 } },
+  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 10 } },
   trendsetters:    { emoji: '👕', label: 'TrendSetters',  color: '#db2777', pos: { x: 88, y: 20 } },
   coffee_shop:     { emoji: '☕', label: 'Coffee Shop',   color: '#78350f', pos: { x: 88, y: 55 } },
   blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 72, y: 80 } },
@@ -60,32 +60,35 @@ const LOCATIONS_CONFIG = {
 };
 
 // ─── Map background SVG ───────────────────────────────────────────────────────
+// viewBox="0 0 100 100" maps coordinates 1:1 with % positions so building
+// coords (e.g. x:5, y:10) match exactly. Path data only accepts numeric units,
+// not "5%" strings, so the viewBox is required for % equivalence.
+// Ring road traces all 9 building positions in LOCATION_ORDER (Monopoly-style).
+const RING_PATH = "M 5 10 L 38 10 L 72 10 L 88 20 L 88 55 L 72 80 L 38 80 L 5 80 Z";
+
 const MapBackground = () => (
-  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-    {/* Green park areas */}
-    <ellipse cx="50%" cy="45%" rx="18%" ry="14%" fill="#bbf7d0" opacity="0.6" />
-    <circle cx="50%" cy="45%" r="8%" fill="#86efac" opacity="0.5" />
-    {/* Road network */}
-    <path d="M15% 15% Q50% 5% 85% 15%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
-    <path d="M15% 85% Q50% 95% 85% 85%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
-    <path d="M10% 15% Q5% 45% 10% 85%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
-    <path d="M90% 25% Q95% 45% 90% 75%" stroke="#d1d5db" strokeWidth="3%" fill="none" opacity="0.5" />
-    {/* Center-to-edges paths */}
-    <line x1="50%" y1="45%" x2="15%" y2="15%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="50%" y2="5%"  stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="88%" y2="25%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="88%" y2="60%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="75%" y2="83%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="50%" y2="83%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="15%" y2="83%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    <line x1="50%" y1="45%" x2="10%" y2="48%" stroke="#fde68a" strokeWidth="1.5%" opacity="0.4" />
-    {/* Decorative trees */}
-    <text x="45%" y="43%" fontSize="2%" textAnchor="middle">🌳</text>
-    <text x="55%" y="43%" fontSize="2%" textAnchor="middle">🌳</text>
-    <text x="50%" y="50%" fontSize="2%" textAnchor="middle">🌳</text>
-    <text x="30%" y="35%" fontSize="1.5%" textAnchor="middle">🏠</text>
-    <text x="65%" y="60%" fontSize="1.5%" textAnchor="middle">🏠</text>
-    <text x="35%" y="60%" fontSize="1.5%" textAnchor="middle">🏠</text>
+  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 100 100" preserveAspectRatio="none">
+    {/* Green interior park fill — inset from the ring */}
+    <path d="M 12 14 L 38 14 L 72 14 L 83 22 L 83 53 L 70 76 L 38 76 L 12 76 Z"
+      fill="#dcfce7" stroke="none" />
+    <ellipse cx="48" cy="44" rx="14" ry="10" fill="#bbf7d0" opacity="0.6" />
+
+    {/* Ring road — asphalt base (5 units = 5% of width) */}
+    <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5" strokeLinejoin="round" />
+    {/* Ring road — lighter road surface */}
+    <path d={RING_PATH} fill="none" stroke="#e5e7eb" strokeWidth="3.5" strokeLinejoin="round" />
+    {/* Yellow dashed center line */}
+    <path d={RING_PATH} fill="none" stroke="#fbbf24" strokeWidth="0.6" strokeLinejoin="round"
+      strokeDasharray="3 2" opacity="0.8" />
+
+    {/* Decorative trees & houses in park interior */}
+    <text x="38" y="40" fontSize="5" textAnchor="middle">🌳</text>
+    <text x="54" y="48" fontSize="5" textAnchor="middle">🌲</text>
+    <text x="42" y="58" fontSize="4" textAnchor="middle">🌳</text>
+    <text x="60" y="36" fontSize="3.5" textAnchor="middle">🌲</text>
+    <text x="30" y="52" fontSize="3" textAnchor="middle">🏠</text>
+    <text x="62" y="62" fontSize="3" textAnchor="middle">🏠</text>
   </svg>
 );
 
@@ -569,22 +572,20 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
 };
 
 // ─── Notification feed ────────────────────────────────────────────────────────
+// Collapsed to a small bell button so it doesn't overlap any buildings.
 const NotificationFeed = ({ history, onOpenLog }) => (
-  <div
-    className="absolute bottom-28 left-4 w-56 max-h-40 overflow-y-auto bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 z-10 cursor-pointer hover:border-slate-500 transition-colors"
+  <button
+    className="absolute bottom-28 right-4 w-10 h-10 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg"
     onClick={onOpenLog}
-    title="Click to see full log"
+    title="Open event log"
   >
-    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1 sticky top-0 bg-slate-900/90 pb-1 flex justify-between">
-      <span>🔔 Log</span>
-      <span className="text-slate-600">expand ↗</span>
-    </div>
-    {history.length === 0
-      ? <div className="text-[10px] text-slate-500 italic">No events yet...</div>
-      : history.slice(0, 8).map((entry, i) => (
-          <div key={i} className="text-[10px] text-slate-300 border-b border-slate-700 last:border-0 py-0.5">{entry}</div>
-        ))}
-  </div>
+    <span className="text-lg leading-none">🔔</span>
+    {history.length > 0 && (
+      <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+        {Math.min(history.length, 99)}
+      </span>
+    )}
+  </button>
 );
 
 // ─── Full log modal ───────────────────────────────────────────────────────────
@@ -1530,48 +1531,50 @@ const Board = () => {
         />
       )}
 
-      {/* Map background */}
-      <MapBackground />
+      {/* Padded map area — keeps buildings away from container edges */}
+      <div className="absolute inset-x-5 top-4 bottom-24">
+        {/* Map background */}
+        <MapBackground />
 
-      {/* Buildings */}
-      {LOCATION_ORDER.map(id => (
-        <BuildingNode
-          key={id}
-          id={id}
-          config={LOCATIONS_CONFIG[id]}
-          isCurrent={state.player.currentLocation === id}
-          isTraveling={isMoving}
-          onClick={() => handleTravel(id)}
-        />
-      ))}
-
-      {/* Jones token */}
-      <PlayerToken
-        locationId={state.jones.currentLocation}
-        isMoving={false}
-        label="The Joneses"
-        emoji="🤑"
-        colorClass="bg-red-400"
-        zIndex={9}
-      />
-
-      {/* All player tokens */}
-      {state.players?.map((p, i) => {
-        const isActive = i === state.activePlayerIndex;
-        // Active player uses animLocation during travel, otherwise actual location
-        const displayLocation = isActive && animLocation ? animLocation : p.currentLocation;
-        return (
-          <PlayerToken
-            key={p.name}
-            locationId={displayLocation}
-            isMoving={isActive && isMoving}
-            label={p.name}
-            emoji={p.emoji}
-            colorClass={isActive ? 'bg-yellow-400' : 'bg-slate-400 opacity-60'}
-            zIndex={isActive ? 11 : 10}
+        {/* Buildings */}
+        {LOCATION_ORDER.map(id => (
+          <BuildingNode
+            key={id}
+            id={id}
+            config={LOCATIONS_CONFIG[id]}
+            isCurrent={state.player.currentLocation === id}
+            isTraveling={isMoving}
+            onClick={() => handleTravel(id)}
           />
-        );
-      })}
+        ))}
+
+        {/* Jones token */}
+        <PlayerToken
+          locationId={state.jones.currentLocation}
+          isMoving={false}
+          label="The Joneses"
+          emoji="🤑"
+          colorClass="bg-red-400"
+          zIndex={9}
+        />
+
+        {/* All player tokens */}
+        {state.players?.map((p, i) => {
+          const isActive = i === state.activePlayerIndex;
+          const displayLocation = isActive && animLocation ? animLocation : p.currentLocation;
+          return (
+            <PlayerToken
+              key={p.name}
+              locationId={displayLocation}
+              isMoving={isActive && isMoving}
+              label={p.name}
+              emoji={p.emoji}
+              colorClass={isActive ? 'bg-yellow-400' : 'bg-slate-400 opacity-60'}
+              zIndex={isActive ? 11 : 10}
+            />
+          );
+        })}
+      </div>
 
       {/* Multiplayer turn banner */}
       {state.players?.length > 1 && (
