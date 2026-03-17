@@ -11,7 +11,8 @@
     "name": "Laptop",
     "cost": 1200,
     "type": "electronics",
-    "effect": "Unlocks Remote Work & Education"
+    "studyBonus": 10,
+    "effect": "Unlocks Bootcamp; -10hrs per study session"
   },
   {
     "id": "burger",
@@ -60,6 +61,38 @@
     "cost": 15,
     "type": "subscription",
     "effect": "+Happiness/week, -$15/week"
+  },
+  {
+    "id": "textbook",
+    "name": "Textbook",
+    "cost": 80,
+    "type": "study_aid",
+    "studyBonus": 5,
+    "effect": "-5hrs per study session (stackable)"
+  },
+  {
+    "id": "refrigerator",
+    "name": "Refrigerator",
+    "cost": 400,
+    "type": "appliance",
+    "foodStorage": 2,
+    "effect": "Store 2 weeks of groceries"
+  },
+  {
+    "id": "freezer",
+    "name": "Chest Freezer",
+    "cost": 600,
+    "type": "appliance",
+    "foodStorage": 4,
+    "effect": "Store 4 weeks of groceries"
+  },
+  {
+    "id": "groceries",
+    "name": "Groceries",
+    "cost": 40,
+    "type": "food_storage",
+    "servings": 1,
+    "effect": "One week of food — requires fridge or freezer"
   },
   {
     "id": "concert_ticket",

@@ -39,6 +39,16 @@
     "requirements": { "education": "Bachelor's" }
   },
   {
+    "id": "graduate",
+    "title": "Graduate Research",
+    "type": "academic",
+    "cost": 10000,
+    "totalHours": 200,
+    "degree": "Graduate Degree",
+    "description": "Post-graduate research. Max academic achievement.",
+    "requirements": { "education": "Master's" }
+  },
+  {
     "id": "electrician_cert",
     "title": "Electrician Cert",
     "type": "trade",
@@ -55,5 +65,15 @@
     "totalHours": 70,
     "degree": "Plumbing License",
     "description": "Dirty work, clean money."
+  },
+  {
+    "id": "engineering_cert",
+    "title": "Engineering Certificate",
+    "type": "trade",
+    "cost": 3000,
+    "totalHours": 100,
+    "degree": "Engineering Certificate",
+    "description": "Advanced trade skills. Unlocks high-wage trade jobs.",
+    "requirements": { "education": "Electrician License" }
   }
 ]

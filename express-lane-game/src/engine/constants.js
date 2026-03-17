@@ -5,9 +5,11 @@ export const EDUCATION_RANK = {
   'Bootcamp Certificate': 1,
   'Electrician License': 1,
   'Plumbing License': 1,
+  'Engineering Certificate': 2,
   "Associate's": 2,
   "Bachelor's": 3,
   "Master's": 4,
+  'Graduate Degree': 5,
 };
 
 export const meetsEducation = (playerEdu, requiredEdu) => {
