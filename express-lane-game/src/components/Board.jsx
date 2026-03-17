@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, EDUCATION_RANK } from '../engine/constants';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, EDUCATION_RANK, calculateNetWorth, getEducationProgress, calculateDeposit } from '../engine/constants';
 
 // Adjust item price by economy state
 const adjustedPrice = (baseCost, economy) =>
@@ -25,6 +25,24 @@ const ringPath = (fromId, toId) => {
 import jobsData from '../data/jobs.json';
 import itemsData from '../data/items.json';
 import educationData from '../data/education.json';
+
+// ─── Career tracks derived from jobs.json promotion chains ───────────────────
+const TRACK_META = { service: '☕ Service', tech: '💻 Tech', corporate: '🏢 Corp', trade: '🔧 Trade' };
+const CAREER_TRACKS = (() => {
+  const promotionTargets = new Set(jobsData.map(j => j.promotion).filter(Boolean));
+  const tracks = [];
+  for (const [type, label] of Object.entries(TRACK_META)) {
+    const typeJobs = jobsData.filter(j => j.type === type);
+    const roots = typeJobs.filter(j => !promotionTargets.has(j.id));
+    for (const root of roots) {
+      const chain = [];
+      let cur = root;
+      while (cur) { chain.push(cur.id); cur = typeJobs.find(j => j.id === cur.promotion); }
+      tracks.push({ label, jobs: chain });
+    }
+  }
+  return tracks;
+})();
 import housingData from '../data/housing.json';
 import stocksData from '../data/stocks.json';
 
@@ -207,7 +225,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const [muted, setMuted] = useState(false);
   const { player, week, economy } = state;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
-  const netWorth = player.money + player.savings - player.debt;
+  const netWorth = calculateNetWorth(player);
 
   const economyColor = economy === 'Boom' ? 'text-green-400' : economy === 'Depression' ? 'text-red-400' : 'text-slate-400';
   const happinessFace = player.happiness >= 80 ? '😁' : player.happiness >= 60 ? '🙂' : player.happiness >= 40 ? '😐' : player.happiness >= 20 ? '😟' : '😫';
@@ -273,11 +291,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         <div className="flex gap-2 text-[8px] flex-wrap">
           <span className="text-slate-400">🎓 {player.education}</span>
           <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
-          {player.inventory?.some(i => i.type === 'vehicle') && (
-            <span className="text-slate-400">
-              {player.inventory.find(i => i.type === 'vehicle')?.id === 'car' ? '🚗' : '🚲'}
-            </span>
-          )}
+          {(() => { const v = player.inventory?.find(i => i.type === 'vehicle'); return v ? <span className="text-slate-400">{v.id === 'car' ? '🚗' : '🚲'}</span> : null; })()}
         </div>
       </div>
 
@@ -332,7 +346,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
 const GoalsModal = ({ state, onClose }) => {
   const { player, difficulty } = state;
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
-  const netWorth = player.money + player.savings - player.debt;
+  const netWorth = calculateNetWorth(player);
 
   const items = [
     {
@@ -353,11 +367,7 @@ const GoalsModal = ({ state, onClose }) => {
       label: 'Education',
       current: player.education,
       goal: goals.education,
-      pct: (() => {
-        const maxRank = EDUCATION_RANK[goals.education] ?? 1;
-        const curRank = EDUCATION_RANK[player.education] ?? 0;
-        return Math.min(100, Math.round((curRank / maxRank) * 100));
-      })(),
+      pct: getEducationProgress(player.education, goals.education),
       met: meetsEducation(player.education, goals.education),
     },
     {
@@ -410,6 +420,43 @@ const NotificationModal = ({ title, message, type, onClose }) => (
   </div>
 );
 
+// ─── Inventory section (module-scope so it isn't recreated on each render) ────
+const InventorySection = ({ title, items }) => {
+  if (items.length === 0) return null;
+  return (
+    <div className="mb-3">
+      <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">{title}</div>
+      {items.map((item, i) => (
+        <div key={i} className="flex justify-between items-center p-2 bg-slate-50 border rounded-lg mb-1">
+          <div>
+            <div className="font-bold text-sm">{item.name}</div>
+            <div className="text-xs text-slate-400">{item.effect}</div>
+            {item.clothingWear !== undefined && (
+              <div className="mt-0.5">
+                <div className="flex items-center gap-1">
+                  <div className="flex-grow h-1.5 bg-slate-200 rounded-full overflow-hidden w-20">
+                    <div
+                      className={`h-full rounded-full ${item.clothingWear <= 20 ? 'bg-red-500' : item.clothingWear <= 40 ? 'bg-orange-400' : 'bg-green-500'}`}
+                      style={{ width: `${item.clothingWear}%` }}
+                    />
+                  </div>
+                  <span className={`text-[9px] font-bold ${item.clothingWear <= 20 ? 'text-red-600' : 'text-slate-400'}`}>
+                    {item.clothingWear <= 20 ? '⚠️ ' : ''}{item.clothingWear}% durability
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="text-xs text-slate-500 text-right">
+            <div>${item.cost}</div>
+            <div className="text-slate-400">resell ${Math.floor(item.cost * 0.5)}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // ─── Inventory modal ──────────────────────────────────────────────────────────
 const InventoryModal = ({ inventory, onClose }) => {
   const clothing = inventory.filter(i => i.clothingWear !== undefined);
@@ -424,42 +471,6 @@ const InventoryModal = ({ inventory, onClose }) => {
     i.id !== 'groceries'
   );
 
-  const Section = ({ title, items }) => {
-    if (items.length === 0) return null;
-    return (
-      <div className="mb-3">
-        <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">{title}</div>
-        {items.map((item, i) => (
-          <div key={i} className="flex justify-between items-center p-2 bg-slate-50 border rounded-lg mb-1">
-            <div>
-              <div className="font-bold text-sm">{item.name}</div>
-              <div className="text-xs text-slate-400">{item.effect}</div>
-              {item.clothingWear !== undefined && (
-                <div className="mt-0.5">
-                  <div className="flex items-center gap-1">
-                    <div className="flex-grow h-1.5 bg-slate-200 rounded-full overflow-hidden w-20">
-                      <div
-                        className={`h-full rounded-full ${item.clothingWear <= 20 ? 'bg-red-500' : item.clothingWear <= 40 ? 'bg-orange-400' : 'bg-green-500'}`}
-                        style={{ width: `${item.clothingWear}%` }}
-                      />
-                    </div>
-                    <span className={`text-[9px] font-bold ${item.clothingWear <= 20 ? 'text-red-600' : 'text-slate-400'}`}>
-                      {item.clothingWear <= 20 ? '⚠️ ' : ''}{item.clothingWear}% durability
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="text-xs text-slate-500 text-right">
-              <div>${item.cost}</div>
-              <div className="text-slate-400">resell ${Math.floor(item.cost * 0.5)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -472,7 +483,7 @@ const InventoryModal = ({ inventory, onClose }) => {
             <div className="text-center text-slate-400 py-8 italic">Your pockets are empty.</div>
           ) : (
             <>
-              <Section title="👗 Clothing" items={clothing} />
+              <InventorySection title="👗 Clothing" items={clothing} />
               {groceries.length > 0 && (
                 <div className="mb-3">
                   <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">🛒 Stored Food</div>
@@ -482,10 +493,10 @@ const InventoryModal = ({ inventory, onClose }) => {
                   </div>
                 </div>
               )}
-              <Section title="📱 Electronics & Subs" items={electronics} />
-              <Section title="🏠 Appliances" items={appliances} />
-              <Section title="📚 Study Aids" items={studyAids} />
-              <Section title="📦 Other" items={other} />
+              <InventorySection title="📱 Electronics & Subs" items={electronics} />
+              <InventorySection title="🏠 Appliances" items={appliances} />
+              <InventorySection title="📚 Study Aids" items={studyAids} />
+              <InventorySection title="📦 Other" items={other} />
             </>
           )}
         </div>
@@ -522,7 +533,7 @@ const EventModal = ({ event, onClose }) => (
 // ─── Jones sidebar ────────────────────────────────────────────────────────────
 const JonesSidebar = ({ jones, difficulty, player }) => {
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
-  const playerNetWorth = player.money + player.savings - player.debt;
+  const playerNetWorth = calculateNetWorth(player);
   return (
     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-10 w-44 hidden md:block">
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
@@ -597,10 +608,13 @@ const FullLogModal = ({ history, onClose }) => (
 
 // ─── Week summary modal ───────────────────────────────────────────────────────
 const WeekSummaryModal = ({ summary, onClose }) => {
+  // Capture onClose in a ref so the timeout doesn't reset when the parent re-renders
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
-    const t = setTimeout(onClose, 4000);
+    const t = setTimeout(() => onCloseRef.current(), 4000);
     return () => clearTimeout(t);
-  }, [onClose]);
+  }, []); // intentionally empty — fires once per mount
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -742,12 +756,7 @@ const LibraryContent = ({ state, actions, setNotification }) => {
         </button>
         {showCareerPaths && (
           <div className="text-[10px] space-y-2 bg-slate-50 p-2 rounded border border-slate-200">
-            {[
-              { label: '☕ Service', jobs: ['barista', 'shift_lead', 'store_manager'] },
-              { label: '💻 Tech', jobs: ['junior_dev', 'senior_dev', 'tech_lead'] },
-              { label: '🏢 Corp', jobs: ['admin_assistant', 'office_manager', 'director'] },
-              { label: '🔧 Trade', jobs: ['electrician', 'plumber', 'master_electrician'] },
-            ].map(track => (
+            {CAREER_TRACKS.map(track => (
               <div key={track.label}>
                 <div className="font-bold text-slate-600 mb-0.5">{track.label}</div>
                 <div className="flex items-center gap-1 flex-wrap">
@@ -1330,8 +1339,7 @@ const LeasingOfficeContent = ({ state, actions }) => {
       </div>
       <div className="space-y-2">
         {housingData.map(h => {
-          const isUpgrade = h.rent > (player.housing?.rent ?? 0);
-          const deposit = isUpgrade ? h.rent * 2 : 0;
+          const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
           return (
             <button
               key={h.id}

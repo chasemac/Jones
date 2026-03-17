@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { DIFFICULTY_PRESETS } from '../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth } from '../engine/constants';
 
 const VictoryModal = () => {
   const { state, initGame } = useGame();
@@ -10,7 +10,7 @@ const VictoryModal = () => {
   const isWin = state.gameStatus === 'won';
   const { week, jones, difficulty } = state;
   const player = state.players?.find(p => p.name === state.winner) ?? state.player;
-  const netWorth = player.money + player.savings - player.debt;
+  const netWorth = calculateNetWorth(player);
 
   const handlePlayAgain = () => {
     initGame(difficulty, state.playerCount || 1);

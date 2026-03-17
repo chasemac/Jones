@@ -1,10 +1,11 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
+import { calculateNetWorth } from '../engine/constants';
 
 const Header = () => {
   const { player, week, jones } = useGame();
 
-  const playerNetWorth = player.money + player.savings - player.debt;
+  const playerNetWorth = calculateNetWorth(player);
 
   return (
     <header className="bg-slate-800 text-white p-4 shadow-md">
