@@ -268,15 +268,20 @@ export const gameReducer = (state, action) => {
         return autoEndIfNeeded(s);
       }
 
-      // Food storage items (groceries): require fridge/freezer, add to inventory as consumable
+      // Food storage items (groceries): always buyable; without a fridge they'll spoil at week's end
       if (item.type === 'food_storage') {
         const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
         const hasFreezer = player.inventory.some(i => i.id === 'freezer');
-        if (!hasFridge && !hasFreezer) return log(state, "You need a Refrigerator or Freezer to store groceries!");
-        const maxStorage = hasFreezer ? 4 : 2;
+        const hasStorage = hasFridge || hasFreezer;
+        const maxStorage = hasFreezer ? 4 : hasFridge ? 2 : 1; // no fridge = hold 1 serving max
         const currentServings = player.inventory.filter(i => i.id === 'groceries').length;
-        if (currentServings >= maxStorage) return log(state, `Storage full! (${currentServings}/${maxStorage} servings)`);
-        let s = log(state, `Bought groceries (+1 week of food stored).`);
+        if (currentServings >= maxStorage) {
+          return log(state, hasStorage
+            ? `Fridge full! (${currentServings}/${maxStorage} weeks stored)`
+            : 'You can only hold 1 week of groceries without a fridge.');
+        }
+        const warning = hasStorage ? '' : ' ⚠️ No fridge — food will spoil at week\'s end!';
+        let s = log(state, `Bought groceries (+1 week of food stored).${warning}`);
         s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item] }));
         return s;
       }
@@ -564,16 +569,23 @@ export const gameReducer = (state, action) => {
           if (interest > 0) playerLog.push(`${np.name}: savings +$${interest}.`);
         }
 
-        // 6. Food storage — consume 1 serving from fridge/freezer if available
+        // 6. Food storage — consume 1 serving (fridge) or spoil (no fridge → food poisoning)
         const hasFridge = np.inventory.some(i => i.id === 'refrigerator');
         const hasFreezer = np.inventory.some(i => i.id === 'freezer');
         const hasStorage = hasFridge || hasFreezer;
         const groceryIdx = np.inventory.findIndex(i => i.id === 'groceries');
-        if (hasStorage && groceryIdx !== -1) {
-          // Consume one serving of groceries; reduces hunger significantly
-          np.inventory = np.inventory.filter((_, idx) => idx !== groceryIdx);
-          np.hunger = Math.max(0, np.hunger - 60);
-          playerLog.push(`${np.name}: ate from fridge. Hunger down.`);
+        if (groceryIdx !== -1) {
+          if (hasStorage) {
+            // Eat one serving — reduces hunger significantly
+            np.inventory = np.inventory.filter((_, idx) => idx !== groceryIdx);
+            np.hunger = Math.max(0, np.hunger - 60);
+            playerLog.push(`${np.name}: ate from fridge. Hunger down.`);
+          } else {
+            // No fridge — all groceries spoil, food poisoning kicks in next week
+            np.inventory = np.inventory.filter(i => i.id !== 'groceries');
+            np.hunger = 100; // triggers the existing -20hr starvation penalty in step 7
+            playerLog.push(`${np.name}: groceries spoiled (no fridge)! Food poisoning — sick next week.`);
+          }
         }
 
         // 7. Hunger → time penalty (authentic: flat -20h if starving)

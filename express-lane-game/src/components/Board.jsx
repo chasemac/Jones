@@ -52,9 +52,11 @@ const LOCATIONS_CONFIG = {
   quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 10 } },
   public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 10 } },
   trendsetters:    { emoji: '👕', label: 'TrendSetters',  color: '#db2777', pos: { x: 88, y: 20 } },
-  coffee_shop:     { emoji: '☕', label: 'Coffee Shop',   color: '#78350f', pos: { x: 88, y: 55 } },
-  blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 72, y: 80 } },
-  city_college:    { emoji: '🎓', label: 'City College',  color: '#2563eb', pos: { x: 38, y: 80 } },
+  coffee_shop:     { emoji: '☕', label: 'Coffee Shop',   color: '#78350f', pos: { x: 88, y: 50 } },
+  megamart:        { emoji: '🏪', label: 'MegaMart',      color: '#dc2626', pos: { x: 75, y: 72 } },
+  blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 60, y: 80 } },
+  grocery_store:   { emoji: '🛒', label: 'Fresh Mart',    color: '#16a34a', pos: { x: 44, y: 80 } },
+  city_college:    { emoji: '🎓', label: 'City College',  color: '#2563eb', pos: { x: 28, y: 80 } },
   tech_store:      { emoji: '📱', label: 'Tech Store',    color: '#475569', pos: { x: 5,  y: 80 } },
   neobank:         { emoji: '🏦', label: 'NeoBank',       color: '#4f46e5', pos: { x: 5,  y: 45 } },
 };
@@ -63,14 +65,15 @@ const LOCATIONS_CONFIG = {
 // viewBox="0 0 100 100" maps coordinates 1:1 with % positions so building
 // coords (e.g. x:5, y:10) match exactly. Path data only accepts numeric units,
 // not "5%" strings, so the viewBox is required for % equivalence.
-// Ring road traces all 9 building positions in LOCATION_ORDER (Monopoly-style).
-const RING_PATH = "M 5 10 L 38 10 L 72 10 L 88 20 L 88 55 L 72 80 L 38 80 L 5 80 Z";
+// Ring road traces all 11 building positions in LOCATION_ORDER (Monopoly-style).
+// megamart sits at (75,72) on the bottom-right diagonal; bottom row buildings spread evenly.
+const RING_PATH = "M 5 10 L 38 10 L 72 10 L 88 20 L 88 50 L 75 72 L 60 80 L 44 80 L 28 80 L 5 80 Z";
 
 const MapBackground = () => (
   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 100 100" preserveAspectRatio="none">
     {/* Green interior park fill — inset from the ring */}
-    <path d="M 12 14 L 38 14 L 72 14 L 83 22 L 83 53 L 70 76 L 38 76 L 12 76 Z"
+    <path d="M 12 14 L 38 14 L 72 14 L 83 22 L 83 48 L 71 70 L 57 76 L 42 76 L 26 76 L 12 76 Z"
       fill="#dcfce7" stroke="none" />
     <ellipse cx="48" cy="44" rx="14" ry="10" fill="#bbf7d0" opacity="0.6" />
 
@@ -641,13 +644,6 @@ const QuickEatsContent = ({ state, actions }) => {
   const { player, economy } = state;
   const hasPhone = player.inventory.some(i => i.id === 'smartphone');
   const foodItems = itemsData.filter(i => i.type === 'food');
-  const groceryItem = itemsData.find(i => i.id === 'groceries');
-  const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
-  const hasFreezer = player.inventory.some(i => i.id === 'freezer');
-  const hasStorage = hasFridge || hasFreezer;
-  const storedServings = player.inventory.filter(i => i.id === 'groceries').length;
-  const maxStorage = hasFreezer ? 4 : hasFridge ? 2 : 0;
-  const groceryPrice = adjustedPrice(groceryItem.cost, economy);
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
       <div>
@@ -665,27 +661,8 @@ const QuickEatsContent = ({ state, actions }) => {
             </button>
           );
         })}
-        <div className="mt-2 border-t border-slate-200 pt-2">
-          <h3 className="font-bold text-sm pb-1 mb-1">🛒 Grocery Run</h3>
-          {hasStorage ? (
-            <button
-              onClick={() => actions.buyItem({ ...groceryItem, cost: groceryPrice })}
-              disabled={storedServings >= maxStorage || player.money < groceryPrice}
-              className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-xs"
-            >
-              <div>
-                <div className="font-bold">Groceries (1 week)</div>
-                <div className="text-slate-500">{storedServings}/{maxStorage} stored</div>
-              </div>
-              <span className="font-mono">${groceryPrice}</span>
-            </button>
-          ) : (
-            <div className="text-[10px] text-slate-400 italic p-2 bg-slate-100 rounded">
-              Buy a 🧊 Fridge at TrendSetters to store groceries and save money on food.
-            </div>
-          )}
-        </div>
         <div className="mt-2 text-xs text-slate-400">Hunger: {player.hunger}/100</div>
+        <div className="mt-1 text-[10px] text-slate-400 italic">💡 Buy groceries at Fresh Mart to save money on food</div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Gig Work (4hrs)</h3>
@@ -863,7 +840,6 @@ const LibraryContent = ({ state, actions, setNotification }) => {
 const TrendSettersContent = ({ state, actions }) => {
   const { player, economy } = state;
   const clothing = itemsData.filter(i => i.type === 'clothing');
-  const appliances = itemsData.filter(i => i.type === 'appliance');
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="flex flex-col items-center justify-center bg-pink-50 rounded-lg p-4">
@@ -890,25 +866,6 @@ const TrendSettersContent = ({ state, actions }) => {
             </button>
           );
         })}
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">Appliances</h3>
-        {appliances.map(item => {
-          const owned = player.inventory.some(i => i.id === item.id);
-          const price = adjustedPrice(item.cost, economy);
-          return (
-            <button
-              key={item.id}
-              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
-              disabled={owned}
-              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 disabled:opacity-60 text-sm"
-            >
-              <div className="text-left">
-                <div>{item.name}</div>
-                <div className="text-[9px] text-slate-400">{item.effect}</div>
-              </div>
-              <span className="font-mono text-xs">{owned ? '✅' : `$${price}`}</span>
-            </button>
-          );
-        })}
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">Vehicles</h3>
         {itemsData.filter(i => i.type === 'vehicle').map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
@@ -929,6 +886,102 @@ const TrendSettersContent = ({ state, actions }) => {
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+};
+
+// ─── Fresh Mart (grocery store) ───────────────────────────────────────────────
+const GroceryStoreContent = ({ state, actions }) => {
+  const { player, economy } = state;
+  const groceryItem = itemsData.find(i => i.id === 'groceries');
+  const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
+  const hasFreezer = player.inventory.some(i => i.id === 'freezer');
+  const hasStorage = hasFridge || hasFreezer;
+  const storedServings = player.inventory.filter(i => i.id === 'groceries').length;
+  const maxStorage = hasFreezer ? 4 : hasFridge ? 2 : 1;
+  const groceryPrice = adjustedPrice(groceryItem.cost, economy);
+  const full = storedServings >= maxStorage;
+  return (
+    <div className="grid grid-cols-2 gap-4 h-full">
+      <div className="flex flex-col items-center justify-center bg-green-50 rounded-lg p-4">
+        <div className="text-7xl mb-2">🛒</div>
+        <div className="text-xs font-bold text-green-800 text-center">Fresh Mart</div>
+        <div className="text-[10px] text-green-600 mt-1 text-center">Affordable groceries — get a fridge to store more!</div>
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Groceries</h3>
+
+        {/* Spoilage warning if no fridge */}
+        {!hasStorage && (
+          <div className="mb-2 p-2 bg-amber-50 border border-amber-300 rounded text-[10px] text-amber-800">
+            ⚠️ <strong>No fridge!</strong> Food spoils at week's end — you'll get food poisoning (−20hrs). Buy a fridge at MegaMart.
+          </div>
+        )}
+
+        <button
+          onClick={() => actions.buyItem({ ...groceryItem, cost: groceryPrice })}
+          disabled={full || player.money < groceryPrice}
+          className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm mb-1"
+        >
+          <div>
+            <div className="font-bold">🥦 Groceries (1 week)</div>
+            <div className="text-[10px] text-slate-500">
+              {hasStorage ? `${storedServings}/${maxStorage} weeks stored` : 'Holds 1 week (no fridge)'}
+            </div>
+          </div>
+          <span className="font-mono text-xs">${groceryPrice}</span>
+        </button>
+
+        {hasStorage && (
+          <div className="text-[10px] text-green-700 mt-1">
+            🧊 {hasFreezer ? 'Freezer' : 'Fridge'} stores up to {maxStorage} weeks — auto-eaten each week.
+          </div>
+        )}
+
+        <div className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-400">
+          Hunger: {player.hunger}/100
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── MegaMart (Target-style big-box store) ────────────────────────────────────
+const MegaMartContent = ({ state, actions }) => {
+  const { player, economy } = state;
+  const appliances = itemsData.filter(i => i.type === 'appliance');
+  return (
+    <div className="grid grid-cols-2 gap-4 h-full">
+      <div className="flex flex-col items-center justify-center bg-red-50 rounded-lg p-4">
+        <div className="text-7xl mb-2">🏪</div>
+        <div className="text-xs font-bold text-red-800 text-center">MegaMart</div>
+        <div className="text-[10px] text-red-600 mt-1 text-center">Everything for your home</div>
+      </div>
+      <div>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Appliances</h3>
+        {appliances.map(item => {
+          const owned = player.inventory.some(i => i.id === item.id);
+          const price = adjustedPrice(item.cost, economy);
+          const upgrading = item.id === 'freezer' && player.inventory.some(i => i.id === 'refrigerator');
+          return (
+            <button
+              key={item.id}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
+              disabled={owned}
+              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-red-50 disabled:opacity-60 text-sm"
+            >
+              <div className="text-left">
+                <div>{item.name} {upgrading ? '(upgrade)' : ''}</div>
+                <div className="text-[9px] text-slate-400">{item.effect}</div>
+              </div>
+              <span className="font-mono text-xs">{owned ? '✅' : `$${price}`}</span>
+            </button>
+          );
+        })}
+        <div className="mt-3 text-[10px] text-slate-400 italic">
+          💡 A fridge lets you stock groceries at Fresh Mart — auto-eaten each week so you skip the store.
+        </div>
       </div>
     </div>
   );
@@ -1494,8 +1547,10 @@ const Board = () => {
       case 'quick_eats':     return <QuickEatsContent state={state} actions={actions} />;
       case 'public_library': return <LibraryContent state={state} actions={actions} setNotification={setNotification} />;
       case 'trendsetters':   return <TrendSettersContent state={state} actions={actions} />;
+      case 'megamart':       return <MegaMartContent state={state} actions={actions} />;
       case 'coffee_shop':    return <CoffeeShopContent state={state} actions={actions} />;
       case 'blacks_market':  return <BlacksMarketContent state={state} actions={actions} />;
+      case 'grocery_store':  return <GroceryStoreContent state={state} actions={actions} />;
       case 'city_college':   return <CityCollegeContent state={state} actions={actions} />;
       case 'tech_store':     return <TechStoreContent state={state} actions={actions} />;
       case 'neobank':        return <NeoBankContent state={state} actions={actions} />;
