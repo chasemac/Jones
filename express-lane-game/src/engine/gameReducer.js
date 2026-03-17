@@ -24,6 +24,7 @@ export const buildPlayer = (index, startingMoney) => ({
   dependability: 50,  // 0-100; career goal metric, decays -3/week, +5 per shift worked
   relaxation: 50,     // 0-100; decays -5/week, hitting 0 forces a Doctor visit
   maxTime: 60,
+  maxTimeReduction: 0,
   timeRemaining: 60,
   education: 'High School',
   job: null,
@@ -510,7 +511,7 @@ export const gameReducer = (state, action) => {
         if (np.relaxation === 0) {
           const doctorCost = 200;
           np.money = Math.max(0, np.money - doctorCost);
-          np.maxTime = Math.max(20, np.maxTime - 5);
+          np.maxTimeReduction = (np.maxTimeReduction || 0) + 5;
           playerLog.push(`${np.name}: exhaustion sent them to the doctor! -$${doctorCost}, -5h next week.`);
         }
 
@@ -541,11 +542,10 @@ export const gameReducer = (state, action) => {
         }
 
         // 7. Hunger → time penalty (authentic: flat -20h if starving)
+        const reduction = (np.maxTimeReduction || 0) + (np.hunger >= 80 ? 20 : 0);
+        np.maxTime = Math.max(20, BASE_MAX_TIME - reduction);
         if (np.hunger >= 80) {
-          np.maxTime = Math.max(20, BASE_MAX_TIME - 20);
           playerLog.push(`${np.name}: starving! -20h next week.`);
-        } else {
-          np.maxTime = BASE_MAX_TIME;
         }
 
         // 7. Reset time, home, done flag
@@ -582,7 +582,7 @@ export const gameReducer = (state, action) => {
       if (Math.random() < 0.4) {
         const event = eventsData[Math.floor(Math.random() * eventsData.length)];
         let effectDesc = '';
-        const ep = updatedPlayers[0]; // event hits Player 1
+        const ep = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
         switch (event.effect.type) {
           case 'money':
             ep.money = Math.max(0, ep.money + event.effect.value);
@@ -621,7 +621,7 @@ export const gameReducer = (state, action) => {
             break;
           default: break;
         }
-        pendingEvent = { title: event.title, description: event.description, effectDesc };
+        pendingEvent = { title: event.title, description: event.description, effectDesc, playerName: ep.name };
       }
 
       // 11. Jones AI
