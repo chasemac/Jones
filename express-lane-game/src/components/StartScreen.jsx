@@ -11,14 +11,14 @@ const DIFFICULTY_DESCRIPTIONS = {
 const StartScreen = () => {
   const { state, initGame, startGame, resetGame } = useGame();
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
+  const [playerCount, setPlayerCount] = useState(1);
 
   if (state.gameStatus !== 'start') return null;
 
   const hasSave = !!localStorage.getItem('jones_v2_state');
 
   const handleStart = () => {
-    initGame(selectedDifficulty);
-    // Small delay so reducer processes INIT_GAME before START_GAME
+    initGame(selectedDifficulty, playerCount);
     setTimeout(() => startGame(), 0);
   };
 
@@ -39,7 +39,7 @@ const StartScreen = () => {
             { icon: '💰', label: 'Wealth',     desc: 'Hit your net worth target' },
             { icon: '😊', label: 'Happiness',  desc: 'Keep your spirits up' },
             { icon: '🎓', label: 'Education',  desc: 'Earn the right degree' },
-            { icon: '💼', label: 'Career',     desc: 'Land a high-paying job' },
+            { icon: '🎯', label: 'Career',     desc: 'Build your dependability' },
           ].map(g => (
             <div key={g.label} className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
               <div className="text-2xl mb-1">{g.icon}</div>
@@ -72,11 +72,31 @@ const StartScreen = () => {
                     <div>💰 Net Worth: ${preset.goals.wealth.toLocaleString()}</div>
                     <div>😊 Happiness: {preset.goals.happiness}</div>
                     <div>🎓 Edu: {preset.goals.education}</div>
-                    <div>💼 Wage: ${preset.goals.careerWage}/hr</div>
+                    <div>🎯 Dep: {preset.goals.careerDependability}</div>
                   </div>
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Player count */}
+        <div className="mb-6">
+          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Players</div>
+          <div className="flex gap-2 justify-center">
+            {[1, 2, 3, 4].map(n => (
+              <button
+                key={n}
+                onClick={() => setPlayerCount(n)}
+                className={`w-14 h-14 rounded-xl border-2 font-black text-lg transition-all ${playerCount === n
+                  ? 'border-indigo-500 bg-indigo-50 scale-110 shadow'
+                  : 'border-slate-200 hover:border-slate-400'
+                }`}
+              >
+                {['😎','🤠','🥸','🧑‍🚀'][n-1]}
+                <div className="text-[10px] font-bold text-slate-500">{n}P</div>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -86,7 +106,7 @@ const StartScreen = () => {
             onClick={handleStart}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl py-4 px-12 rounded-full shadow-lg transition-transform hover:scale-105"
           >
-            New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label}
+            New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label} {playerCount > 1 ? `(${playerCount}P)` : ''}
           </button>
 
           {hasSave && (
