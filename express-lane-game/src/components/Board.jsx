@@ -365,8 +365,8 @@ const GoalsModal = ({ state, onClose }) => {
   ];
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals <span className="text-xs font-normal text-slate-500 normal-case">({DIFFICULTY_PRESETS[difficulty].label})</span></h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
@@ -406,29 +406,91 @@ const NotificationModal = ({ title, message, type, onClose }) => (
 );
 
 // ─── Inventory modal ──────────────────────────────────────────────────────────
-const InventoryModal = ({ inventory, onClose, onSell }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 max-h-[80vh] flex flex-col">
-      <div className="flex justify-between items-center mb-4 border-b-2 border-slate-200 pb-2">
-        <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
-      </div>
-      <div className="flex-grow overflow-y-auto space-y-2">
-        {inventory.length === 0 ? (
-          <div className="text-center text-slate-400 py-8 italic">Your pockets are empty.</div>
-        ) : inventory.map((item, i) => (
-          <div key={i} className="flex justify-between items-center p-2 bg-slate-50 border rounded-lg">
+const InventoryModal = ({ inventory, onClose }) => {
+  const clothing = inventory.filter(i => i.clothingWear !== undefined);
+  const electronics = inventory.filter(i => i.type === 'electronics' || i.type === 'subscription');
+  const appliances = inventory.filter(i => i.type === 'appliance');
+  const studyAids = inventory.filter(i => i.type === 'study_aid');
+  const groceries = inventory.filter(i => i.id === 'groceries');
+  const other = inventory.filter(i =>
+    i.clothingWear === undefined &&
+    i.type !== 'electronics' && i.type !== 'subscription' &&
+    i.type !== 'appliance' && i.type !== 'study_aid' &&
+    i.id !== 'groceries'
+  );
+
+  const Section = ({ title, items }) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-3">
+        <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">{title}</div>
+        {items.map((item, i) => (
+          <div key={i} className="flex justify-between items-center p-2 bg-slate-50 border rounded-lg mb-1">
             <div>
               <div className="font-bold text-sm">{item.name}</div>
               <div className="text-xs text-slate-400">{item.effect}</div>
+              {item.clothingWear !== undefined && (
+                <div className="mt-0.5">
+                  <div className="flex items-center gap-1">
+                    <div className="flex-grow h-1.5 bg-slate-200 rounded-full overflow-hidden w-20">
+                      <div
+                        className={`h-full rounded-full ${item.clothingWear <= 20 ? 'bg-red-500' : item.clothingWear <= 40 ? 'bg-orange-400' : 'bg-green-500'}`}
+                        style={{ width: `${item.clothingWear}%` }}
+                      />
+                    </div>
+                    <span className={`text-[9px] font-bold ${item.clothingWear <= 20 ? 'text-red-600' : 'text-slate-400'}`}>
+                      {item.clothingWear <= 20 ? '⚠️ ' : ''}{item.clothingWear}% durability
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="text-xs text-slate-500">${item.cost}</div>
+            <div className="text-xs text-slate-500 text-right">
+              <div>${item.cost}</div>
+              <div className="text-slate-400">resell ${Math.floor(item.cost * 0.5)}</div>
+            </div>
           </div>
         ))}
       </div>
+    );
+  };
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-3 border-b-2 border-slate-200 pb-2">
+          <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+        </div>
+        <div className="flex-grow overflow-y-auto pr-1">
+          {inventory.length === 0 ? (
+            <div className="text-center text-slate-400 py-8 italic">Your pockets are empty.</div>
+          ) : (
+            <>
+              <Section title="👗 Clothing" items={clothing} />
+              {groceries.length > 0 && (
+                <div className="mb-3">
+                  <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">🛒 Stored Food</div>
+                  <div className="p-2 bg-green-50 border border-green-200 rounded-lg text-sm">
+                    <span className="font-bold">{groceries.length} week{groceries.length > 1 ? 's' : ''} of groceries</span>
+                    <span className="text-xs text-green-700 ml-2">auto-consumed each week</span>
+                  </div>
+                </div>
+              )}
+              <Section title="📱 Electronics & Subs" items={electronics} />
+              <Section title="🏠 Appliances" items={appliances} />
+              <Section title="📚 Study Aids" items={studyAids} />
+              <Section title="📦 Other" items={other} />
+            </>
+          )}
+        </div>
+        <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-400 text-center">
+          Sell items at Black's Market (50% value)
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Event modal ──────────────────────────────────────────────────────────────
 const EventModal = ({ event, onClose }) => (
@@ -1209,23 +1271,28 @@ const LeasingOfficeContent = ({ state, actions }) => {
         <div className="text-sm text-slate-500">Rent: ${player.housing?.rent}/week · Security: {player.housing?.security}</div>
       </div>
       <div className="space-y-2">
-        {housingData.map(h => (
-          <button
-            key={h.id}
-            onClick={() => actions.rentApartment(h)}
-            disabled={player.housing?.id === h.id}
-            className="w-full flex justify-between items-center p-3 border rounded hover:bg-purple-50 disabled:bg-purple-100 disabled:opacity-70 text-sm"
-          >
-            <div className="text-left">
-              <div className="font-bold">{h.title}</div>
-              <div className="text-xs text-slate-400">{h.description}</div>
-            </div>
-            <div className="text-right">
-              <div className="font-mono font-bold">${h.rent}/wk</div>
-              <div className="text-xs text-slate-400">{h.security} security</div>
-            </div>
-          </button>
-        ))}
+        {housingData.map(h => {
+          const isUpgrade = h.rent > (player.housing?.rent ?? 0);
+          const deposit = isUpgrade ? h.rent * 2 : 0;
+          return (
+            <button
+              key={h.id}
+              onClick={() => actions.rentApartment(h)}
+              disabled={player.housing?.id === h.id}
+              className="w-full flex justify-between items-center p-3 border rounded hover:bg-purple-50 disabled:bg-purple-100 disabled:opacity-70 text-sm"
+            >
+              <div className="text-left">
+                <div className="font-bold">{h.title}</div>
+                <div className="text-xs text-slate-400">{h.description}</div>
+                {deposit > 0 && <div className="text-[10px] text-orange-600">+${deposit} deposit to move in</div>}
+              </div>
+              <div className="text-right">
+                <div className="font-mono font-bold">${h.rent}/wk</div>
+                <div className="text-xs text-slate-400">{h.security} security</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

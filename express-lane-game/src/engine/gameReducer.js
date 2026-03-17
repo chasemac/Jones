@@ -359,8 +359,17 @@ export const gameReducer = (state, action) => {
     case 'RENT_APARTMENT': {
       const { housing } = action;
       const player = activePlayer(state);
-      let s = log(state, `${player.name} moved into ${housing.title}.`);
-      s = updateActivePlayer(s, p => ({ ...p, housing }));
+
+      // Moving to more expensive housing requires a deposit (2 weeks rent)
+      const isUpgrade = housing.rent > (player.housing?.rent ?? 0);
+      const deposit = isUpgrade ? housing.rent * 2 : 0;
+
+      if (deposit > 0 && player.money < deposit) {
+        return log(state, `Can't afford the $${deposit} deposit for ${housing.title} (2 weeks rent).`);
+      }
+
+      let s = log(state, `${player.name} moved into ${housing.title}.${deposit > 0 ? ` -$${deposit} deposit.` : ''}`);
+      s = updateActivePlayer(s, p => ({ ...p, housing, money: p.money - deposit }));
       return s;
     }
 
@@ -507,6 +516,13 @@ export const gameReducer = (state, action) => {
           }
         }
 
+        // Warn when clothing is getting low
+        for (const item of np.inventory) {
+          if (item.clothingWear !== undefined && item.clothingWear <= 20 && item.clothingWear > 0) {
+            playerLog.push(`${np.name}: ⚠️ ${item.name} is wearing thin! (${item.clothingWear}% left)`);
+          }
+        }
+
         // 3e. Relaxation bottomed out → forced doctor visit
         if (np.relaxation === 0) {
           const doctorCost = 200;
@@ -581,8 +597,10 @@ export const gameReducer = (state, action) => {
       let pendingEvent = null;
       if (Math.random() < 0.4) {
         const event = eventsData[Math.floor(Math.random() * eventsData.length)];
-        let effectDesc = '';
         const ep = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
+        const skipEvent = (event.id === 'bonus' || event.id === 'overtime') && !ep.job;
+        if (!skipEvent) {
+        let effectDesc = '';
         switch (event.effect.type) {
           case 'money':
             ep.money = Math.max(0, ep.money + event.effect.value);
@@ -622,6 +640,7 @@ export const gameReducer = (state, action) => {
           default: break;
         }
         pendingEvent = { title: event.title, description: event.description, effectDesc, playerName: ep.name };
+        } // end !skipEvent
       }
 
       // 11. Jones AI
