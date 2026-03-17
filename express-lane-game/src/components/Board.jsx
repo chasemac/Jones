@@ -60,35 +60,35 @@ const LOCATIONS_CONFIG = {
 };
 
 // ─── Map background SVG ───────────────────────────────────────────────────────
-// Ring road traces through all 9 building positions in LOCATION_ORDER, like the original game's
-// Monopoly-style board where buildings ARE the path squares.
-// Path: leasing_office→quick_eats→library→trendsetters→coffee_shop→blacks_market→city_college→tech_store→(neobank)→leasing_office
-const RING_PATH = "M 5% 10% L 38% 2% L 72% 2% L 88% 20% L 88% 55% L 72% 80% L 38% 80% L 5% 80% L 5% 10% Z";
+// viewBox="0 0 100 100" maps coordinates 1:1 with % positions so building
+// coords (e.g. x:5, y:10) match exactly. Path data only accepts numeric units,
+// not "5%" strings, so the viewBox is required for % equivalence.
+// Ring road traces all 9 building positions in LOCATION_ORDER (Monopoly-style).
+const RING_PATH = "M 5 10 L 38 2 L 72 2 L 88 20 L 88 55 L 72 80 L 38 80 L 5 80 Z";
 
 const MapBackground = () => (
-  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 100 100" preserveAspectRatio="none">
     {/* Green interior park fill — inset from the ring */}
-    <path
-      d="M 12% 13% L 38% 6% L 72% 6% L 83% 22% L 83% 53% L 70% 76% L 38% 76% L 12% 76% Z"
-      fill="#dcfce7"
-      stroke="none"
-    />
-    <ellipse cx="48%" cy="44%" rx="14%" ry="10%" fill="#bbf7d0" opacity="0.6" />
+    <path d="M 12 13 L 38 6 L 72 6 L 83 22 L 83 53 L 70 76 L 38 76 L 12 76 Z"
+      fill="#dcfce7" stroke="none" />
+    <ellipse cx="48" cy="44" rx="14" ry="10" fill="#bbf7d0" opacity="0.6" />
 
-    {/* Ring road — asphalt base */}
-    <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5%" strokeLinejoin="round" />
+    {/* Ring road — asphalt base (5 units = 5% of width) */}
+    <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5" strokeLinejoin="round" />
     {/* Ring road — lighter road surface */}
-    <path d={RING_PATH} fill="none" stroke="#e5e7eb" strokeWidth="3.5%" strokeLinejoin="round" />
+    <path d={RING_PATH} fill="none" stroke="#e5e7eb" strokeWidth="3.5" strokeLinejoin="round" />
     {/* Yellow dashed center line */}
-    <path d={RING_PATH} fill="none" stroke="#fbbf24" strokeWidth="0.5%" strokeLinejoin="round" strokeDasharray="3% 2%" opacity="0.7" />
+    <path d={RING_PATH} fill="none" stroke="#fbbf24" strokeWidth="0.6" strokeLinejoin="round"
+      strokeDasharray="3 2" opacity="0.8" />
 
     {/* Decorative trees & houses in park interior */}
-    <text x="38%" y="38%" fontSize="3%" textAnchor="middle">🌳</text>
-    <text x="54%" y="46%" fontSize="3%" textAnchor="middle">🌲</text>
-    <text x="42%" y="55%" fontSize="2.5%" textAnchor="middle">🌳</text>
-    <text x="60%" y="35%" fontSize="2%" textAnchor="middle">🌲</text>
-    <text x="30%" y="50%" fontSize="1.8%" textAnchor="middle">🏠</text>
-    <text x="62%" y="60%" fontSize="1.8%" textAnchor="middle">🏠</text>
+    <text x="38" y="40" fontSize="5" textAnchor="middle">🌳</text>
+    <text x="54" y="48" fontSize="5" textAnchor="middle">🌲</text>
+    <text x="42" y="58" fontSize="4" textAnchor="middle">🌳</text>
+    <text x="60" y="36" fontSize="3.5" textAnchor="middle">🌲</text>
+    <text x="30" y="52" fontSize="3" textAnchor="middle">🏠</text>
+    <text x="62" y="62" fontSize="3" textAnchor="middle">🏠</text>
   </svg>
 );
 
