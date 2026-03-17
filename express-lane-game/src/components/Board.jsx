@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER } from '../engine/constants';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, EDUCATION_RANK } from '../engine/constants';
 
 // Adjust item price by economy state
 const adjustedPrice = (baseCost, economy) =>
@@ -281,8 +281,18 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         <div className="bg-black/50 px-2 py-1 rounded border border-slate-700 font-mono text-green-400 text-lg min-w-[100px] text-right">
           ${player.money.toFixed(0)}
         </div>
+        {player.savings > 0 && (
+          <div className="text-[9px] text-blue-400 text-right">
+            Savings: ${player.savings.toFixed(0)}
+          </div>
+        )}
+        {player.debt > 0 && (
+          <div className="text-[9px] text-red-400 text-right">
+            Debt: ${player.debt.toFixed(0)}
+          </div>
+        )}
         <div className="text-[9px] text-slate-500 text-right">
-          Net Worth: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${netWorth.toFixed(0)}</span>
+          Net: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${netWorth.toFixed(0)}</span>
         </div>
       </div>
 
@@ -338,7 +348,11 @@ const GoalsModal = ({ state, onClose }) => {
       label: 'Education',
       current: player.education,
       goal: goals.education,
-      pct: meetsEducation(player.education, goals.education) ? 100 : 40,
+      pct: (() => {
+        const maxRank = EDUCATION_RANK[goals.education] ?? 1;
+        const curRank = EDUCATION_RANK[player.education] ?? 0;
+        return Math.min(100, Math.round((curRank / maxRank) * 100));
+      })(),
       met: meetsEducation(player.education, goals.education),
     },
     {
@@ -439,8 +453,9 @@ const EventModal = ({ event, onClose }) => (
 );
 
 // ─── Jones sidebar ────────────────────────────────────────────────────────────
-const JonesSidebar = ({ jones, difficulty }) => {
+const JonesSidebar = ({ jones, difficulty, player }) => {
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
+  const playerNetWorth = player.money + player.savings - player.debt;
   return (
     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-10 w-44 hidden md:block">
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
@@ -453,15 +468,22 @@ const JonesSidebar = ({ jones, difficulty }) => {
       <div className="space-y-1 text-[10px]">
         <div className="flex justify-between">
           <span className="text-slate-500">💰 Net Worth</span>
-          <span className="font-mono font-bold text-green-600">${jones.netWorth.toLocaleString()}</span>
+          <span className={`font-mono font-bold ${playerNetWorth >= jones.netWorth ? 'text-green-600' : 'text-red-500'}`}>${jones.netWorth.toLocaleString()}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-500">😊 Happiness</span>
-          <span className="font-mono font-bold">{jones.happiness}</span>
+          <span className={`font-mono font-bold ${player.happiness >= jones.happiness ? 'text-green-600' : 'text-red-500'}`}>{jones.happiness}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-slate-500">🎓 Education</span>
-          <span className="font-mono font-bold">{jones.education}</span>
+          <span className="font-mono font-bold text-slate-600">{jones.education}</span>
+        </div>
+      </div>
+      <div className="mt-2 pt-2 border-t border-slate-200">
+        <div className="text-[9px] font-bold uppercase text-slate-400 mb-1">You vs Jones</div>
+        <div className="text-[9px] space-y-0.5">
+          <div>{playerNetWorth >= jones.netWorth ? '✅' : '❌'} Wealth: {playerNetWorth >= jones.netWorth ? 'Ahead!' : `$${(jones.netWorth - playerNetWorth).toFixed(0)} behind`}</div>
+          <div>{player.happiness >= jones.happiness ? '✅' : '❌'} Happiness: {player.happiness >= jones.happiness ? 'Ahead!' : `${jones.happiness - player.happiness} pts behind`}</div>
         </div>
       </div>
     </div>
@@ -613,6 +635,7 @@ const LibraryContent = ({ state, actions, setNotification }) => {
   const isCorpEmployee = player.job?.type === 'corporate';
   const isTradeEmployee = player.job?.type === 'trade';
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
+  const [showCareerPaths, setShowCareerPaths] = useState(false);
 
   const handleApply = (job) => {
     const prev = state;
@@ -643,6 +666,47 @@ const LibraryContent = ({ state, actions, setNotification }) => {
             </button>
           ))}
         </div>
+        {/* Career Paths info */}
+        <button
+          onClick={() => setShowCareerPaths(s => !s)}
+          className="w-full mt-2 text-xs text-slate-500 hover:text-emerald-600 flex items-center gap-1 py-1 border-t border-slate-200"
+        >
+          {showCareerPaths ? '▼' : '▶'} Career Paths
+        </button>
+        {showCareerPaths && (
+          <div className="text-[10px] space-y-2 bg-slate-50 p-2 rounded border border-slate-200">
+            {[
+              { label: '☕ Service', jobs: ['barista', 'shift_lead', 'store_manager'] },
+              { label: '💻 Tech', jobs: ['junior_dev', 'senior_dev', 'tech_lead'] },
+              { label: '🏢 Corp', jobs: ['admin_assistant', 'office_manager', 'director'] },
+              { label: '🔧 Trade', jobs: ['electrician', 'plumber', 'master_electrician'] },
+            ].map(track => (
+              <div key={track.label}>
+                <div className="font-bold text-slate-600 mb-0.5">{track.label}</div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {track.jobs.map((jobId, i) => {
+                    const job = jobsData.find(j => j.id === jobId);
+                    if (!job) return null;
+                    const isCurrent = player.job?.id === jobId;
+                    const isNext = player.job?.promotion === jobId;
+                    return (
+                      <React.Fragment key={jobId}>
+                        {i > 0 && <span className="text-slate-400">→</span>}
+                        <span className={`px-1 py-0.5 rounded text-[9px] font-semibold ${
+                          isCurrent ? 'bg-emerald-200 text-emerald-800' :
+                          isNext ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-400' :
+                          'bg-slate-100 text-slate-500'
+                        }`}>
+                          {job.title} ${job.wage}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Remote Work</h3>
@@ -1118,6 +1182,19 @@ const LeasingOfficeContent = ({ state, actions }) => {
   const { player } = state;
   return (
     <div className="space-y-3">
+      {/* First week tips */}
+      {state.week === 1 && !player.job && player.hunger === 0 && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-800 mb-3">
+          <div className="font-black text-sm mb-1">👋 Welcome!</div>
+          <ul className="space-y-1 list-disc list-inside text-indigo-700">
+            <li>📚 <strong>Library</strong> — apply for your first job</li>
+            <li>☕ <strong>Coffee Shop</strong> — work your shift to earn money</li>
+            <li>🎓 <strong>City College</strong> — enroll to unlock better jobs</li>
+            <li>🏦 <strong>NeoBank</strong> — save money at 1%/week</li>
+          </ul>
+          <div className="mt-2 text-[10px] text-indigo-600">Hunger grows +25/week. Eat before it hits 80!</div>
+        </div>
+      )}
       {/* Sleep / End Week button */}
       <button
         onClick={actions.endWeek}
@@ -1375,7 +1452,7 @@ const Board = () => {
       )}
 
       {/* Jones sidebar */}
-      <JonesSidebar jones={state.jones} difficulty={state.difficulty} />
+      <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
 
       {/* Notification feed */}
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
