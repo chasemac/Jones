@@ -650,6 +650,16 @@ export const gameReducer = (state, action) => {
         weeksAtJob: newJonesWeeksAtJob,
       };
 
+      // Build a summary of this week's end-of-week results
+      const wkSummary = {
+        week: s.week,
+        lines: updatedPlayers.map(p => {
+          const old = s.players.find(op => op.name === p.name);
+          const moneyDiff = p.money - (old?.money ?? 0);
+          return `${p.emoji} ${p.name}: $${p.money.toFixed(0)} (${moneyDiff >= 0 ? '+' : ''}${moneyDiff.toFixed(0)}) · 😊${p.happiness} · 🎯${p.dependability}`;
+        }),
+      };
+
       // 12. Assemble — reset to Player 1's turn
       s = {
         ...s,
@@ -661,6 +671,7 @@ export const gameReducer = (state, action) => {
         players: updatedPlayers,
         activePlayerIndex: 0,
         jones: updatedJones,
+        weekSummary: wkSummary,
       };
 
       return checkEndConditions(s);
@@ -669,6 +680,11 @@ export const gameReducer = (state, action) => {
     // ── Dismiss event modal ───────────────────────────────────────────────────
     case 'DISMISS_EVENT': {
       return { ...state, pendingEvent: null };
+    }
+
+    // ── Dismiss week summary modal ────────────────────────────────────────────
+    case 'DISMISS_WEEK_SUMMARY': {
+      return { ...state, weekSummary: null };
     }
 
     default:

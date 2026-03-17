@@ -469,9 +469,16 @@ const JonesSidebar = ({ jones, difficulty }) => {
 };
 
 // ─── Notification feed ────────────────────────────────────────────────────────
-const NotificationFeed = ({ history }) => (
-  <div className="absolute bottom-28 left-4 w-56 max-h-40 overflow-y-auto bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 z-10">
-    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1 sticky top-0 bg-slate-900/90 pb-1">🔔 Log</div>
+const NotificationFeed = ({ history, onOpenLog }) => (
+  <div
+    className="absolute bottom-28 left-4 w-56 max-h-40 overflow-y-auto bg-slate-900/90 backdrop-blur border border-slate-700 rounded-lg p-2 z-10 cursor-pointer hover:border-slate-500 transition-colors"
+    onClick={onOpenLog}
+    title="Click to see full log"
+  >
+    <div className="text-[10px] font-bold uppercase text-slate-500 mb-1 sticky top-0 bg-slate-900/90 pb-1 flex justify-between">
+      <span>🔔 Log</span>
+      <span className="text-slate-600">expand ↗</span>
+    </div>
     {history.length === 0
       ? <div className="text-[10px] text-slate-500 italic">No events yet...</div>
       : history.slice(0, 8).map((entry, i) => (
@@ -479,6 +486,50 @@ const NotificationFeed = ({ history }) => (
         ))}
   </div>
 );
+
+// ─── Full log modal ───────────────────────────────────────────────────────────
+const FullLogModal = ({ history, onClose }) => (
+  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl shadow-2xl p-4 max-w-sm w-full mx-4 max-h-[80%] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-white font-black text-base">📋 Full Event Log</h3>
+        <button onClick={onClose} className="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+      <div className="flex-grow overflow-y-auto space-y-0.5 pr-1">
+        {history.length === 0
+          ? <div className="text-slate-500 italic text-xs text-center">No events yet.</div>
+          : history.map((entry, i) => (
+              <div key={i} className="text-[11px] text-slate-300 border-b border-slate-800 last:border-0 py-1">{entry}</div>
+            ))}
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Week summary modal ───────────────────────────────────────────────────────
+const WeekSummaryModal = ({ summary, onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white border-4 border-indigo-500 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="text-center text-3xl mb-1">🌙</div>
+        <h3 className="text-lg font-black text-center text-indigo-800 mb-3">Week {summary.week} Complete!</h3>
+        <div className="space-y-2 mb-4">
+          {summary.lines.map((line, i) => (
+            <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-700 font-mono">{line}</div>
+          ))}
+        </div>
+        <button onClick={onClose} className="w-full bg-indigo-600 text-white font-bold py-2 rounded-xl hover:bg-indigo-700 transition text-sm">
+          Start Week {summary.week + 1} →
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // ─── Location panel content renderers ────────────────────────────────────────
 
@@ -544,7 +595,7 @@ const QuickEatsContent = ({ state, actions }) => {
               <div className="font-bold">🚗 Delivery Run</div>
               <div className="text-xs text-slate-500">Economy adjusted</div>
             </div>
-            <span className="font-mono text-green-600">+$60</span>
+            <span className="font-mono text-green-600">+${Math.floor(60 * (state.economy === 'Boom' ? 1.3 : state.economy === 'Depression' ? 0.8 : 1.0))}</span>
           </button>
         ) : (
           <div className="text-xs text-slate-400 italic p-2 bg-slate-100 rounded">
@@ -1105,7 +1156,7 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, toggleMute } = useGame();
+  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, dismissWeekSummary, toggleMute } = useGame();
 
   const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, toggleMute };
 
@@ -1113,6 +1164,7 @@ const Board = () => {
   const [notification, setNotification] = useState(null);
   const [showInventory, setShowInventory] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showLog, setShowLog] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [animLocation, setAnimLocation] = useState(null); // overrides token display pos during travel
   const [floats, setFloats] = useState([]);
@@ -1326,7 +1378,7 @@ const Board = () => {
       <JonesSidebar jones={state.jones} difficulty={state.difficulty} />
 
       {/* Notification feed */}
-      <NotificationFeed history={state.history} />
+      <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
       {/* Location panel */}
       {showPanel && !isMoving && (
@@ -1360,8 +1412,14 @@ const Board = () => {
       {showGoals && (
         <GoalsModal state={state} onClose={() => setShowGoals(false)} />
       )}
+      {state.weekSummary && !state.pendingEvent && (
+        <WeekSummaryModal summary={state.weekSummary} onClose={dismissWeekSummary} />
+      )}
       {state.pendingEvent && (
         <EventModal event={state.pendingEvent} onClose={dismissEvent} />
+      )}
+      {showLog && (
+        <FullLogModal history={state.history} onClose={() => setShowLog(false)} />
       )}
       {notification && (
         <NotificationModal
