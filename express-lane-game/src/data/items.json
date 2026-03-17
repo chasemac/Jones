@@ -110,5 +110,28 @@
     "type": "appliance",
     "relaxationPerWeek": 3,
     "effect": "+3 Relaxation/week (prevents burnout)"
+  },
+  {
+    "id": "health_insurance",
+    "name": "Health Insurance",
+    "cost": 50,
+    "type": "subscription",
+    "effect": "Reduces doctor bill to $50 (from $200); -$50/week premium"
+  },
+  {
+    "id": "bicycle",
+    "name": "Bicycle",
+    "cost": 150,
+    "type": "vehicle",
+    "travelBonus": 1,
+    "effect": "Travel costs 1 less hour"
+  },
+  {
+    "id": "car",
+    "name": "Beater Car",
+    "cost": 2000,
+    "type": "vehicle",
+    "travelBonus": 2,
+    "effect": "Travel costs 2 fewer hours; -$60/week gas"
   }
 ]

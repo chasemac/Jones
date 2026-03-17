@@ -270,9 +270,14 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           </div>
         )}
         {/* Education + Job */}
-        <div className="flex gap-2 text-[8px]">
+        <div className="flex gap-2 text-[8px] flex-wrap">
           <span className="text-slate-400">🎓 {player.education}</span>
           <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
+          {player.inventory?.some(i => i.type === 'vehicle') && (
+            <span className="text-slate-400">
+              {player.inventory.find(i => i.type === 'vehicle')?.id === 'car' ? '🚗' : '🚲'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -894,6 +899,26 @@ const TrendSettersContent = ({ state, actions }) => {
             </button>
           );
         })}
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">Vehicles</h3>
+        {itemsData.filter(i => i.type === 'vehicle').map(item => {
+          const owned = player.inventory.some(i => i.id === item.id);
+          const hasVehicle = player.inventory.some(i => i.type === 'vehicle');
+          const price = adjustedPrice(item.cost, economy);
+          return (
+            <button
+              key={item.id}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
+              disabled={owned}
+              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 disabled:opacity-60 text-sm"
+            >
+              <div className="text-left">
+                <div>{item.name} {hasVehicle && !owned ? '(upgrade)' : ''}</div>
+                <div className="text-[9px] text-slate-400">{item.effect}</div>
+              </div>
+              <span className="font-mono text-xs">{owned ? '✅' : `$${price}`}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -1118,7 +1143,7 @@ const TechStoreContent = ({ state, actions }) => {
           );
         })}
         {/* Streaming sub */}
-        {itemsData.filter(i => i.type === 'subscription').map(item => {
+        {itemsData.filter(i => i.type === 'subscription' && i.id !== 'health_insurance').map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
           return (
             <button
@@ -1207,9 +1232,42 @@ const NeoBankContent = ({ state, actions }) => {
             <button onClick={() => actions.bankTransaction('borrow', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Borrow</button>
           </div>
         </div>
+        <div className="mt-3 pt-2 border-t border-slate-200">
+          <h3 className="font-bold text-xs mb-2 text-slate-600">🛡️ Insurance</h3>
+          {itemsData.filter(i => i.id === 'health_insurance').map(item => {
+            const owned = player.inventory.some(i => i.id === item.id);
+            return (
+              <button
+                key={item.id}
+                onClick={() => !owned && actions.buyItem(item)}
+                disabled={owned}
+                className="w-full flex justify-between items-center p-2 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-60 text-xs"
+              >
+                <div className="text-left">
+                  <div className="font-bold">{item.name}</div>
+                  <div className="text-slate-400">{item.effect}</div>
+                </div>
+                <span className="font-mono">{owned ? '✅' : `$${item.cost}`}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📈 Stocks</h3>
+        {(() => {
+          const total = stocksData.reduce((sum, stock) => {
+            const owned = player.portfolio?.[stock.symbol] || 0;
+            return sum + owned * (state.market[stock.symbol] || 0);
+          }, 0);
+          if (total === 0) return null;
+          return (
+            <div className="bg-indigo-50 px-2 py-1 rounded text-xs mb-2 flex justify-between">
+              <span className="text-indigo-600 font-bold">Portfolio Value</span>
+              <span className="font-mono font-bold text-indigo-700">${total.toLocaleString()}</span>
+            </div>
+          );
+        })()}
         <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
           {stocksData.map(stock => {
             const currentPrice = state.market[stock.symbol];
