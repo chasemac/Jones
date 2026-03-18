@@ -243,8 +243,10 @@ export const gameReducer = (state, action) => {
         return { ...log(state, `Rejected! Need ${job.requirements.dependability} dependability (you have ${player.dependability}).`), lastJobResult: { success: false, message: `Need ${job.requirements.dependability} dependability.` } };
       }
 
+      // Preserve experience only within the same career track (same type)
+      const prevWeeksWorked = (player.job?.type === job.type) ? (player.job?.weeksWorked || 0) : 0;
       let s = log(state, `${player.name} hired as ${job.title}!`);
-      s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: p.job?.weeksWorked || 0 } }));
+      s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: prevWeeksWorked } }));
       return { ...s, lastJobResult: { success: true, message: `You are now a ${job.title} at $${job.wage}/hr.` } };
     }
 
@@ -298,12 +300,18 @@ export const gameReducer = (state, action) => {
 
       // Entertainment items (concert tickets etc): apply boosts immediately, don't add to inventory
       if (item.type === 'entertainment') {
-        let s = log(state, `Enjoyed ${item.name}! +${item.happinessBoost || 0} happiness, +${item.relaxationBoost || 0} relaxation.`);
+        const hBoost = item.happinessBoost || 0;
+        const rBoost = item.relaxationBoost || 0;
+        const isLottery = item.name?.toLowerCase().includes('lottery');
+        const lotteryVerb = hBoost > 0 ? '🎰 JACKPOT!' : '🎰 No luck.';
+        const verb = isLottery ? lotteryVerb : `Enjoyed ${item.name}!`;
+        const hStr = hBoost > 0 ? `+${hBoost}` : `${hBoost}`;
+        let s = log(state, `${verb} ${hStr} happiness${rBoost ? `, +${rBoost} relaxation` : ''}.`);
         s = updateActivePlayer(s, p => ({
           ...p,
           money: p.money - item.cost,
-          happiness: Math.min(100, p.happiness + (item.happinessBoost || 0)),
-          relaxation: Math.min(100, p.relaxation + (item.relaxationBoost || 0)),
+          happiness: Math.min(100, p.happiness + hBoost),
+          relaxation: Math.min(100, p.relaxation + rBoost),
         }));
         return s;
       }
@@ -609,8 +617,11 @@ export const gameReducer = (state, action) => {
         }
 
         // 7. Hunger → time penalty (authentic: flat -20h if starving)
-        const reduction = (np.maxTimeReduction || 0) + (np.hunger >= 80 ? 20 : 0);
+        const hungryPenalty = np.hunger >= 80 ? 20 : 0;
+        const reduction = (np.maxTimeReduction || 0) + hungryPenalty;
         np.maxTime = Math.max(20, BASE_MAX_TIME - reduction);
+        // Reset maxTimeReduction after applying it so doctor visits don't stack permanently
+        np.maxTimeReduction = 0;
         if (np.hunger >= 80) {
           playerLog.push(`${np.name}: starving! -20h next week.`);
         }
@@ -725,8 +736,19 @@ export const gameReducer = (state, action) => {
         week: s.week,
         lines: updatedPlayers.map(p => {
           const old = s.players.find(op => op.name === p.name);
-          const moneyDiff = p.money - (old?.money ?? 0);
-          return `${p.emoji} ${p.name}: $${p.money.toFixed(0)} (${moneyDiff >= 0 ? '+' : ''}${moneyDiff.toFixed(0)}) · 😊${p.happiness} · 🎯${p.dependability}`;
+          const oldNetWorth = (old?.money ?? 0) + (old?.savings ?? 0) - (old?.debt ?? 0);
+          const newNetWorth = p.money + p.savings - p.debt;
+          const nwDiff = newNetWorth - oldNetWorth;
+          return {
+            emoji: p.emoji,
+            name: p.name,
+            money: p.money,
+            happiness: p.happiness,
+            dependability: p.dependability,
+            netWorth: newNetWorth,
+            netWorthDelta: nwDiff,
+            job: p.job?.title || 'Unemployed',
+          };
         }),
       };
 

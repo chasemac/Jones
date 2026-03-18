@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, EDUCATION_RANK, calculateNetWorth, getEducationProgress, calculateDeposit } from '../engine/constants';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, EDUCATION_RANK, calculateNetWorth, getEducationProgress, calculateDeposit, JOB_WORK_LOCATION } from '../engine/constants';
 
 // Adjust item price by economy state
 const adjustedPrice = (baseCost, economy) =>
@@ -45,6 +45,20 @@ const CAREER_TRACKS = (() => {
 })();
 import housingData from '../data/housing.json';
 import stocksData from '../data/stocks.json';
+
+// ─── Shared promotion eligibility check ──────────────────────────────────────
+// Returns the next job if the player meets all its requirements, or null.
+const getNextPromotion = (player) => {
+  if (!player?.job?.promotion) return null;
+  const nextJob = jobsData.find(j => j.id === player.job.promotion);
+  if (!nextJob) return null;
+  const weeksWorked = player.job.weeksWorked || 0;
+  if (nextJob.requirements?.experience && weeksWorked < nextJob.requirements.experience) return null;
+  if (nextJob.requirements?.education && !meetsEducation(player.education, nextJob.requirements.education)) return null;
+  if (nextJob.requirements?.dependability && player.dependability < nextJob.requirements.dependability) return null;
+  if (nextJob.requirements?.item && !player.inventory.some(i => i.id === nextJob.requirements.item)) return null;
+  return nextJob;
+};
 
 // ─── Location config: label, emoji, board position (% from top-left) ─────────
 const LOCATIONS_CONFIG = {
@@ -96,7 +110,7 @@ const MapBackground = () => (
 );
 
 // ─── Building node ────────────────────────────────────────────────────────────
-const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick }) => (
+const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadge, travelHours, isPromoReady }) => (
   <div
     onClick={onClick}
     className={`absolute flex flex-col items-center cursor-pointer transition-all duration-200 hover:scale-110 z-10 group
@@ -111,6 +125,7 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick }) => (
     <div
       className={`w-10 h-10 sm:w-16 sm:h-16 bg-white border-2 sm:border-4 rounded-lg sm:rounded-xl shadow-lg flex items-center justify-center text-xl sm:text-3xl relative
         ${isCurrent ? 'ring-4 ring-yellow-400 scale-110 shadow-2xl' : 'opacity-90 hover:opacity-100'}
+        ${isPromoReady && !isCurrent ? 'ring-2 ring-green-400 animate-pulse' : ''}
       `}
       style={{ borderColor: config.color }}
     >
@@ -120,10 +135,26 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick }) => (
           YOU
         </div>
       )}
+      {warningBadge && !isCurrent && (
+        <div className={`absolute -top-1 -left-1 sm:-top-2 sm:-left-2 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse ${warningBadge.color}`}>
+          {warningBadge.icon}
+        </div>
+      )}
+      {isPromoReady && !isCurrent && (
+        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-green-500 text-white text-[8px] font-black px-1 py-0.5 rounded-full animate-bounce">
+          🆙
+        </div>
+      )}
     </div>
     <div className="mt-0.5 sm:mt-1 bg-slate-800 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow whitespace-nowrap">
       {config.label}
     </div>
+    {/* Travel time hint — only show on hover when not current location */}
+    {!isCurrent && travelHours != null && (
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-5 bg-slate-900/80 text-white text-[8px] px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
+        ⏱ {travelHours}h
+      </div>
+    )}
   </div>
 );
 
@@ -270,8 +301,20 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             style={{ width: `${(player.timeRemaining / player.maxTime) * 100}%` }}
           />
         </div>
+        {/* Emergency stat pills — always visible on mobile when critical */}
+        <div className="flex gap-1 md:hidden flex-wrap">
+          {player.hunger >= 60 && (
+            <span className="bg-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse">🍽️ {player.hunger}</span>
+          )}
+          {(player.relaxation ?? 50) <= 20 && (
+            <span className="bg-amber-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse">🛁 {player.relaxation ?? 50}</span>
+          )}
+          {player.happiness < 25 && (
+            <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse">💔 {player.happiness}</span>
+          )}
+        </div>
         {/* Secondary stats — hidden on mobile to save space */}
-        <div className="hidden sm:contents">
+        <div className="hidden md:contents">
           {/* Dependability */}
           <div className="flex items-center gap-1">
             <span className="text-[8px] text-slate-400 w-16 shrink-0">🎯 Dep {player.dependability ?? 50}</span>
@@ -343,7 +386,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             title={muted ? 'Unmute' : 'Mute'}
           >{muted ? '🔇' : '🔊'}</button>
         </div>
-        <div className="hidden sm:block text-[9px] text-slate-500 text-center mt-0.5">
+        <div className="hidden md:block text-[9px] text-slate-500 text-center mt-0.5">
           Time runs out → new week
         </div>
       </div>
@@ -702,8 +745,21 @@ const WeekSummaryModal = ({ summary, onClose }) => {
         <div className="text-center text-3xl mb-1">🌙</div>
         <h3 className="text-lg font-black text-center text-indigo-800 mb-3">Week {summary.week} Complete!</h3>
         <div className="space-y-2 mb-4">
-          {summary.lines.map((line, i) => (
-            <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-xs text-slate-700 font-mono">{line}</div>
+          {summary.lines.map((p, i) => (
+            <div key={i} className="bg-slate-50 rounded-lg px-3 py-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-bold">{p.emoji} {p.name}</span>
+                <span className={`text-base font-black ${p.netWorthDelta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  {p.netWorthDelta >= 0 ? '+' : ''}${p.netWorthDelta.toFixed(0)}
+                </span>
+              </div>
+              <div className="flex gap-3 text-[10px] text-slate-500 font-mono">
+                <span>💰 ${p.money.toFixed(0)}</span>
+                <span>😊 {p.happiness}</span>
+                <span>🎯 {p.dependability}</span>
+                <span className="text-slate-400">· {p.job}</span>
+              </div>
+            </div>
           ))}
         </div>
         <button onClick={onClose} className="w-full bg-indigo-600 text-white font-bold py-2 rounded-xl hover:bg-indigo-700 transition text-sm">
@@ -868,32 +924,18 @@ const LibraryContent = ({ state, actions, setNotification }) => {
         )}
         {/* Promotion check for corp employees */}
         {isCorpEmployee && (() => {
-          const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+          const nextJob = getNextPromotion(player);
           if (!nextJob) return null;
-          const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
-          const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
-          const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
-          const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
-          if (meetsExp && meetsEdu && meetsDep && meetsItem) {
-            return (
-              <button
-                onClick={() => actions.applyForJob(nextJob)}
-                className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
-              >
-                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-              </button>
-            );
-          }
-          return null;
+          return (
+            <button onClick={() => actions.applyForJob(nextJob)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+              🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+            </button>
+          );
         })()}
 
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">🔧 Trade Dispatch</h3>
         {isTradeEmployee ? (
-          <button
-            onClick={actions.work}
-            disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-sm"
-          >
+          <button onClick={actions.work} disabled={player.timeRemaining < 8} className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-sm">
             <div className="font-bold">Go to Site (8h)</div>
             <div className="text-xs text-yellow-700">{player.job.title} · ${player.job.wage}/hr</div>
           </button>
@@ -902,23 +944,13 @@ const LibraryContent = ({ state, actions, setNotification }) => {
         )}
         {/* Promotion check for trade employees */}
         {isTradeEmployee && (() => {
-          const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+          const nextJob = getNextPromotion(player);
           if (!nextJob) return null;
-          const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
-          const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
-          const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
-          const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
-          if (meetsExp && meetsEdu && meetsDep && meetsItem) {
-            return (
-              <button
-                onClick={() => actions.applyForJob(nextJob)}
-                className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
-              >
-                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-              </button>
-            );
-          }
-          return null;
+          return (
+            <button onClick={() => actions.applyForJob(nextJob)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+              🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+            </button>
+          );
         })()}
       </div>
     </div>
@@ -1076,26 +1108,30 @@ const MegaMartContent = ({ state, actions }) => {
 };
 
 const CoffeeShopContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
   const isServiceEmployee = player.job?.type === 'service';
+  const espressoPrice = adjustedPrice(5, economy);
+  const pastryPrice = adjustedPrice(8, economy);
   const foodItems = itemsData.filter(i => i.type === 'food');
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Menu</h3>
         <button
-          onClick={() => actions.buyItem({ id: 'espresso', name: 'Espresso', cost: 5, type: 'food', hungerRestore: 10, happinessBoost: 8, timeToEat: 0.5 })}
-          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 mb-1 text-sm"
+          onClick={() => actions.buyItem({ id: 'espresso', name: 'Espresso', cost: espressoPrice, type: 'food', hungerRestore: 10, happinessBoost: 8, timeToEat: 0.5 })}
+          disabled={player.money < espressoPrice}
+          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 mb-1 text-sm"
         >
           <span>☕ Espresso</span>
-          <span className="font-mono">$5</span>
+          <span className="font-mono">${espressoPrice}</span>
         </button>
         <button
-          onClick={() => actions.buyItem({ id: 'pastry', name: 'Pastry', cost: 8, type: 'food', hungerRestore: 20, happinessBoost: 6, timeToEat: 0.5 })}
-          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 text-sm"
+          onClick={() => actions.buyItem({ id: 'pastry', name: 'Croissant', cost: pastryPrice, type: 'food', hungerRestore: 20, happinessBoost: 6, timeToEat: 0.5 })}
+          disabled={player.money < pastryPrice}
+          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 text-sm"
         >
           <span>🥐 Croissant</span>
-          <span className="font-mono">$8</span>
+          <span className="font-mono">${pastryPrice}</span>
         </button>
       </div>
       <div>
@@ -1112,23 +1148,16 @@ const CoffeeShopContent = ({ state, actions }) => {
             </button>
             {/* Promotion check */}
             {(() => {
-              const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+              const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
-              const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
-              const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
-              const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
-              const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
-              if (meetsExp && meetsEdu && meetsDep && meetsItem) {
-                return (
-                  <button
-                    onClick={() => actions.applyForJob(nextJob)}
-                    className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
-                  >
-                    🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-                  </button>
-                );
-              }
-              return null;
+              return (
+                <button
+                  onClick={() => actions.applyForJob(nextJob)}
+                  className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
+                >
+                  🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+                </button>
+              );
             })()}
           </>
         ) : (
@@ -1139,7 +1168,7 @@ const CoffeeShopContent = ({ state, actions }) => {
   );
 };
 
-const BlacksMarketContent = ({ state, actions }) => {
+const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const { player, economy } = state;
   const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
@@ -1170,14 +1199,16 @@ const BlacksMarketContent = ({ state, actions }) => {
         <button
           onClick={() => {
             if (player.money >= 10) {
-              actions.buyItem({ id: `lottery_${Date.now()}`, name: 'Lottery Ticket', cost: 10, type: 'entertainment', happinessBoost: Math.random() < 0.05 ? 50 : -2, relaxationBoost: 0 });
+              const win = Math.random() < 0.05;
+              actions.buyItem({ id: `lottery_${Date.now()}`, name: 'Lottery Ticket', cost: 10, type: 'entertainment', happinessBoost: win ? 50 : -2, relaxationBoost: 0 });
+              onLotteryResult?.(win);
             }
           }}
           disabled={player.money < 10}
           className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 mb-2 text-sm"
         >
           <div className="font-bold">🎰 Lottery ($10)</div>
-          <div className="text-xs text-yellow-700">5% to win big</div>
+          <div className="text-xs text-yellow-700">5% to win big (+50 😊)</div>
         </button>
         <button
           onClick={() => actions.buyItem({ ...concertTicket, cost: concertPrice })}
@@ -1193,9 +1224,10 @@ const BlacksMarketContent = ({ state, actions }) => {
 };
 
 const CityCollegeContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
   const studyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
   const textbook = itemsData.find(i => i.id === 'textbook');
+  const textbookPrice = adjustedPrice(textbook.cost, economy);
   const ownsTextbook = player.inventory.some(i => i.id === 'textbook');
   return (
     <div className="h-full flex flex-col gap-3">
@@ -1221,15 +1253,15 @@ const CityCollegeContent = ({ state, actions }) => {
       {/* Textbook purchase */}
       {!ownsTextbook && (
         <button
-          onClick={() => actions.buyItem(textbook)}
-          disabled={player.money < textbook.cost}
+          onClick={() => actions.buyItem({ ...textbook, cost: textbookPrice })}
+          disabled={player.money < textbookPrice}
           className="w-full flex justify-between items-center p-2 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-xs"
         >
           <div>
             <div className="font-bold">📚 Buy Textbook</div>
             <div className="text-slate-500">Reduces hours needed per study session</div>
           </div>
-          <span className="font-mono">${textbook.cost}</span>
+          <span className="font-mono">${textbookPrice}</span>
         </button>
       )}
       <div className="flex-grow overflow-y-auto space-y-1">
@@ -1296,10 +1328,11 @@ const TechStoreContent = ({ state, actions }) => {
         {/* Streaming sub */}
         {itemsData.filter(i => i.type === 'subscription' && i.id !== 'health_insurance').map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
+          const price = adjustedPrice(item.cost, economy);
           return (
             <button
               key={item.id}
-              onClick={() => !owned && actions.buyItem(item)}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
               disabled={owned}
               className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-blue-50 disabled:opacity-60 text-xs mt-2"
             >
@@ -1307,7 +1340,7 @@ const TechStoreContent = ({ state, actions }) => {
                 <div className="font-bold">{item.name}</div>
                 <div className="text-slate-400">{item.effect}</div>
               </div>
-              <span className="font-mono">{owned ? '✅' : `$${item.cost}`}</span>
+              <span className="font-mono">{owned ? '✅' : `$${price}`}</span>
             </button>
           );
         })}
@@ -1326,23 +1359,13 @@ const TechStoreContent = ({ state, actions }) => {
             </button>
             {/* Promotion check */}
             {(() => {
-              const nextJob = jobsData.find(j => j.id === player.job?.promotion);
+              const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
-              const meetsExp = !nextJob.requirements?.experience || (player.job?.weeksWorked || 0) >= nextJob.requirements.experience;
-              const meetsEdu = !nextJob.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
-              const meetsDep = !nextJob.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
-              const meetsItem = !nextJob.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
-              if (meetsExp && meetsEdu && meetsDep && meetsItem) {
-                return (
-                  <button
-                    onClick={() => actions.applyForJob(nextJob)}
-                    className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
-                  >
-                    🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-                  </button>
-                );
-              }
-              return null;
+              return (
+                <button onClick={() => actions.applyForJob(nextJob)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+                  🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+                </button>
+              );
             })()}
           </>
         ) : (
@@ -1374,6 +1397,14 @@ const NeoBankContent = ({ state, actions }) => {
             <button onClick={() => actions.bankTransaction('deposit', depositAmt)} className="flex-1 bg-white border border-indigo-200 py-0.5 rounded hover:bg-indigo-100 text-xs">Dep</button>
             <button onClick={() => actions.bankTransaction('withdraw', depositAmt)} className="flex-1 bg-white border border-indigo-200 py-0.5 rounded hover:bg-indigo-100 text-xs">W/D</button>
           </div>
+          {player.money > 0 && (
+            <button
+              onClick={() => actions.bankTransaction('deposit', Math.floor(player.money))}
+              className="w-full mt-1 bg-indigo-600 text-white text-[10px] font-bold py-1 rounded hover:bg-indigo-700 transition"
+            >
+              💰 Deposit All (${Math.floor(player.money)})
+            </button>
+          )}
         </div>
         <div className="bg-red-50 p-3 rounded border border-red-100">
           <div className="text-xs font-bold text-red-700 mb-1">Debt (5%/wk)</div>
@@ -1536,6 +1567,7 @@ const Board = () => {
   const [animLocation, setAnimLocation] = useState(null); // overrides token display pos during travel
   const [floats, setFloats] = useState([]);
   const [weekFlash, setWeekFlash] = useState(false);
+  const [lotteryResult, setLotteryResult] = useState(null); // {win: bool}
   const animTimers = useRef([]);
 
   const addFloat = (amount) => {
@@ -1608,6 +1640,36 @@ const Board = () => {
     animTimers.current.push(done);
   }, [state.awaitingEndWeek]);
 
+  // ── Keyboard shortcuts ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e) => {
+      // Ignore when typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const { player } = state;
+      switch (e.key.toLowerCase()) {
+        case 'i': setShowInventory(v => !v); break;
+        case 'g': setShowGoals(v => !v); break;
+        case 'l': setShowLog(v => !v); break;
+        case 'w': {
+          // Work if at work location and has time
+          if (player.job && player.timeRemaining >= 8) {
+            const loc = JOB_WORK_LOCATION[player.job.type];
+            if (loc === player.currentLocation) actions.work();
+          }
+          break;
+        }
+        case 'e': {
+          // End week if at leasing office
+          if (player.currentLocation === 'leasing_office' && player.hasChosenHousing) actions.endWeek();
+          break;
+        }
+        default: break;
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [state]);
+
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
       setShowPanel(true);
@@ -1652,7 +1714,7 @@ const Board = () => {
       case 'trendsetters':   return <TrendSettersContent state={state} actions={actions} />;
       case 'megamart':       return <MegaMartContent state={state} actions={actions} />;
       case 'coffee_shop':    return <CoffeeShopContent state={state} actions={actions} />;
-      case 'blacks_market':  return <BlacksMarketContent state={state} actions={actions} />;
+      case 'blacks_market':  return <BlacksMarketContent state={state} actions={actions} onLotteryResult={(win) => { setLotteryResult({ win }); setTimeout(() => setLotteryResult(null), 2000); }} />;
       case 'grocery_store':  return <GroceryStoreContent state={state} actions={actions} />;
       case 'city_college':   return <CityCollegeContent state={state} actions={actions} />;
       case 'tech_store':     return <TechStoreContent state={state} actions={actions} />;
@@ -1689,22 +1751,68 @@ const Board = () => {
         />
       )}
 
+      {/* Lottery result splash */}
+      {lotteryResult && (
+        <div className={`absolute inset-0 z-50 flex items-center justify-center pointer-events-none ${lotteryResult.win ? 'bg-yellow-400/80' : 'bg-slate-800/70'}`}
+          style={{ animation: 'weekFlash 2s ease-out forwards' }}>
+          <div className="text-center">
+            <div className="text-6xl mb-2">{lotteryResult.win ? '🎰' : '💸'}</div>
+            <div className={`text-2xl font-black ${lotteryResult.win ? 'text-yellow-900' : 'text-white'}`}>
+              {lotteryResult.win ? 'JACKPOT! +50 Happiness!' : 'Better luck next time!'}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Padded map area — keeps buildings away from container edges */}
       <div className="absolute inset-x-2 sm:inset-x-5 top-4 bottom-16 sm:bottom-24">
         {/* Map background */}
         <MapBackground />
 
+        {/* Economy pill — always visible floating above center of ring */}
+        {(() => {
+          const { economy, week } = state;
+          const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-600';
+          const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '➡️';
+          return (
+            <div className={`absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 pointer-events-none`}>
+              <span>{icon}</span><span>{economy}</span><span className="opacity-60">·</span><span>Wk {week}</span>
+            </div>
+          );
+        })()}
+
         {/* Buildings */}
-        {LOCATION_ORDER.map(id => (
-          <BuildingNode
-            key={id}
-            id={id}
-            config={LOCATIONS_CONFIG[id]}
-            isCurrent={state.player.currentLocation === id}
-            isTraveling={isMoving}
-            onClick={() => handleTravel(id)}
-          />
-        ))}
+        {(() => {
+          const { player } = state;
+          const promoJob = getNextPromotion(player);
+          const workLocId = player.job ? (JOB_WORK_LOCATION[player.job.type] || null) : null;
+          return LOCATION_ORDER.map(id => {
+            // Warning badges
+            let warningBadge = null;
+            if (id === 'quick_eats' && player.hunger >= 60) {
+              warningBadge = { icon: '!', color: 'bg-orange-500' };
+            } else if (id === 'leasing_office' && (player.relaxation ?? 50) <= 20) {
+              warningBadge = { icon: '!', color: 'bg-amber-500' };
+            }
+            const isPromoReady = !!(promoJob && id === workLocId);
+            const travelHours = player.currentLocation !== id
+              ? travelCost(player.currentLocation, id)
+              : null;
+            return (
+              <BuildingNode
+                key={id}
+                id={id}
+                config={LOCATIONS_CONFIG[id]}
+                isCurrent={state.player.currentLocation === id}
+                isTraveling={isMoving}
+                onClick={() => handleTravel(id)}
+                warningBadge={warningBadge}
+                travelHours={travelHours}
+                isPromoReady={isPromoReady}
+              />
+            );
+          });
+        })()}
 
         {/* Jones token */}
         <PlayerToken

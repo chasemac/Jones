@@ -121,11 +121,11 @@ export const JOB_WORK_LOCATION = {
 // Jones levels up through this career path each N weeks
 export const JONES_CAREER_TRACK = [
   { title: 'Barista', wage: 12, weeksNeeded: 0 },
-  { title: 'Admin Assistant', wage: 18, weeksNeeded: 6 },
   { title: 'Shift Lead', wage: 16, weeksNeeded: 4 },
-  { title: 'Office Manager', wage: 28, weeksNeeded: 8 },
+  { title: 'Office Manager', wage: 22, weeksNeeded: 6 },
+  { title: 'Account Executive', wage: 30, weeksNeeded: 8 },
   { title: 'Senior Developer', wage: 40, weeksNeeded: 10 },
-  { title: 'Director', wage: 50, weeksNeeded: 12 },
+  { title: 'Director', wage: 55, weeksNeeded: 12 },
 ];
 
 export const JONES_EDUCATION_TRACK = [
