@@ -297,7 +297,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         </div>
         <div className="h-3 bg-slate-800 rounded-full border border-slate-600 overflow-hidden">
           <div
-            className={`h-full transition-all duration-500 ${player.timeRemaining < 15 ? 'bg-red-500' : 'bg-blue-500'}`}
+            className={`h-full transition-all duration-500 ${player.timeRemaining < 15 ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}
             style={{ width: `${(player.timeRemaining / player.maxTime) * 100}%` }}
           />
         </div>
@@ -338,11 +338,25 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
               </div>
             </div>
           )}
-          {/* Education + Job */}
-          <div className="flex gap-2 text-[8px] flex-wrap">
+          {/* Education + Job + clothing durability warning */}
+          <div className="flex gap-2 text-[8px] flex-wrap items-center">
             <span className="text-slate-400">🎓 {player.education}</span>
             <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
-            {(() => { const v = player.inventory?.find(i => i.type === 'vehicle'); return v ? <span className="text-slate-400">{v.id === 'car' ? '🚗' : '🚲'}</span> : null; })()}
+            {(() => {
+              const v = player.inventory?.find(i => i.type === 'vehicle');
+              const reqId = player.job?.requirements?.item;
+              const worn = reqId ? player.inventory?.find(i => i.id === reqId && i.clothingWear !== undefined) : null;
+              return (
+                <>
+                  {v && <span className="text-slate-400">{v.id === 'car' ? '🚗' : '🚲'}</span>}
+                  {worn && worn.clothingWear < 40 && (
+                    <span className="text-orange-400 animate-pulse font-bold" title={`${worn.name}: ${worn.clothingWear}% durability left`}>
+                      👔{worn.clothingWear}%
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -586,26 +600,55 @@ const EventModal = ({ event, onClose }) => (
 const RingTips = ({ player, week }) => {
   const [open, setOpen] = React.useState(false);
 
-  if (week > 5) return null;
+  // Critical alerts — shown at any week
+  const alerts = [];
+  const requiredItemId = player.job?.requirements?.item;
+  if (requiredItemId) {
+    const worn = player.inventory.find(i => i.id === requiredItemId && i.clothingWear !== undefined);
+    if (worn && worn.clothingWear < 40) {
+      alerts.push({ emoji: '⚠️', text: `${worn.name} is at ${worn.clothingWear}% — replace it at TrendSetters soon!` });
+    }
+  }
+  const promoJob = getNextPromotion(player);
+  if (promoJob) {
+    const workLocId = JOB_WORK_LOCATION[player.job?.type];
+    const loc = LOCATIONS_CONFIG[workLocId];
+    alerts.push({ emoji: '🆙', text: `Promotion ready! Go to ${loc?.label ?? 'work'} to become ${promoJob.title}` });
+  }
+  if (player.hunger >= 80) {
+    alerts.push({ emoji: '🍽️', text: 'STARVING! -20hrs next week. Eat at Quick Eats immediately!' });
+  }
+  if ((player.relaxation ?? 50) <= 10) {
+    alerts.push({ emoji: '😴', text: 'Exhaustion risk! Rest at home or buy a Concert Ticket soon.' });
+  }
+  if (player.happiness < 20) {
+    alerts.push({ emoji: '💔', text: 'Happiness critical — near game over! Buy something fun.' });
+  }
 
-  const tips = [];
-  if (!player.hasChosenHousing) {
-    tips.push({ emoji: '🏠', text: 'Go to Leasing Office and pick a place to live first' });
+  // Tutorial tips — first 5 weeks only
+  const tutorialTips = [];
+  if (week <= 5) {
+    if (!player.hasChosenHousing) {
+      tutorialTips.push({ emoji: '🏠', text: 'Go to Leasing Office and pick a place to live first' });
+    }
+    if (!player.job) {
+      tutorialTips.push({ emoji: '📚', text: 'Visit the Library to browse jobs and get hired' });
+    }
+    const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage');
+    if (!hasFood) {
+      tutorialTips.push({ emoji: '🍔', text: "Visit Quick Eats and grab a week's worth of meals" });
+    }
+    if (player.job && player.timeRemaining >= 8) {
+      const workLocId = JOB_WORK_LOCATION[player.job.type];
+      const loc = LOCATIONS_CONFIG[workLocId];
+      tutorialTips.push({ emoji: loc?.emoji ?? '💼', text: `Head to ${loc?.label ?? 'your workplace'} and work a shift` });
+    }
+    if (player.money >= 200 && !player.job) {
+      tutorialTips.push({ emoji: '🏦', text: 'Deposit cash at NeoBank to earn 1% interest per week' });
+    }
   }
-  if (!player.job) {
-    tips.push({ emoji: '📚', text: 'Visit the Library to browse jobs and get hired' });
-  }
-  const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage');
-  if (!hasFood) {
-    tips.push({ emoji: '🍔', text: "Visit Quick Eats and grab a week's worth of meals" });
-  }
-  if (player.job && player.timeRemaining >= 8) {
-    const loc = LOCATIONS_CONFIG[player.job.location];
-    tips.push({ emoji: loc?.emoji ?? '💼', text: `Head to ${loc?.label ?? player.job.location} and work a shift` });
-  }
-  if (player.money >= 200 && !player.job) {
-    tips.push({ emoji: '🏦', text: 'Deposit cash at NeoBank to earn 1% interest per week' });
-  }
+
+  const tips = [...alerts, ...tutorialTips];
   if (tips.length === 0) return null;
 
   return (
@@ -851,23 +894,50 @@ const LibraryContent = ({ state, actions, setNotification }) => {
       <div className="flex flex-col">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📋 Job Board</h3>
         <div className="flex-grow overflow-y-auto space-y-1">
-          {availableJobs.map(job => (
-            <button
-              key={job.id}
-              onClick={() => handleApply(job)}
-              className="w-full text-left p-2 bg-white border hover:border-emerald-400 rounded text-xs group"
-            >
-              <div className="flex justify-between">
-                <span className="font-bold group-hover:text-emerald-600">{job.title}</span>
-                <span className="font-mono">${job.wage}/hr</span>
-              </div>
-              <div className="text-slate-400">
-                {job.requirements?.education ? `${job.requirements.education} · ` : 'Entry Level · '}
-                {job.requirements?.experience ? `${job.requirements.experience}wks · ` : ''}
-                {job.requirements?.dependability ? `🎯${job.requirements.dependability} dep` : ''}
-              </div>
-            </button>
-          ))}
+          {availableJobs.map(job => {
+            const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
+            const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
+            const meetsDep = !job.requirements?.dependability || player.dependability >= job.requirements.dependability;
+            const meetsItm = !job.requirements?.item || player.inventory.some(i => i.id === job.requirements.item);
+            const canApply = meetsExp && meetsEdu && meetsDep && meetsItm;
+            return (
+              <button
+                key={job.id}
+                onClick={() => handleApply(job)}
+                className={`w-full text-left p-2 border rounded text-xs group ${canApply ? 'bg-white hover:border-emerald-400' : 'bg-slate-50'}`}
+              >
+                <div className="flex justify-between mb-0.5">
+                  <span className={`font-bold ${canApply ? 'group-hover:text-emerald-600' : 'text-slate-500'}`}>{job.title}</span>
+                  <span className="font-mono">${job.wage}/hr</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {!job.requirements?.education && !job.requirements?.experience && !job.requirements?.dependability && !job.requirements?.item
+                    ? <span className="text-[9px] text-slate-400">Entry Level — No requirements</span>
+                    : null}
+                  {job.requirements?.education && (
+                    <span className={`text-[9px] px-1 rounded ${meetsEdu ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      🎓 {job.requirements.education}
+                    </span>
+                  )}
+                  {job.requirements?.experience && (
+                    <span className={`text-[9px] px-1 rounded ${meetsExp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      ⏱ {job.requirements.experience}wks exp
+                    </span>
+                  )}
+                  {job.requirements?.dependability && (
+                    <span className={`text-[9px] px-1 rounded ${meetsDep ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      🎯 {job.requirements.dependability} dep
+                    </span>
+                  )}
+                  {job.requirements?.item && (
+                    <span className={`text-[9px] px-1 rounded ${meetsItm ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      📦 {job.requirements.item.replace(/_/g, ' ')}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
         {/* Career Paths info */}
         <button
@@ -1172,6 +1242,7 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const { player, economy } = state;
   const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
+  const [confirmIdx, setConfirmIdx] = React.useState(null);
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
@@ -1181,13 +1252,26 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
           <div className="text-xs text-slate-400 italic">Nothing to sell.</div>
         ) : player.inventory.map((item, i) => (
           <div key={i} className="flex justify-between items-center p-2 bg-white border rounded mb-1 text-xs">
-            <span>{item.name}</span>
-            <button
-              onClick={() => actions.sellItem(item)}
-              className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold hover:bg-red-200"
-            >
-              ${Math.floor(item.cost * 0.5)}
-            </button>
+            <span className="truncate mr-1">{item.name}</span>
+            {confirmIdx === i ? (
+              <div className="flex gap-1 shrink-0">
+                <button
+                  onClick={() => { actions.sellItem(item); setConfirmIdx(null); }}
+                  className="bg-red-600 text-white px-2 py-0.5 rounded font-bold hover:bg-red-700"
+                >Sell!</button>
+                <button
+                  onClick={() => setConfirmIdx(null)}
+                  className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded hover:bg-slate-300"
+                >✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmIdx(i)}
+                className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold hover:bg-red-200 shrink-0"
+              >
+                ${Math.floor(item.cost * 0.5)}
+              </button>
+            )}
           </div>
         ))}
         <div className="mt-3 text-[10px] text-slate-400 bg-slate-100 p-2 rounded italic">
@@ -1379,10 +1463,23 @@ const TechStoreContent = ({ state, actions }) => {
 const NeoBankContent = ({ state, actions }) => {
   const { player } = state;
   const [depositAmt, setDepositAmt] = useState(100);
+  const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
+  const netWorth = calculateNetWorth(player);
+  const wealthPct = Math.min(100, Math.max(0, (netWorth / goals.wealth) * 100));
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-3">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1">Banking</h3>
+        {/* Wealth goal progress */}
+        <div className="bg-slate-50 rounded p-2 border border-slate-200">
+          <div className="flex justify-between text-[9px] text-slate-500 mb-0.5">
+            <span>🎯 Wealth Goal</span>
+            <span className={netWorth >= goals.wealth ? 'text-green-600 font-bold' : ''}>${Math.max(0, netWorth).toLocaleString()} / ${goals.wealth.toLocaleString()}</span>
+          </div>
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-500 ${netWorth >= goals.wealth ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${wealthPct}%` }} />
+          </div>
+        </div>
         <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
           <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1%/wk)</div>
           <div className="text-2xl font-mono mb-2">${player.savings}</div>
@@ -1413,6 +1510,7 @@ const NeoBankContent = ({ state, actions }) => {
             <button onClick={() => actions.bankTransaction('repay', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Pay ${depositAmt}</button>
             <button onClick={() => actions.bankTransaction('borrow', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Borrow</button>
           </div>
+          <div className="text-[9px] text-red-500 mt-1">⚠️ 5% interest/week — repay fast!</div>
         </div>
         <div className="mt-3 pt-2 border-t border-slate-200">
           <h3 className="font-bold text-xs mb-2 text-slate-600">🛡️ Insurance</h3>
@@ -1455,11 +1553,15 @@ const NeoBankContent = ({ state, actions }) => {
             const currentPrice = state.market[stock.symbol];
             const owned = player.portfolio?.[stock.symbol] || 0;
             const isUp = currentPrice >= stock.basePrice;
+            const pctChange = Math.round(((currentPrice - stock.basePrice) / stock.basePrice) * 100);
             return (
               <div key={stock.symbol} className="bg-white p-2 rounded border text-xs">
                 <div className="flex justify-between mb-1">
                   <span className="font-bold">{stock.symbol}</span>
-                  <span className={`font-mono ${isUp ? 'text-green-600' : 'text-red-600'}`}>${currentPrice}</span>
+                  <div className="flex items-center gap-1">
+                    <span className={`text-[9px] font-bold ${isUp ? 'text-green-500' : 'text-red-500'}`}>{isUp ? '+' : ''}{pctChange}%</span>
+                    <span className={`font-mono ${isUp ? 'text-green-600' : 'text-red-600'}`}>${currentPrice}</span>
+                  </div>
                 </div>
                 <div className="text-slate-400 mb-1">{stock.name}</div>
                 <div className="flex justify-between text-slate-500 mb-1">
@@ -1509,10 +1611,26 @@ const LeasingOfficeContent = ({ state, actions }) => {
             😴 Sleep — End Week
             <span className="text-xs font-normal opacity-75">({player.timeRemaining}h remaining)</span>
           </button>
-          <div className="bg-purple-50 p-3 rounded border border-purple-100">
-            <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
-            <div className="text-lg font-bold">{player.housing?.title || 'Homeless'}</div>
-            <div className="text-sm text-slate-500">Rent: ${player.housing?.rent}/week · Security: {player.housing?.security}</div>
+          <div className="flex gap-2">
+            <div className="bg-purple-50 p-3 rounded border border-purple-100 flex-1">
+              <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
+              <div className="text-base font-bold">{player.housing?.title || 'Homeless'}</div>
+              <div className="text-xs text-slate-500">Rent: ${player.housing?.rent}/wk · {player.housing?.security} security</div>
+            </div>
+            {/* Rest at home — quick relaxation recovery */}
+            <button
+              onClick={() => actions.buyItem({
+                id: 'rest_home', name: 'Rest at Home', cost: 0, type: 'entertainment',
+                happinessBoost: 2, relaxationBoost: 10, timeToRest: 2,
+              })}
+              disabled={player.timeRemaining < 2}
+              className="bg-teal-50 border-2 border-teal-200 hover:bg-teal-100 disabled:opacity-50 rounded-xl px-3 flex flex-col items-center justify-center text-center transition"
+              title="Rest at home (2h)"
+            >
+              <div className="text-2xl">🛁</div>
+              <div className="text-[9px] font-bold text-teal-700">Rest 2h</div>
+              <div className="text-[9px] text-teal-600">+10 relax</div>
+            </button>
           </div>
         </>
       )}

@@ -36,24 +36,24 @@
     "name": "Casual Clothes",
     "cost": 50,
     "type": "clothing",
-    "clothingWear": 100,
-    "effect": "Basic requirement"
+    "clothingWear": 150,
+    "effect": "Basic requirement — lasts ~20 weeks"
   },
   {
     "id": "business_casual",
     "name": "Business Casual",
     "cost": 200,
     "type": "clothing",
-    "clothingWear": 100,
-    "effect": "Required for Office Jobs"
+    "clothingWear": 150,
+    "effect": "Required for Office Jobs — lasts ~20 weeks"
   },
   {
     "id": "suit",
     "name": "Professional Suit",
     "cost": 500,
     "type": "clothing",
-    "clothingWear": 100,
-    "effect": "Required for Management; deters Wild Willy"
+    "clothingWear": 150,
+    "effect": "Required for Management; deters Wild Willy — lasts ~20 weeks"
   },
   {
     "id": "smart_watch",

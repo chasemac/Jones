@@ -298,22 +298,29 @@ export const gameReducer = (state, action) => {
         return s;
       }
 
-      // Entertainment items (concert tickets etc): apply boosts immediately, don't add to inventory
+      // Entertainment items (concert tickets, rest, etc): apply boosts immediately, don't add to inventory
       if (item.type === 'entertainment') {
         const hBoost = item.happinessBoost || 0;
         const rBoost = item.relaxationBoost || 0;
+        const timeCost = item.timeToRest || 0;
         const isLottery = item.name?.toLowerCase().includes('lottery');
+        const isRest = item.id?.startsWith('rest_home');
         const lotteryVerb = hBoost > 0 ? '🎰 JACKPOT!' : '🎰 No luck.';
-        const verb = isLottery ? lotteryVerb : `Enjoyed ${item.name}!`;
-        const hStr = hBoost > 0 ? `+${hBoost}` : `${hBoost}`;
-        let s = log(state, `${verb} ${hStr} happiness${rBoost ? `, +${rBoost} relaxation` : ''}.`);
+        const verb = isRest ? `😴 Rested at home.` : isLottery ? lotteryVerb : `Enjoyed ${item.name}!`;
+        const hStr = hBoost > 0 ? `+${hBoost}` : hBoost < 0 ? `${hBoost}` : '';
+        const parts = [hStr ? `${hStr} happiness` : '', rBoost ? `+${rBoost} relaxation` : ''].filter(Boolean);
+        let s = log(state, `${verb}${parts.length ? ' ' + parts.join(', ') + '.' : ''}`);
+        if (timeCost > 0 && activePlayer(s).timeRemaining < timeCost) {
+          return log(state, `Not enough time to rest (need ${timeCost}h).`);
+        }
         s = updateActivePlayer(s, p => ({
           ...p,
-          money: p.money - item.cost,
+          money: Math.max(0, p.money - item.cost),
           happiness: Math.min(100, p.happiness + hBoost),
           relaxation: Math.min(100, p.relaxation + rBoost),
+          timeRemaining: Math.max(0, p.timeRemaining - timeCost),
         }));
-        return s;
+        return autoEndIfNeeded(s);
       }
 
       const alreadyOwned = player.inventory.some(i => i.id === item.id);
@@ -537,11 +544,11 @@ export const gameReducer = (state, action) => {
         if (np.housing.id === 'luxury_condo') relaxDelta += 3; // luxury living
         np.relaxation = Math.max(0, Math.min(100, np.relaxation + relaxDelta));
 
-        // 3d. Clothing wear (each clothing item loses 10 durability/week)
+        // 3d. Clothing wear (each clothing item loses 7 durability/week ≈ 20-week lifespan)
         const wornOut = [];
         np.inventory = np.inventory.map(item => {
           if (item.clothingWear !== undefined) {
-            const newWear = item.clothingWear - 10;
+            const newWear = item.clothingWear - 7;
             if (newWear <= 0) { wornOut.push(item); return null; }
             return { ...item, clothingWear: newWear };
           }
@@ -557,9 +564,9 @@ export const gameReducer = (state, action) => {
           }
         }
 
-        // Warn when clothing is getting low
+        // Warn when clothing is getting low (< 30% durability ≈ 4 weeks left)
         for (const item of np.inventory) {
-          if (item.clothingWear !== undefined && item.clothingWear <= 20 && item.clothingWear > 0) {
+          if (item.clothingWear !== undefined && item.clothingWear <= 30 && item.clothingWear > 0) {
             playerLog.push(`${np.name}: ⚠️ ${item.name} is wearing thin! (${item.clothingWear}% left)`);
           }
         }
