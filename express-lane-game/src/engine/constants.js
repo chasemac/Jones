@@ -89,7 +89,9 @@ export const LOCATION_ORDER = [
   'public_library',
   'trendsetters',
   'coffee_shop',
+  'megamart',        // bottom-right diagonal, between Coffee Shop and Black's Mkt
   'blacks_market',
+  'grocery_store',   // bottom row, between Black's Mkt and City College
   'city_college',
   'tech_store',
   'neobank',
