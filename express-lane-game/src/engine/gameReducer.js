@@ -30,6 +30,7 @@ export const buildPlayer = (index, startingMoney) => ({
   education: 'High School',
   job: null,
   housing: { id: 'shared_apt', title: 'Shared Apartment', rent: 200, happiness: 0, security: 'Low' },
+  hasChosenHousing: false, // flips true after player explicitly picks housing for the first time
   currentLocation: 'leasing_office',
   savings: 0,
   debt: 0,
@@ -399,7 +400,7 @@ export const gameReducer = (state, action) => {
       }
 
       let s = log(state, `${player.name} moved into ${housing.title}.${deposit > 0 ? ` -$${deposit} deposit.` : ''}`);
-      s = updateActivePlayer(s, p => ({ ...p, housing, money: p.money - deposit }));
+      s = updateActivePlayer(s, p => ({ ...p, housing, hasChosenHousing: true, money: p.money - deposit }));
       return s;
     }
 

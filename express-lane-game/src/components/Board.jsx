@@ -216,7 +216,7 @@ const LocationPanel = ({ locationId, children, onClose }) => {
           onClick={onClose}
           className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-4 py-1.5 rounded-full text-sm shadow transition hover:scale-105 flex items-center gap-1"
         >
-          DONE 👉
+          NEXT 👉
         </button>
       </div>
       <div className="flex-grow p-4 overflow-y-auto bg-slate-50">
@@ -1375,46 +1375,61 @@ const NeoBankContent = ({ state, actions }) => {
 
 const LeasingOfficeContent = ({ state, actions }) => {
   const { player } = state;
+  const isFirstVisit = state.week === 1 && !player.hasChosenHousing;
   return (
     <div className="space-y-3">
-      {/* First week tips */}
-      {state.week === 1 && !player.job && player.hunger === 0 && (
-        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-800 mb-3">
-          <div className="font-black text-sm mb-1">👋 Welcome!</div>
-          <ul className="space-y-1 list-disc list-inside text-indigo-700">
-            <li>📚 <strong>Library</strong> — apply for your first job</li>
-            <li>☕ <strong>Coffee Shop</strong> — work your shift to earn money</li>
-            <li>🎓 <strong>City College</strong> — enroll to unlock better jobs</li>
-            <li>🏦 <strong>NeoBank</strong> — save money at 1%/week</li>
+
+      {/* Week 1 onboarding: pick housing before anything else */}
+      {isFirstVisit ? (
+        <div className="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-4 mb-1">
+          <div className="font-black text-base text-indigo-900 mb-1">👋 Welcome to Life in the Express Lane!</div>
+          <p className="text-xs text-indigo-700 mb-3">First things first — choose a place to live. Your rent comes out each week, so pick what you can afford.</p>
+          <ul className="text-xs text-indigo-700 space-y-1 list-disc list-inside mb-2">
+            <li>📚 <strong>Library</strong> — get your first job</li>
+            <li>🍔 <strong>Quick Eats</strong> — buy weekly meals so you don't starve</li>
+            <li>☕ <strong>Coffee Shop</strong> — work shifts to earn money</li>
+            <li>🏦 <strong>NeoBank</strong> — save your money at 1%/week</li>
           </ul>
-          <div className="mt-2 text-[10px] text-indigo-600">Hunger grows +25/week. Eat before it hits 80!</div>
+          <div className="text-[10px] text-indigo-500">Hunger grows +25/week. Hit 80 and you lose 20hrs next week!</div>
         </div>
+      ) : (
+        <>
+          {/* Sleep / End Week button — only shown after housing is set */}
+          <button
+            onClick={actions.endWeek}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95"
+          >
+            😴 Sleep — End Week
+            <span className="text-xs font-normal opacity-75">({player.timeRemaining}h remaining)</span>
+          </button>
+          <div className="bg-purple-50 p-3 rounded border border-purple-100">
+            <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
+            <div className="text-lg font-bold">{player.housing?.title || 'Homeless'}</div>
+            <div className="text-sm text-slate-500">Rent: ${player.housing?.rent}/week · Security: {player.housing?.security}</div>
+          </div>
+        </>
       )}
-      {/* Sleep / End Week button */}
-      <button
-        onClick={actions.endWeek}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95"
-      >
-        😴 Sleep — End Week
-        <span className="text-xs font-normal opacity-75">({player.timeRemaining}h remaining)</span>
-      </button>
-      <div className="bg-purple-50 p-3 rounded border border-purple-100">
-        <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
-        <div className="text-lg font-bold">{player.housing?.title || 'Homeless'}</div>
-        <div className="text-sm text-slate-500">Rent: ${player.housing?.rent}/week · Security: {player.housing?.security}</div>
-      </div>
+
+      {/* Housing options — always shown */}
       <div className="space-y-2">
+        {isFirstVisit && (
+          <div className="text-sm font-black text-slate-700 mb-1">🏠 Choose your home to begin:</div>
+        )}
         {housingData.map(h => {
           const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
+          const isCurrent = player.housing?.id === h.id;
           return (
             <button
               key={h.id}
               onClick={() => actions.rentApartment(h)}
-              disabled={player.housing?.id === h.id}
-              className="w-full flex justify-between items-center p-3 border rounded hover:bg-purple-50 disabled:bg-purple-100 disabled:opacity-70 text-sm"
+              disabled={isCurrent}
+              className={`w-full flex justify-between items-center p-3 border-2 rounded-lg text-sm transition-all
+                ${isCurrent ? 'bg-purple-100 border-purple-400 opacity-70 cursor-default' : 'hover:bg-purple-50 border-slate-200 hover:border-purple-300'}
+                ${isFirstVisit && !isCurrent ? 'hover:scale-[1.01] active:scale-[0.99]' : ''}
+              `}
             >
               <div className="text-left">
-                <div className="font-bold">{h.title}</div>
+                <div className="font-bold">{h.title} {isCurrent && '✅'}</div>
                 <div className="text-xs text-slate-400">{h.description}</div>
                 {deposit > 0 && <div className="text-[10px] text-orange-600">+${deposit} deposit to move in</div>}
               </div>
