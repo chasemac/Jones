@@ -536,6 +536,47 @@ const EventModal = ({ event, onClose }) => (
   </div>
 );
 
+// ─── Ring Tips ────────────────────────────────────────────────────────────────
+const RingTips = ({ player, week }) => {
+  if (week > 5) return null;
+
+  const tips = [];
+
+  if (!player.hasChosenHousing) {
+    tips.push({ emoji: '🏠', text: 'Go to Leasing Office and pick a place to live first' });
+  }
+  if (!player.job) {
+    tips.push({ emoji: '📚', text: 'Visit the Library to browse jobs and get hired' });
+  }
+  const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage');
+  if (!hasFood) {
+    tips.push({ emoji: '🍔', text: "Visit Quick Eats and grab a week's worth of meals" });
+  }
+  if (player.job && player.timeRemaining >= 8) {
+    const loc = LOCATIONS_CONFIG[player.job.location];
+    tips.push({ emoji: loc?.emoji ?? '💼', text: `Head to ${loc?.label ?? player.job.location} and work a shift` });
+  }
+  if (player.money >= 200 && !player.job) {
+    tips.push({ emoji: '🏦', text: 'Deposit cash at NeoBank to earn 1% interest per week' });
+  }
+
+  if (tips.length === 0) return null;
+
+  return (
+    <div className="absolute left-[30%] top-[53%] bg-amber-50 border-2 border-amber-300 rounded-xl p-3 shadow-lg z-10 w-48 hidden md:block">
+      <div className="text-[10px] font-black uppercase text-amber-600 mb-2">💡 What to do next</div>
+      <div className="space-y-2">
+        {tips.slice(0, 3).map((tip, i) => (
+          <div key={i} className="flex gap-1.5 items-start">
+            <span className="text-sm leading-tight">{tip.emoji}</span>
+            <span className="text-[10px] text-slate-600 leading-tight">{tip.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Jones sidebar ────────────────────────────────────────────────────────────
 const JonesSidebar = ({ jones, difficulty, player }) => {
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
@@ -1659,6 +1700,9 @@ const Board = () => {
 
         {/* Jones sidebar — floats in ring interior, no building at this position */}
         <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
+
+        {/* Contextual tips — early-game only, ring interior lower half */}
+        <RingTips player={state.player} week={state.week} />
       </div>
 
       {/* Multiplayer turn banner */}
