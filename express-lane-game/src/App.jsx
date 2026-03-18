@@ -8,11 +8,11 @@ const GameLayout = () => {
   const { state } = useGame();
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+    <div className="h-[100dvh] bg-slate-900 flex flex-col lg:items-center lg:justify-center lg:p-4 overflow-hidden">
       <StartScreen />
       <VictoryModal />
 
-      <main className="w-full max-w-5xl">
+      <main className="w-full lg:max-w-5xl flex-1 lg:flex-none flex flex-col">
         <Board />
       </main>
     </div>

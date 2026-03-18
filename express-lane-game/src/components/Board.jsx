@@ -109,19 +109,19 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick }) => (
     }}
   >
     <div
-      className={`w-16 h-16 bg-white border-4 rounded-xl shadow-lg flex items-center justify-center text-3xl relative
+      className={`w-10 h-10 sm:w-16 sm:h-16 bg-white border-2 sm:border-4 rounded-lg sm:rounded-xl shadow-lg flex items-center justify-center text-xl sm:text-3xl relative
         ${isCurrent ? 'ring-4 ring-yellow-400 scale-110 shadow-2xl' : 'opacity-90 hover:opacity-100'}
       `}
       style={{ borderColor: config.color }}
     >
       {config.emoji}
       {isCurrent && (
-        <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[10px] font-black px-1 py-0.5 rounded-full animate-bounce">
+        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-yellow-400 text-black text-[9px] sm:text-[10px] font-black px-1 py-0.5 rounded-full animate-bounce">
           YOU
         </div>
       )}
     </div>
-    <div className="mt-1 bg-slate-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow whitespace-nowrap">
+    <div className="mt-0.5 sm:mt-1 bg-slate-800 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow whitespace-nowrap">
       {config.label}
     </div>
   </div>
@@ -207,7 +207,7 @@ const LocationPanel = ({ locationId, children, onClose }) => {
   const config = LOCATIONS_CONFIG[locationId];
   if (!config) return null;
   return (
-    <div className="absolute inset-x-4 top-4 bottom-28 bg-white border-4 border-slate-800 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden">
+    <div className="absolute inset-x-2 sm:inset-x-4 top-4 bottom-16 sm:bottom-28 bg-white border-4 border-slate-800 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden">
       <div className="bg-slate-100 border-b-2 border-slate-200 px-4 py-3 flex justify-between items-center flex-shrink-0">
         <h2 className="text-xl font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
           <span className="text-2xl">{config.emoji}</span> {config.label}
@@ -237,19 +237,19 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const happinessFace = player.happiness >= 80 ? '😁' : player.happiness >= 60 ? '🙂' : player.happiness >= 40 ? '😐' : player.happiness >= 20 ? '😟' : '😫';
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-24 bg-slate-900 border-t-4 border-slate-700 flex items-center justify-between px-3 z-30 shadow-2xl gap-2">
+    <div className="absolute bottom-0 left-0 right-0 h-16 md:h-24 bg-slate-900 border-t-4 border-slate-700 flex items-center justify-between px-2 md:px-3 z-30 shadow-2xl gap-1 md:gap-2">
 
       {/* Week + Economy */}
       <div className="flex flex-col items-center min-w-[52px]">
-        <div className="text-3xl">🕒</div>
+        <div className="text-xl md:text-3xl">🕒</div>
         <div className="text-slate-400 text-[10px] font-bold uppercase">Wk {week}</div>
         <div className={`text-[9px] font-bold ${economyColor}`}>{economy}</div>
       </div>
 
       {/* Happiness */}
       <div className="flex flex-col items-center" title={`Happiness: ${player.happiness}/100 (Goal: ${goals.happiness})`}>
-        <div className="text-3xl">{happinessFace}</div>
-        <div className="w-14 h-1.5 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
+        <div className="text-xl md:text-3xl">{happinessFace}</div>
+        <div className="w-10 md:w-14 h-1.5 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ${player.happiness < 30 ? 'bg-red-500' : 'bg-yellow-400'}`}
             style={{ width: `${player.happiness}%` }}
@@ -270,40 +270,43 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             style={{ width: `${(player.timeRemaining / player.maxTime) * 100}%` }}
           />
         </div>
-        {/* Dependability */}
-        <div className="flex items-center gap-1">
-          <span className="text-[8px] text-slate-400 w-16 shrink-0">🎯 Dep {player.dependability ?? 50}</span>
-          <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${player.dependability ?? 50}%` }} />
-          </div>
-        </div>
-        {/* Relaxation */}
-        <div className="flex items-center gap-1">
-          <span className="text-[8px] text-slate-400 w-16 shrink-0">🛁 Relax {player.relaxation ?? 50}</span>
-          <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
-            <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
-          </div>
-        </div>
-        {/* Hunger */}
-        {player.hunger >= 40 && (
+        {/* Secondary stats — hidden on mobile to save space */}
+        <div className="hidden sm:contents">
+          {/* Dependability */}
           <div className="flex items-center gap-1">
-            <span className="text-[8px] text-slate-400 w-16 shrink-0">🍽️ Hunger {player.hunger}</span>
+            <span className="text-[8px] text-slate-400 w-16 shrink-0">🎯 Dep {player.dependability ?? 50}</span>
             <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500' : 'bg-orange-400'}`} style={{ width: `${player.hunger}%` }} />
+              <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${player.dependability ?? 50}%` }} />
             </div>
           </div>
-        )}
-        {/* Education + Job */}
-        <div className="flex gap-2 text-[8px] flex-wrap">
-          <span className="text-slate-400">🎓 {player.education}</span>
-          <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
-          {(() => { const v = player.inventory?.find(i => i.type === 'vehicle'); return v ? <span className="text-slate-400">{v.id === 'car' ? '🚗' : '🚲'}</span> : null; })()}
+          {/* Relaxation */}
+          <div className="flex items-center gap-1">
+            <span className="text-[8px] text-slate-400 w-16 shrink-0">🛁 Relax {player.relaxation ?? 50}</span>
+            <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
+            </div>
+          </div>
+          {/* Hunger */}
+          {player.hunger >= 40 && (
+            <div className="flex items-center gap-1">
+              <span className="text-[8px] text-slate-400 w-16 shrink-0">🍽️ Hunger {player.hunger}</span>
+              <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500' : 'bg-orange-400'}`} style={{ width: `${player.hunger}%` }} />
+              </div>
+            </div>
+          )}
+          {/* Education + Job */}
+          <div className="flex gap-2 text-[8px] flex-wrap">
+            <span className="text-slate-400">🎓 {player.education}</span>
+            <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
+            {(() => { const v = player.inventory?.find(i => i.type === 'vehicle'); return v ? <span className="text-slate-400">{v.id === 'car' ? '🚗' : '🚲'}</span> : null; })()}
+          </div>
         </div>
       </div>
 
       {/* Money */}
       <div className="flex flex-col items-end gap-1">
-        <div className="bg-black/50 px-2 py-1 rounded border border-slate-700 font-mono text-green-400 text-lg min-w-[100px] text-right">
+        <div className="bg-black/50 px-2 py-1 rounded border border-slate-700 font-mono text-green-400 text-sm sm:text-lg min-w-[72px] sm:min-w-[100px] text-right">
           ${player.money.toFixed(0)}
         </div>
         {player.savings > 0 && (
@@ -340,7 +343,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             title={muted ? 'Unmute' : 'Mute'}
           >{muted ? '🔇' : '🔊'}</button>
         </div>
-        <div className="text-[9px] text-slate-500 text-center mt-0.5">
+        <div className="hidden sm:block text-[9px] text-slate-500 text-center mt-0.5">
           Time runs out → new week
         </div>
       </div>
@@ -564,9 +567,9 @@ const RingTips = ({ player, week }) => {
 
   return (
     <>
-      {/* Expanded panel — floats above icon, anchored right of Jones panel */}
+      {/* Expanded panel — bottom sheet on mobile, floats on sm+ */}
       {open && (
-        <div className="absolute bottom-40 right-4 bg-amber-50 border-2 border-amber-300 rounded-xl p-3 shadow-xl z-20 w-52">
+        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-52 bg-amber-50 border-t-2 sm:border-2 border-amber-300 sm:rounded-xl p-4 sm:p-3 shadow-xl z-40">
           <div className="text-[10px] font-black uppercase text-amber-600 mb-2">💡 What to do next</div>
           <div className="space-y-2">
             {tips.slice(0, 3).map((tip, i) => (
@@ -581,7 +584,7 @@ const RingTips = ({ player, week }) => {
       {/* Icon button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-28 right-16 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/80 border-amber-500 hover:bg-amber-300'}`}
+        className={`absolute bottom-[4.5rem] sm:bottom-28 right-16 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/80 border-amber-500 hover:bg-amber-300'}`}
         title="Hints"
       >
         <span className="text-lg leading-none">💡</span>
@@ -602,9 +605,9 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
 
   return (
     <>
-      {/* Expanded panel — floats above icon, left of tips panel */}
+      {/* Expanded panel — bottom sheet on mobile, floats on sm+ */}
       {open && (
-        <div className="absolute bottom-40 right-[14rem] bg-white/95 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-20 w-52">
+        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[14rem] sm:w-52 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-xl p-4 sm:p-3 shadow-xl z-40">
           <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
             <div className="text-2xl">🤑</div>
             <div>
@@ -638,7 +641,7 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
       {/* Icon button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-28 right-28 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
+        className={`absolute bottom-[4.5rem] sm:bottom-28 right-28 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
         title="The Joneses"
       >
         <span className="text-lg leading-none">🤑</span>
@@ -651,7 +654,7 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
 // Collapsed to a small bell button so it doesn't overlap any buildings.
 const NotificationFeed = ({ history, onOpenLog }) => (
   <button
-    className="absolute bottom-28 right-4 w-10 h-10 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg"
+    className="absolute bottom-[4.5rem] sm:bottom-28 right-4 w-10 h-10 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg"
     onClick={onOpenLog}
     title="Open event log"
   >
@@ -1660,7 +1663,7 @@ const Board = () => {
   };
 
   return (
-    <div className="relative w-full bg-green-100 rounded-xl overflow-hidden border-4 border-slate-800 shadow-2xl select-none" style={{ height: 'min(680px, calc(100vh - 2rem))' }}>
+    <div className="relative w-full flex-1 lg:flex-none bg-green-100 lg:rounded-xl overflow-hidden border-4 border-slate-800 shadow-2xl select-none lg:h-[min(680px,_calc(100dvh-2rem))]">
 
       {/* CSS keyframes injected once */}
       <style>{`
@@ -1687,7 +1690,7 @@ const Board = () => {
       )}
 
       {/* Padded map area — keeps buildings away from container edges */}
-      <div className="absolute inset-x-5 top-4 bottom-24">
+      <div className="absolute inset-x-2 sm:inset-x-5 top-4 bottom-16 sm:bottom-24">
         {/* Map background */}
         <MapBackground />
 
