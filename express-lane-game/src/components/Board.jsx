@@ -541,7 +541,7 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
   const playerNetWorth = calculateNetWorth(player);
   return (
-    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-10 w-44 hidden md:block">
+    <div className="absolute left-[28%] top-[28%] bg-white/90 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-10 w-44 hidden md:block">
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
         <div className="text-2xl">🤑</div>
         <div>
@@ -1656,6 +1656,9 @@ const Board = () => {
             />
           );
         })}
+
+        {/* Jones sidebar — floats in ring interior, no building at this position */}
+        <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
       </div>
 
       {/* Multiplayer turn banner */}
@@ -1668,9 +1671,6 @@ const Board = () => {
           <span className="text-xs font-normal opacity-75">Wk {state.week}</span>
         </div>
       )}
-
-      {/* Jones sidebar */}
-      <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
 
       {/* Notification feed */}
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
