@@ -268,6 +268,15 @@ export const gameReducer = (state, action) => {
         return autoEndIfNeeded(s);
       }
 
+      // Weekly meal plans (Quick Eats): no fridge needed, no spoilage, max 1 week stored at a time
+      if (item.type === 'weekly_meal') {
+        const alreadyStored = player.inventory.some(i => i.type === 'weekly_meal');
+        if (alreadyStored) return log(state, 'You already have a week\'s worth of meals ready!');
+        let s = log(state, `Bought ${item.name} — meals auto-eaten at week's end.`);
+        s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item] }));
+        return s;
+      }
+
       // Food storage items (groceries): always buyable; without a fridge they'll spoil at week's end
       if (item.type === 'food_storage') {
         const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
@@ -569,7 +578,17 @@ export const gameReducer = (state, action) => {
           if (interest > 0) playerLog.push(`${np.name}: savings +$${interest}.`);
         }
 
-        // 6. Food storage — consume 1 serving (fridge) or spoil (no fridge → food poisoning)
+        // 6a. Weekly meal plans (Quick Eats) — auto-eaten at week's end, no fridge needed
+        const weeklyMealIdx = np.inventory.findIndex(i => i.type === 'weekly_meal');
+        if (weeklyMealIdx !== -1) {
+          const meal = np.inventory[weeklyMealIdx];
+          np.inventory = np.inventory.filter((_, idx) => idx !== weeklyMealIdx);
+          np.hunger = Math.max(0, np.hunger - (meal.weeklyHungerRestore || 55));
+          if (meal.weeklyHappinessBoost) np.happiness = Math.min(100, np.happiness + meal.weeklyHappinessBoost);
+          playerLog.push(`${np.name}: ate weekly meals (${meal.name}). Hunger down.`);
+        }
+
+        // 6b. Grocery storage — consume 1 serving (fridge) or spoil (no fridge → food poisoning)
         const hasFridge = np.inventory.some(i => i.id === 'refrigerator');
         const hasFreezer = np.inventory.some(i => i.id === 'freezer');
         const hasStorage = hasFridge || hasFreezer;

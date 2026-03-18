@@ -15,14 +15,21 @@
     "effect": "Unlocks Bootcamp; -10hrs per study session"
   },
   {
-    "id": "burger",
-    "name": "Greasy Burger",
-    "cost": 5,
-    "type": "food",
-    "hungerRestore": 40,
-    "happinessBoost": 3,
-    "timeToEat": 1,
-    "effect": "Restores Hunger"
+    "id": "combo_meal",
+    "name": "Weekly Combo Meal",
+    "cost": 60,
+    "type": "weekly_meal",
+    "weeklyHungerRestore": 55,
+    "effect": "1 week of fast food — auto-eaten at week's end, no fridge needed"
+  },
+  {
+    "id": "healthy_plan",
+    "name": "Healthy Meal Plan",
+    "cost": 80,
+    "type": "weekly_meal",
+    "weeklyHungerRestore": 60,
+    "weeklyHappinessBoost": 5,
+    "effect": "1 week of healthy meals — auto-eaten at week's end, +5 Happiness"
   },
   {
     "id": "casual_clothes",

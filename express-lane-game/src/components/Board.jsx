@@ -643,26 +643,38 @@ const WeekSummaryModal = ({ summary, onClose }) => {
 const QuickEatsContent = ({ state, actions }) => {
   const { player, economy } = state;
   const hasPhone = player.inventory.some(i => i.id === 'smartphone');
-  const foodItems = itemsData.filter(i => i.type === 'food');
+  const weeklyMeals = itemsData.filter(i => i.type === 'weekly_meal');
+  const storedMeal = player.inventory.find(i => i.type === 'weekly_meal');
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Fast Food Menu</h3>
-        {foodItems.map(item => {
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Weekly Meal Plans</h3>
+        <p className="text-[10px] text-slate-500 mb-2">Each plan feeds you for the whole week — auto-eaten at week's end. No fridge needed.</p>
+        {storedMeal ? (
+          <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2">
+            ✅ <strong>{storedMeal.name}</strong> ready for this week.
+          </div>
+        ) : null}
+        {weeklyMeals.map(item => {
           const price = adjustedPrice(item.cost, economy);
+          const owned = !!storedMeal;
           return (
             <button
               key={item.id}
               onClick={() => actions.buyItem({ ...item, cost: price })}
-              className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-orange-50 mb-1 text-sm"
+              disabled={owned || player.money < price}
+              className="w-full flex justify-between items-start p-2 bg-white border rounded hover:bg-orange-50 disabled:opacity-50 mb-1 text-sm"
             >
-              <span>🍔 {item.name}</span>
-              <span className="font-mono">${price}</span>
+              <div className="text-left">
+                <div className="font-medium">🍔 {item.name}</div>
+                <div className="text-[10px] text-slate-500">{item.effect}</div>
+              </div>
+              <span className="font-mono text-xs ml-2 shrink-0">${price}/wk</span>
             </button>
           );
         })}
         <div className="mt-2 text-xs text-slate-400">Hunger: {player.hunger}/100</div>
-        <div className="mt-1 text-[10px] text-slate-400 italic">💡 Buy groceries at Fresh Mart to save money on food</div>
+        <div className="mt-1 text-[10px] text-slate-400 italic">💡 Fresh Mart groceries save money — need a fridge from MegaMart</div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Gig Work (4hrs)</h3>
