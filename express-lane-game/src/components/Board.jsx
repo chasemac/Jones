@@ -538,12 +538,11 @@ const EventModal = ({ event, onClose }) => (
 
 // ─── Ring Tips ────────────────────────────────────────────────────────────────
 const RingTips = ({ player, week }) => {
-  const [open, setOpen] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
 
   if (week > 5) return null;
 
   const tips = [];
-
   if (!player.hasChosenHousing) {
     tips.push({ emoji: '🏠', text: 'Go to Leasing Office and pick a place to live first' });
   }
@@ -561,80 +560,90 @@ const RingTips = ({ player, week }) => {
   if (player.money >= 200 && !player.job) {
     tips.push({ emoji: '🏦', text: 'Deposit cash at NeoBank to earn 1% interest per week' });
   }
-
   if (tips.length === 0) return null;
 
-  // Collapsed: small round icon button
-  if (!open) {
-    return (
+  return (
+    <>
+      {/* Expanded panel — floats above icon, anchored right of Jones panel */}
+      {open && (
+        <div className="absolute bottom-40 right-4 bg-amber-50 border-2 border-amber-300 rounded-xl p-3 shadow-xl z-20 w-52">
+          <div className="text-[10px] font-black uppercase text-amber-600 mb-2">💡 What to do next</div>
+          <div className="space-y-2">
+            {tips.slice(0, 3).map((tip, i) => (
+              <div key={i} className="flex gap-1.5 items-start">
+                <span className="text-sm leading-tight">{tip.emoji}</span>
+                <span className="text-[10px] text-slate-600 leading-tight">{tip.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Icon button */}
       <button
-        onClick={() => setOpen(true)}
-        className="absolute left-[30%] top-[53%] w-10 h-10 bg-amber-400 hover:bg-amber-300 border-2 border-amber-500 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors hidden md:flex"
-        title="Show hints"
+        onClick={() => setOpen(o => !o)}
+        className={`absolute bottom-28 right-16 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/80 border-amber-500 hover:bg-amber-300'}`}
+        title="Hints"
       >
         <span className="text-lg leading-none">💡</span>
+        {!open && tips.length > 0 && (
+          <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+            {tips.length}
+          </span>
+        )}
       </button>
-    );
-  }
-
-  // Expanded: full tips card
-  return (
-    <div className="absolute left-[30%] top-[53%] bg-amber-50 border-2 border-amber-300 rounded-xl p-3 shadow-lg z-10 w-48 hidden md:block">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[10px] font-black uppercase text-amber-600">💡 What to do next</div>
-        <button
-          onClick={() => setOpen(false)}
-          className="w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-700 flex items-center justify-center text-[10px] font-black leading-none transition-colors"
-          title="Dismiss hints"
-        >✕</button>
-      </div>
-      <div className="space-y-2">
-        {tips.slice(0, 3).map((tip, i) => (
-          <div key={i} className="flex gap-1.5 items-start">
-            <span className="text-sm leading-tight">{tip.emoji}</span>
-            <span className="text-[10px] text-slate-600 leading-tight">{tip.text}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    </>
   );
 };
 
 // ─── Jones sidebar ────────────────────────────────────────────────────────────
 const JonesSidebar = ({ jones, difficulty, player }) => {
-  const goals = DIFFICULTY_PRESETS[difficulty].goals;
+  const [open, setOpen] = React.useState(false);
   const playerNetWorth = calculateNetWorth(player);
+
   return (
-    <div className="absolute left-[28%] top-[28%] bg-white/90 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-10 w-44 hidden md:block">
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
-        <div className="text-2xl">🤑</div>
-        <div>
-          <div className="text-[10px] font-bold uppercase text-slate-500">The Joneses</div>
-          <div className="text-xs font-bold">{jones.jobTitle}</div>
+    <>
+      {/* Expanded panel — floats above icon, left of tips panel */}
+      {open && (
+        <div className="absolute bottom-40 right-[14rem] bg-white/95 backdrop-blur border-2 border-red-300 rounded-xl p-3 shadow-xl z-20 w-52">
+          <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
+            <div className="text-2xl">🤑</div>
+            <div>
+              <div className="text-[10px] font-bold uppercase text-slate-500">The Joneses</div>
+              <div className="text-xs font-bold">{jones.jobTitle}</div>
+            </div>
+          </div>
+          <div className="space-y-1 text-[10px]">
+            <div className="flex justify-between">
+              <span className="text-slate-500">💰 Net Worth</span>
+              <span className={`font-mono font-bold ${playerNetWorth >= jones.netWorth ? 'text-green-600' : 'text-red-500'}`}>${jones.netWorth.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">😊 Happiness</span>
+              <span className={`font-mono font-bold ${player.happiness >= jones.happiness ? 'text-green-600' : 'text-red-500'}`}>{jones.happiness}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">🎓 Education</span>
+              <span className="font-mono font-bold text-slate-600">{jones.education}</span>
+            </div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-slate-200">
+            <div className="text-[9px] font-bold uppercase text-slate-400 mb-1">You vs Jones</div>
+            <div className="text-[9px] space-y-0.5">
+              <div>{playerNetWorth >= jones.netWorth ? '✅' : '❌'} Wealth: {playerNetWorth >= jones.netWorth ? 'Ahead!' : `$${(jones.netWorth - playerNetWorth).toFixed(0)} behind`}</div>
+              <div>{player.happiness >= jones.happiness ? '✅' : '❌'} Happiness: {player.happiness >= jones.happiness ? 'Ahead!' : `${jones.happiness - player.happiness} pts behind`}</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="space-y-1 text-[10px]">
-        <div className="flex justify-between">
-          <span className="text-slate-500">💰 Net Worth</span>
-          <span className={`font-mono font-bold ${playerNetWorth >= jones.netWorth ? 'text-green-600' : 'text-red-500'}`}>${jones.netWorth.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">😊 Happiness</span>
-          <span className={`font-mono font-bold ${player.happiness >= jones.happiness ? 'text-green-600' : 'text-red-500'}`}>{jones.happiness}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">🎓 Education</span>
-          <span className="font-mono font-bold text-slate-600">{jones.education}</span>
-        </div>
-      </div>
-      <div className="mt-2 pt-2 border-t border-slate-200">
-        <div className="text-[9px] font-bold uppercase text-slate-400 mb-1">You vs Jones</div>
-        <div className="text-[9px] space-y-0.5">
-          <div>{playerNetWorth >= jones.netWorth ? '✅' : '❌'} Wealth: {playerNetWorth >= jones.netWorth ? 'Ahead!' : `$${(jones.netWorth - playerNetWorth).toFixed(0)} behind`}</div>
-          <div>{player.happiness >= jones.happiness ? '✅' : '❌'} Happiness: {player.happiness >= jones.happiness ? 'Ahead!' : `${jones.happiness - player.happiness} pts behind`}</div>
-        </div>
-      </div>
-    </div>
+      )}
+      {/* Icon button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`absolute bottom-28 right-28 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
+        title="The Joneses"
+      >
+        <span className="text-lg leading-none">🤑</span>
+      </button>
+    </>
   );
 };
 
@@ -1721,11 +1730,6 @@ const Board = () => {
           );
         })}
 
-        {/* Jones sidebar — floats in ring interior, no building at this position */}
-        <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
-
-        {/* Contextual tips — early-game only, ring interior lower half */}
-        <RingTips player={state.player} week={state.week} />
       </div>
 
       {/* Multiplayer turn banner */}
@@ -1739,7 +1743,9 @@ const Board = () => {
         </div>
       )}
 
-      {/* Notification feed */}
+      {/* Jones + Tips + Bell — icon row bottom-right */}
+      <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
+      <RingTips player={state.player} week={state.week} />
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
       {/* Location panel */}
