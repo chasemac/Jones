@@ -538,6 +538,8 @@ const EventModal = ({ event, onClose }) => (
 
 // ─── Ring Tips ────────────────────────────────────────────────────────────────
 const RingTips = ({ player, week }) => {
+  const [open, setOpen] = React.useState(true);
+
   if (week > 5) return null;
 
   const tips = [];
@@ -562,9 +564,30 @@ const RingTips = ({ player, week }) => {
 
   if (tips.length === 0) return null;
 
+  // Collapsed: small round icon button
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="absolute left-[30%] top-[53%] w-10 h-10 bg-amber-400 hover:bg-amber-300 border-2 border-amber-500 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors hidden md:flex"
+        title="Show hints"
+      >
+        <span className="text-lg leading-none">💡</span>
+      </button>
+    );
+  }
+
+  // Expanded: full tips card
   return (
     <div className="absolute left-[30%] top-[53%] bg-amber-50 border-2 border-amber-300 rounded-xl p-3 shadow-lg z-10 w-48 hidden md:block">
-      <div className="text-[10px] font-black uppercase text-amber-600 mb-2">💡 What to do next</div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-black uppercase text-amber-600">💡 What to do next</div>
+        <button
+          onClick={() => setOpen(false)}
+          className="w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 text-amber-700 flex items-center justify-center text-[10px] font-black leading-none transition-colors"
+          title="Dismiss hints"
+        >✕</button>
+      </div>
       <div className="space-y-2">
         {tips.slice(0, 3).map((tip, i) => (
           <div key={i} className="flex gap-1.5 items-start">
