@@ -574,6 +574,38 @@ const InventoryModal = ({ inventory, onClose }) => {
   );
 };
 
+// ─── Hunger warning modal ────────────────────────────────────────────────────
+const HungerWarningModal = ({ warning, onClose }) => {
+  const { hunger, penalty } = warning;
+  const severity = hunger >= 80 ? 'starving' : hunger >= 50 ? 'very hungry' : 'hungry';
+  const emoji = hunger >= 80 ? '😵' : hunger >= 50 ? '😫' : '😟';
+  const bgColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className={`bg-white border-4 ${bgColor} rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4`}>
+        <div className="text-center text-5xl mb-3">{emoji}</div>
+        <h3 className="text-xl font-black text-center text-slate-800 mb-1">You Went Hungry!</h3>
+        <p className="text-slate-600 text-center text-sm mb-4">
+          You didn't buy any food last week. You're {severity} ({hunger}/100 hunger).
+        </p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-4">
+          <div className="text-2xl font-black text-red-600">-{penalty} hours</div>
+          <div className="text-xs text-red-400">deducted from this week's time</div>
+        </div>
+        <p className="text-[11px] text-slate-400 text-center mb-4">
+          Visit Quick Eats or Coffee Shop to buy a weekly food plan before ending your next week!
+        </p>
+        <button
+          onClick={onClose}
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition text-sm"
+        >
+          Got it — I'll eat next week 🍔
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ─── Event modal ──────────────────────────────────────────────────────────────
 const EventModal = ({ event, onClose }) => (
   <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -1709,7 +1741,7 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, dismissWeekSummary, toggleMute } = useGame();
+  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute } = useGame();
 
   const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, toggleMute };
 
@@ -2048,6 +2080,12 @@ const Board = () => {
       )}
       {state.weekSummary && !state.pendingEvent && (
         <WeekSummaryModal summary={state.weekSummary} onClose={dismissWeekSummary} />
+      )}
+      {!state.weekSummary && !state.pendingEvent && state.players?.some(p => p.hungerWarning) && (
+        <HungerWarningModal
+          warning={state.players.find(p => p.hungerWarning).hungerWarning}
+          onClose={dismissHungerWarning}
+        />
       )}
       {state.pendingEvent && (
         <EventModal event={state.pendingEvent} onClose={dismissEvent} />

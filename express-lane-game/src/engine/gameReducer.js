@@ -608,12 +608,14 @@ export const gameReducer = (state, action) => {
 
         // 6a. Weekly meal plans (Quick Eats) — auto-eaten at week's end, no fridge needed
         const weeklyMealIdx = np.inventory.findIndex(i => i.type === 'weekly_meal');
+        let ateThisWeek = false;
         if (weeklyMealIdx !== -1) {
           const meal = np.inventory[weeklyMealIdx];
           np.inventory = np.inventory.filter((_, idx) => idx !== weeklyMealIdx);
           np.hunger = Math.max(0, np.hunger - (meal.weeklyHungerRestore || 55));
           if (meal.weeklyHappinessBoost) np.happiness = Math.min(100, np.happiness + meal.weeklyHappinessBoost);
           playerLog.push(`${np.name}: ate weekly meals (${meal.name}). Hunger down.`);
+          ateThisWeek = true;
         }
 
         // 6ab. Weekly coffee plans (Coffee Shop) — auto-applied at week's end
@@ -624,6 +626,7 @@ export const gameReducer = (state, action) => {
           np.hunger = Math.max(0, np.hunger - (coffee.weeklyHungerRestore || 12));
           if (coffee.weeklyHappinessBoost) np.happiness = Math.min(100, np.happiness + coffee.weeklyHappinessBoost);
           playerLog.push(`${np.name}: weekly coffee fix (${coffee.name}). +Happiness.`);
+          ateThisWeek = true;
         }
 
         // 6b. Grocery storage — consume 1 serving (fridge) or spoil (no fridge → food poisoning)
@@ -637,23 +640,35 @@ export const gameReducer = (state, action) => {
             np.inventory = np.inventory.filter((_, idx) => idx !== groceryIdx);
             np.hunger = Math.max(0, np.hunger - 60);
             playerLog.push(`${np.name}: ate from fridge. Hunger down.`);
+            ateThisWeek = true;
           } else {
             // No fridge — all groceries spoil, food poisoning kicks in next week
             np.inventory = np.inventory.filter(i => i.id !== 'groceries');
-            np.hunger = 100; // triggers the existing -20hr starvation penalty in step 7
+            np.hunger = 100;
             playerLog.push(`${np.name}: groceries spoiled (no fridge)! Food poisoning — sick next week.`);
           }
         }
 
-        // 7. Hunger → time penalty (authentic: flat -20h if starving)
-        const hungryPenalty = np.hunger >= 80 ? 20 : 0;
+        // 7. Hunger → time penalty (graduated by hunger level; always shown if player didn't eat)
+        // Clear previous hunger warning
+        np.hungerWarning = null;
+        let hungryPenalty = 0;
+        if (!ateThisWeek && np.hunger > 0) {
+          // Progressive penalty based on accumulated hunger
+          if (np.hunger >= 80)      hungryPenalty = 20;
+          else if (np.hunger >= 50) hungryPenalty = 10;
+          else                      hungryPenalty = 5;
+          np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, playerName: np.name };
+          playerLog.push(`${np.name}: went hungry (no food bought)! -${hungryPenalty}h next week.`);
+        } else if (np.hunger >= 80) {
+          // Even with food, if hunger is still >=80 (e.g. groceries spoiled), apply starvation penalty
+          hungryPenalty = 20;
+          playerLog.push(`${np.name}: starving despite eating! -20h next week.`);
+        }
         const reduction = (np.maxTimeReduction || 0) + hungryPenalty;
         np.maxTime = Math.max(20, BASE_MAX_TIME - reduction);
         // Reset maxTimeReduction after applying it so doctor visits don't stack permanently
         np.maxTimeReduction = 0;
-        if (np.hunger >= 80) {
-          playerLog.push(`${np.name}: starving! -20h next week.`);
-        }
 
         // 7. Reset time, home, done flag
         np.timeRemaining = np.maxTime;
@@ -812,6 +827,12 @@ export const gameReducer = (state, action) => {
     // ── Dismiss event modal ───────────────────────────────────────────────────
     case 'DISMISS_EVENT': {
       return { ...state, pendingEvent: null };
+    }
+
+    // ── Dismiss hunger warning dialog ────────────────────────────────────────
+    case 'DISMISS_HUNGER_WARNING': {
+      const cleared = state.players.map(p => ({ ...p, hungerWarning: null }));
+      return { ...state, players: cleared };
     }
 
     // ── Dismiss week summary modal ────────────────────────────────────────────
