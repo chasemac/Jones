@@ -294,7 +294,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
       {/* Time bar + stats */}
       <div className="flex-grow flex flex-col gap-0.5 min-w-0">
         <div className="flex justify-between text-[9px] text-slate-400 uppercase font-bold">
-          <span>Time</span>
+          <span className="hidden sm:inline">Time</span>
           <span>{player.timeRemaining}h / {player.maxTime}h</span>
         </div>
         <div className="h-3 bg-slate-800 rounded-full border border-slate-600 overflow-hidden">
@@ -1112,33 +1112,54 @@ const LibraryContent = ({ state, actions, setNotification }) => {
 const TrendSettersContent = ({ state, actions }) => {
   const { player, economy } = state;
   const clothing = itemsData.filter(i => i.type === 'clothing');
+  const ownedClothing = clothing.filter(c => player.inventory.find(i => i.id === c.id));
+  const wornItems = ownedClothing.map(c => ({ ...c, ...player.inventory.find(i => i.id === c.id) }));
+  const hasWornClothing = wornItems.some(c => c.clothingWear !== undefined && c.clothingWear < 60);
+
   return (
     <div className="grid grid-cols-2 gap-4">
-      <div className="flex flex-col items-center justify-center bg-pink-50 rounded-lg p-4">
-        <div className="text-7xl mb-2">👗</div>
-        <div className="text-xs font-bold text-pink-800 text-center">Dress for success</div>
-        <div className="text-[10px] text-pink-600 mt-1">Clothes wear out over time!</div>
-      </div>
+      {/* Left: current wardrobe status */}
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Clothing</h3>
+        <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">👗 Clothing</h3>
         {clothing.map(item => {
           const owned = player.inventory.find(i => i.id === item.id);
           const price = adjustedPrice(item.cost, economy);
+          const wear = owned?.clothingWear;
           return (
             <button
               key={item.id}
               onClick={() => actions.buyItem({ ...item, cost: price })}
-              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 text-sm"
+              className={`w-full text-left p-2.5 border rounded-lg mb-1.5 text-xs transition hover:scale-[1.01] active:scale-[0.99]
+                ${owned ? (wear < 30 ? 'bg-red-50 border-red-300' : wear < 60 ? 'bg-amber-50 border-amber-300' : 'bg-green-50 border-green-200') : 'bg-white border-slate-200 hover:border-pink-400'}`}
             >
-              <div className="text-left">
-                <div>{item.name}</div>
-                {owned && <div className="text-[9px] text-slate-400">Durability: {owned.clothingWear}%</div>}
+              <div className="flex justify-between items-start mb-1">
+                <span className="font-bold">{item.name}</span>
+                <span className="font-mono font-bold text-slate-700">${price}</span>
               </div>
-              <span className="font-mono text-xs">{owned ? `🔄 $${price}` : `$${price}`}</span>
+              {owned && wear !== undefined ? (
+                <div>
+                  <div className="flex justify-between text-[9px] mb-0.5">
+                    <span className={wear < 30 ? 'text-red-600 font-bold' : wear < 60 ? 'text-amber-600' : 'text-green-600'}>
+                      {wear < 30 ? '⚠️ Needs replacing!' : wear < 60 ? 'Getting worn' : 'Good condition'}
+                    </span>
+                    <span className="text-slate-400">{wear}%</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${wear < 30 ? 'bg-red-500' : wear < 60 ? 'bg-amber-400' : 'bg-green-500'}`}
+                      style={{ width: `${wear}%` }} />
+                  </div>
+                  <div className="text-[9px] text-pink-600 mt-1 font-bold">🔄 Replace — ${price}</div>
+                </div>
+              ) : (
+                <div className="text-[9px] text-slate-400">{item.effect}</div>
+              )}
             </button>
           );
         })}
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">Vehicles</h3>
+      </div>
+      {/* Right: vehicles + style tip */}
+      <div>
+        <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">🚗 Vehicles</h3>
         {itemsData.filter(i => i.type === 'vehicle').map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
           const hasVehicle = player.inventory.some(i => i.type === 'vehicle');
@@ -1148,16 +1169,24 @@ const TrendSettersContent = ({ state, actions }) => {
               key={item.id}
               onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
               disabled={owned}
-              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-pink-50 disabled:opacity-60 text-sm"
+              className="w-full text-left p-2.5 border rounded-lg mb-1.5 text-xs transition hover:border-pink-400 hover:bg-pink-50 disabled:opacity-60"
             >
-              <div className="text-left">
-                <div>{item.name} {hasVehicle && !owned ? '(upgrade)' : ''}</div>
-                <div className="text-[9px] text-slate-400">{item.effect}</div>
+              <div className="flex justify-between items-start mb-0.5">
+                <span className="font-bold">{item.name} {hasVehicle && !owned ? <span className="text-amber-600 font-normal">(upgrade)</span> : ''}</span>
+                <span className="font-mono font-bold">{owned ? '✅' : `$${price}`}</span>
               </div>
-              <span className="font-mono text-xs">{owned ? '✅' : `$${price}`}</span>
+              <div className="text-[9px] text-slate-400">{item.effect}</div>
             </button>
           );
         })}
+        <div className="mt-3 bg-pink-50 rounded-xl p-3 border border-pink-200">
+          <div className="text-xs font-bold text-pink-800 mb-1">💡 Style Tips</div>
+          <div className="text-[10px] text-pink-700 space-y-1">
+            <div>• Some jobs require specific attire</div>
+            <div>• Clothes wear out — check durability</div>
+            <div>• Replace before it hits 0%!</div>
+          </div>
+        </div>
       </div>
     </div>
   );
