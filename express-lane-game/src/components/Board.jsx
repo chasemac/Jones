@@ -62,34 +62,34 @@ const getNextPromotion = (player) => {
 
 // ─── Location config: label, emoji, board position (% from top-left) ─────────
 const LOCATIONS_CONFIG = {
-  leasing_office:  { emoji: '🏢', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 10 } },
-  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 10 } },
-  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 10 } },
+  leasing_office:  { emoji: '🏢', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 8  } },
+  quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 8  } },
+  public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 8  } },
   trendsetters:    { emoji: '👕', label: 'TrendSetters',  color: '#db2777', pos: { x: 88, y: 20 } },
   coffee_shop:     { emoji: '☕', label: 'Coffee Shop',   color: '#78350f', pos: { x: 88, y: 50 } },
-  megamart:        { emoji: '🏪', label: 'MegaMart',      color: '#dc2626', pos: { x: 75, y: 72 } },
-  blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 60, y: 80 } },
-  grocery_store:   { emoji: '🛒', label: 'Fresh Mart',    color: '#16a34a', pos: { x: 44, y: 80 } },
-  city_college:    { emoji: '🎓', label: 'City College',  color: '#2563eb', pos: { x: 28, y: 80 } },
-  tech_store:      { emoji: '📱', label: 'Tech Store',    color: '#475569', pos: { x: 5,  y: 80 } },
-  neobank:         { emoji: '🏦', label: 'NeoBank',       color: '#4f46e5', pos: { x: 5,  y: 45 } },
+  megamart:        { emoji: '🏪', label: 'MegaMart',      color: '#dc2626', pos: { x: 75, y: 74 } },
+  blacks_market:   { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 60, y: 85 } },
+  grocery_store:   { emoji: '🛒', label: 'Fresh Mart',    color: '#16a34a', pos: { x: 44, y: 85 } },
+  city_college:    { emoji: '🎓', label: 'City College',  color: '#2563eb', pos: { x: 28, y: 85 } },
+  tech_store:      { emoji: '📱', label: 'Tech Store',    color: '#475569', pos: { x: 5,  y: 85 } },
+  neobank:         { emoji: '🏦', label: 'NeoBank',       color: '#4f46e5', pos: { x: 5,  y: 47 } },
 };
 
 // ─── Map background SVG ───────────────────────────────────────────────────────
 // viewBox="0 0 100 100" maps coordinates 1:1 with % positions so building
-// coords (e.g. x:5, y:10) match exactly. Path data only accepts numeric units,
+// coords (e.g. x:5, y:8) match exactly. Path data only accepts numeric units,
 // not "5%" strings, so the viewBox is required for % equivalence.
 // Ring road traces all 11 building positions in LOCATION_ORDER (Monopoly-style).
-// megamart sits at (75,72) on the bottom-right diagonal; bottom row buildings spread evenly.
-const RING_PATH = "M 5 10 L 38 10 L 72 10 L 88 20 L 88 50 L 75 72 L 60 80 L 44 80 L 28 80 L 5 80 Z";
+// megamart sits at (75,74) on the bottom-right diagonal; bottom row buildings spread evenly.
+const RING_PATH = "M 5 8 L 38 8 L 72 8 L 88 20 L 88 50 L 75 74 L 60 85 L 44 85 L 28 85 L 5 85 Z";
 
 const MapBackground = () => (
   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 100 100" preserveAspectRatio="none">
     {/* Green interior park fill — inset from the ring */}
-    <path d="M 12 14 L 38 14 L 72 14 L 83 22 L 83 48 L 71 70 L 57 76 L 42 76 L 26 76 L 12 76 Z"
+    <path d="M 12 12 L 38 12 L 72 12 L 83 22 L 83 48 L 71 72 L 57 81 L 42 81 L 26 81 L 12 81 Z"
       fill="#dcfce7" stroke="none" />
-    <ellipse cx="48" cy="44" rx="14" ry="10" fill="#bbf7d0" opacity="0.6" />
+    <ellipse cx="48" cy="46" rx="14" ry="11" fill="#bbf7d0" opacity="0.6" />
 
     {/* Ring road — asphalt base (5 units = 5% of width) */}
     <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5" strokeLinejoin="round" />
@@ -100,12 +100,12 @@ const MapBackground = () => (
       strokeDasharray="3 2" opacity="0.8" />
 
     {/* Decorative trees & houses in park interior */}
-    <text x="38" y="40" fontSize="5" textAnchor="middle">🌳</text>
-    <text x="54" y="48" fontSize="5" textAnchor="middle">🌲</text>
-    <text x="42" y="58" fontSize="4" textAnchor="middle">🌳</text>
+    <text x="38" y="41" fontSize="5" textAnchor="middle">🌳</text>
+    <text x="54" y="50" fontSize="5" textAnchor="middle">🌲</text>
+    <text x="42" y="62" fontSize="4" textAnchor="middle">🌳</text>
     <text x="60" y="36" fontSize="3.5" textAnchor="middle">🌲</text>
-    <text x="30" y="52" fontSize="3" textAnchor="middle">🏠</text>
-    <text x="62" y="62" fontSize="3" textAnchor="middle">🏠</text>
+    <text x="30" y="54" fontSize="3" textAnchor="middle">🏠</text>
+    <text x="62" y="66" fontSize="3" textAnchor="middle">🏠</text>
   </svg>
 );
 
