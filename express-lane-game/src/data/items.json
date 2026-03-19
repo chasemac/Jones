@@ -15,6 +15,24 @@
     "effect": "Unlocks Bootcamp; -10hrs per study session"
   },
   {
+    "id": "drip_coffee_plan",
+    "name": "Weekly Drip Coffee",
+    "cost": 25,
+    "type": "weekly_coffee",
+    "weeklyHungerRestore": 12,
+    "weeklyHappinessBoost": 8,
+    "effect": "Coffee all week — +8 Happiness, -12 Hunger at week's end"
+  },
+  {
+    "id": "espresso_plan",
+    "name": "Weekly Espresso Pass",
+    "cost": 45,
+    "type": "weekly_coffee",
+    "weeklyHungerRestore": 20,
+    "weeklyHappinessBoost": 15,
+    "effect": "Fancy espresso all week — +15 Happiness, -20 Hunger at week's end"
+  },
+  {
     "id": "combo_meal",
     "name": "Weekly Combo Meal",
     "cost": 60,

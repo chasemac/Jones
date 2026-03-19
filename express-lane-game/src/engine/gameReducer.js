@@ -73,6 +73,7 @@ export const buildInitialState = (difficulty = 'normal', playerCount = 1) => {
     history: [],
     market,
     pendingEvent: null,
+    weekStartSnapshot: null, // populated at start of each week for net-worth delta calculation
   };
 };
 
@@ -130,11 +131,13 @@ export const gameReducer = (state, action) => {
 
     // ── Game lifecycle ────────────────────────────────────────────────────────
     case 'INIT_GAME': {
-      return buildInitialState(action.difficulty, action.playerCount || 1);
+      const s = buildInitialState(action.difficulty, action.playerCount || 1);
+      return { ...s, weekStartSnapshot: s.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt })) };
     }
 
     case 'START_GAME': {
-      return { ...state, gameStatus: 'playing' };
+      // Snapshot player state at week start for accurate weekly net-worth delta
+      return { ...state, gameStatus: 'playing', weekStartSnapshot: state.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt })) };
     }
 
     // ── Travel ────────────────────────────────────────────────────────────────
@@ -269,6 +272,15 @@ export const gameReducer = (state, action) => {
           timeRemaining: Math.max(0, p.timeRemaining - (item.timeToEat || 1)),
         }));
         return autoEndIfNeeded(s);
+      }
+
+      // Weekly coffee plans (Coffee Shop): no fridge needed, max 1 week stored at a time
+      if (item.type === 'weekly_coffee') {
+        const alreadyStored = player.inventory.some(i => i.type === 'weekly_coffee');
+        if (alreadyStored) return log(state, 'You already have a weekly coffee plan!');
+        let s = log(state, `Bought ${item.name} — auto-applied at week's end.`);
+        s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item] }));
+        return s;
       }
 
       // Weekly meal plans (Quick Eats): no fridge needed, no spoilage, max 1 week stored at a time
@@ -604,6 +616,16 @@ export const gameReducer = (state, action) => {
           playerLog.push(`${np.name}: ate weekly meals (${meal.name}). Hunger down.`);
         }
 
+        // 6ab. Weekly coffee plans (Coffee Shop) — auto-applied at week's end
+        const weeklyCoffeeIdx = np.inventory.findIndex(i => i.type === 'weekly_coffee');
+        if (weeklyCoffeeIdx !== -1) {
+          const coffee = np.inventory[weeklyCoffeeIdx];
+          np.inventory = np.inventory.filter((_, idx) => idx !== weeklyCoffeeIdx);
+          np.hunger = Math.max(0, np.hunger - (coffee.weeklyHungerRestore || 12));
+          if (coffee.weeklyHappinessBoost) np.happiness = Math.min(100, np.happiness + coffee.weeklyHappinessBoost);
+          playerLog.push(`${np.name}: weekly coffee fix (${coffee.name}). +Happiness.`);
+        }
+
         // 6b. Grocery storage — consume 1 serving (fridge) or spoil (no fridge → food poisoning)
         const hasFridge = np.inventory.some(i => i.id === 'refrigerator');
         const hasFreezer = np.inventory.some(i => i.id === 'freezer');
@@ -665,10 +687,20 @@ export const gameReducer = (state, action) => {
       // 10. Random event (applies to first/active player for simplicity)
       let pendingEvent = null;
       if (Math.random() < 0.4) {
-        const event = eventsData[Math.floor(Math.random() * eventsData.length)];
         const ep = updatedPlayers[Math.floor(Math.random() * updatedPlayers.length)];
-        const skipEvent = (event.id === 'bonus' || event.id === 'overtime') && !ep.job;
-        if (!skipEvent) {
+        const hasCar = ep.inventory.some(i => i.id === 'car');
+        const hasPaidHousing = ep.housing && ep.housing.rent > 0;
+        const hasSavings = ep.savings > 0;
+        // Filter events to only those that make sense for the player's current situation
+        const eligibleEvents = eventsData.filter(ev => {
+          if ((ev.id === 'bonus' || ev.id === 'overtime' || ev.id === 'layoff') && !ep.job) return false;
+          if (ev.id === 'car_repair' && !hasCar) return false;
+          if ((ev.id === 'rent_hike' || ev.id === 'housing_inspection') && !hasPaidHousing) return false;
+          if ((ev.id === 'tech_boom' || ev.id === 'market_crash') && !hasSavings) return false;
+          return true;
+        });
+        const event = eligibleEvents[Math.floor(Math.random() * eligibleEvents.length)];
+        if (event) {
           let effectDesc = '';
           switch (event.effect.type) {
             case 'money':
@@ -739,10 +771,11 @@ export const gameReducer = (state, action) => {
       };
 
       // Build a summary of this week's end-of-week results
+      // Use weekStartSnapshot (captured at week start) so the delta reflects the full week, not just endWeek processing
       const wkSummary = {
         week: s.week,
         lines: updatedPlayers.map(p => {
-          const old = s.players.find(op => op.name === p.name);
+          const old = (s.weekStartSnapshot || []).find(op => op.name === p.name) || s.players.find(op => op.name === p.name);
           const oldNetWorth = (old?.money ?? 0) + (old?.savings ?? 0) - (old?.debt ?? 0);
           const newNetWorth = p.money + p.savings - p.debt;
           const nwDiff = newNetWorth - oldNetWorth;
@@ -783,7 +816,9 @@ export const gameReducer = (state, action) => {
 
     // ── Dismiss week summary modal ────────────────────────────────────────────
     case 'DISMISS_WEEK_SUMMARY': {
-      return { ...state, weekSummary: null };
+      // Snapshot current player state as the new week's baseline for net-worth delta
+      const snapshot = state.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt }));
+      return { ...state, weekSummary: null, weekStartSnapshot: snapshot };
     }
 
     default:

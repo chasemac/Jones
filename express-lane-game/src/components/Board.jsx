@@ -886,7 +886,7 @@ const QuickEatsContent = ({ state, actions }) => {
 
 const LibraryContent = ({ state, actions, setNotification }) => {
   const { player } = state;
-  const availableJobs = jobsData.filter(j => j.id !== 'gig_driver');
+  const availableJobs = jobsData.filter(j => j.id !== 'gig_driver').sort((a, b) => a.wage - b.wage);
   const isCorpEmployee = player.job?.type === 'corporate';
   const isTradeEmployee = player.job?.type === 'trade';
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
@@ -1191,28 +1191,57 @@ const CoffeeShopContent = ({ state, actions }) => {
   const isServiceEmployee = player.job?.type === 'service';
   const espressoPrice = adjustedPrice(5, economy);
   const pastryPrice = adjustedPrice(8, economy);
-  const foodItems = itemsData.filter(i => i.type === 'food');
+  const coffeeWeeklyPlans = itemsData.filter(i => i.type === 'weekly_coffee');
+  const storedCoffee = player.inventory.find(i => i.type === 'weekly_coffee');
   return (
     <div className="grid grid-cols-2 gap-4">
+      {/* Left: Weekly Plans + Quick Bites */}
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Menu</h3>
-        <button
-          onClick={() => actions.buyItem({ id: 'espresso', name: 'Espresso', cost: espressoPrice, type: 'food', hungerRestore: 10, happinessBoost: 8, timeToEat: 0.5 })}
-          disabled={player.money < espressoPrice}
-          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 mb-1 text-sm"
-        >
-          <span>☕ Espresso</span>
-          <span className="font-mono">${espressoPrice}</span>
-        </button>
-        <button
-          onClick={() => actions.buyItem({ id: 'pastry', name: 'Croissant', cost: pastryPrice, type: 'food', hungerRestore: 20, happinessBoost: 6, timeToEat: 0.5 })}
-          disabled={player.money < pastryPrice}
-          className="w-full flex justify-between items-center p-2 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 text-sm"
-        >
-          <span>🥐 Croissant</span>
-          <span className="font-mono">${pastryPrice}</span>
-        </button>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">☕ Weekly Plans</h3>
+        <p className="text-[10px] text-slate-500 mb-2">Covers your coffee for the whole week — auto-applied at week's end.</p>
+        {storedCoffee && (
+          <div className="p-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-800 mb-2">
+            ✅ <strong>{storedCoffee.name}</strong> ready for this week.
+          </div>
+        )}
+        {coffeeWeeklyPlans.map(item => {
+          const price = adjustedPrice(item.cost, economy);
+          return (
+            <button
+              key={item.id}
+              onClick={() => actions.buyItem({ ...item, cost: price })}
+              disabled={!!storedCoffee || player.money < price}
+              className="w-full flex justify-between items-start p-2 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 mb-1 text-sm"
+            >
+              <div className="text-left">
+                <div className="font-medium">☕ {item.name}</div>
+                <div className="text-[10px] text-slate-500">{item.effect}</div>
+              </div>
+              <span className="font-mono text-xs ml-2 shrink-0">${price}/wk</span>
+            </button>
+          );
+        })}
+        <div className="mt-3 border-t border-slate-200 pt-2">
+          <h3 className="font-bold text-xs text-slate-600 mb-1">Quick Bites</h3>
+          <button
+            onClick={() => actions.buyItem({ id: 'espresso', name: 'Espresso', cost: espressoPrice, type: 'food', hungerRestore: 10, happinessBoost: 8, timeToEat: 0.5 })}
+            disabled={player.money < espressoPrice}
+            className="w-full flex justify-between items-center p-1.5 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 mb-1 text-xs"
+          >
+            <span>☕ Espresso <span className="text-slate-400">(+8😊 now)</span></span>
+            <span className="font-mono">${espressoPrice}</span>
+          </button>
+          <button
+            onClick={() => actions.buyItem({ id: 'pastry', name: 'Croissant', cost: pastryPrice, type: 'food', hungerRestore: 20, happinessBoost: 6, timeToEat: 0.5 })}
+            disabled={player.money < pastryPrice}
+            className="w-full flex justify-between items-center p-1.5 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 text-xs"
+          >
+            <span>🥐 Croissant <span className="text-slate-400">(-20🍽️ now)</span></span>
+            <span className="font-mono">${pastryPrice}</span>
+          </button>
+        </div>
       </div>
+      {/* Right: Work / Staff */}
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only</h3>
         {isServiceEmployee ? (
@@ -1225,7 +1254,6 @@ const CoffeeShopContent = ({ state, actions }) => {
               <div className="font-bold">Work Shift (8h)</div>
               <div className="text-xs text-amber-800">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
-            {/* Promotion check */}
             {(() => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
@@ -1605,7 +1633,7 @@ const LeasingOfficeContent = ({ state, actions }) => {
           <ul className="text-xs text-indigo-700 space-y-1 list-disc list-inside mb-2">
             <li>📚 <strong>Library</strong> — get your first job</li>
             <li>🍔 <strong>Quick Eats</strong> — buy weekly meals so you don't starve</li>
-            <li>☕ <strong>Coffee Shop</strong> — work shifts to earn money</li>
+            <li>☕ <strong>Coffee Shop</strong> — buy weekly coffee plans &amp; work shifts</li>
             <li>🏦 <strong>NeoBank</strong> — save your money at 1%/week</li>
           </ul>
           <div className="text-[10px] text-indigo-500">Hunger grows +25/week. Hit 80 and you lose 20hrs next week!</div>
