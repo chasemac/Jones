@@ -911,7 +911,7 @@ const QuickEatsContent = ({ state, actions }) => {
   const weeklyMeals = itemsData.filter(i => i.type === 'weekly_meal');
   const storedMeal = player.inventory.find(i => i.type === 'weekly_meal');
   return (
-    <div className="grid grid-cols-2 gap-4 h-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       <div>
         <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">🍔 Weekly Meal Plans</h3>
         {storedMeal ? (
@@ -1009,7 +1009,7 @@ const LibraryContent = ({ state, actions, setNotification }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 h-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       <div className="flex flex-col">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📋 Job Board</h3>
         <div className="flex-grow overflow-y-auto space-y-1">
@@ -1160,7 +1160,7 @@ const TrendSettersContent = ({ state, actions }) => {
   const hasWornClothing = wornItems.some(c => c.clothingWear !== undefined && c.clothingWear < 60);
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       {/* Left: current wardrobe status */}
       <div>
         <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">👗 Clothing</h3>
@@ -1254,7 +1254,7 @@ const GroceryStoreContent = ({ state, actions }) => {
     : [1]; // no fridge: can only hold 1 at a time anyway
 
   return (
-    <div className="grid grid-cols-2 gap-4 h-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       <div className="flex flex-col items-center justify-center bg-green-50 rounded-lg p-4">
         <div className="text-7xl mb-2">🛒</div>
         <div className="text-xs font-bold text-green-800 text-center">Fresh Mart</div>
@@ -1317,7 +1317,7 @@ const MegaMartContent = ({ state, actions }) => {
   const hasStorage = hasFridge || hasFreezer;
 
   return (
-    <div className="grid grid-cols-2 gap-4 h-full">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       {/* Left: Home status dashboard */}
       <div className="space-y-2">
         <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏠 Your Home Setup</h3>
@@ -1389,7 +1389,7 @@ const CoffeeShopContent = ({ state, actions }) => {
   const coffeeWeeklyPlans = itemsData.filter(i => i.type === 'weekly_coffee');
   const storedCoffee = player.inventory.find(i => i.type === 'weekly_coffee');
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       {/* Left: Weekly Plans + Quick Bites */}
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">☕ Weekly Plans</h3>
@@ -1504,7 +1504,7 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
   const pawnable = player.inventory.filter(item => !UNSELLABLE_TYPES.has(item.type));
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Pawn Shop</h3>
         <p className="text-xs italic text-slate-500 mb-2">"50¢ on the dollar, take it or leave it."</p>
@@ -1675,7 +1675,7 @@ const TechStoreContent = ({ state, actions }) => {
   const isTechEmployee = player.job?.type === 'tech';
   const electronics = itemsData.filter(i => i.type === 'electronics');
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Products</h3>
         {electronics.map(item => {
@@ -1757,7 +1757,7 @@ const NeoBankContent = ({ state, actions }) => {
   const wealthPct = Math.min(100, Math.max(0, (netWorth / goals.wealth) * 100));
   const AMOUNTS = [50, 100, 250, 500];
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="space-y-3">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1">Banking</h3>
         {/* Wealth goal progress */}
