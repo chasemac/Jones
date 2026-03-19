@@ -445,30 +445,49 @@ const GoalsModal = ({ state, onClose }) => {
     },
   ];
 
+  const allMet = items.every(i => i.met);
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals <span className="text-xs font-normal text-slate-500 normal-case">({DIFFICULTY_PRESETS[difficulty].label})</span></h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals</h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">{DIFFICULTY_PRESETS[difficulty].label}</span>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">✕</button>
+          </div>
         </div>
-        <p className="text-xs text-slate-500 mb-4">Achieve ALL four goals to win.</p>
-        <div className="space-y-4">
+        {allMet ? (
+          <div className="bg-green-50 border border-green-300 rounded-xl p-3 text-center text-sm font-bold text-green-700 mb-3 animate-pulse">
+            🏆 All goals achieved! Head to Leasing and end the week to win!
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 mb-3">Achieve ALL four goals simultaneously to win.</p>
+        )}
+        <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.label}>
-              <div className="flex justify-between items-baseline mb-1">
-                <span className="text-sm font-bold text-slate-700">{item.met ? '✅' : '⬜'} {item.label}</span>
-                <span className="text-xs text-slate-500">{item.current} / {item.goal}</span>
+            <div key={item.label} className={`rounded-xl p-3 border ${item.met ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+              <div className="flex justify-between items-baseline mb-1.5">
+                <span className={`text-sm font-bold ${item.met ? 'text-green-700' : 'text-slate-700'}`}>
+                  {item.met ? '✅' : '⬜'} {item.label}
+                </span>
+                <span className={`text-xs font-mono font-bold ${item.met ? 'text-green-600' : 'text-slate-500'}`}>{item.current} / {item.goal}</span>
               </div>
-              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-white rounded-full overflow-hidden border border-slate-200">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${item.met ? 'bg-green-500' : 'bg-blue-500'}`}
+                  className={`h-full rounded-full transition-all duration-700 ${item.met ? 'bg-green-500' : item.pct > 75 ? 'bg-blue-500' : item.pct > 40 ? 'bg-blue-400' : 'bg-slate-400'}`}
                   style={{ width: `${item.pct}%` }}
                 />
+              </div>
+              <div className="text-[9px] text-right mt-0.5 font-bold" style={{ color: item.met ? '#16a34a' : '#64748b' }}>
+                {item.met ? 'COMPLETE' : `${Math.round(item.pct)}%`}
               </div>
             </div>
           ))}
         </div>
+        <button onClick={onClose} className="mt-4 w-full bg-slate-800 text-white font-bold py-2 rounded-xl hover:bg-slate-700 transition text-sm">
+          Got it
+        </button>
       </div>
     </div>
   );
@@ -830,23 +849,24 @@ const WeekSummaryModal = ({ summary, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-indigo-500 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white border-4 border-indigo-500 rounded-2xl shadow-2xl p-5 max-w-xs w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="text-center text-3xl mb-1">🌙</div>
-        <h3 className="text-lg font-black text-center text-indigo-800 mb-3">Week {summary.week} Complete!</h3>
+        <h3 className="text-lg font-black text-center text-indigo-800 mb-1">Week {summary.week} Complete!</h3>
+        <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in 4s · tap to dismiss</p>
         <div className="space-y-2 mb-4">
           {summary.lines.map((p, i) => (
-            <div key={i} className="bg-slate-50 rounded-lg px-3 py-2">
-              <div className="flex justify-between items-center mb-1">
+            <div key={i} className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
+              <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm font-bold">{p.emoji} {p.name}</span>
                 <span className={`text-base font-black ${p.netWorthDelta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                   {p.netWorthDelta >= 0 ? '+' : ''}${p.netWorthDelta.toFixed(0)}
                 </span>
               </div>
-              <div className="flex gap-3 text-[10px] text-slate-500 font-mono">
-                <span>💰 ${p.money.toFixed(0)}</span>
-                <span>😊 {p.happiness}</span>
-                <span>🎯 {p.dependability}</span>
-                <span className="text-slate-400">· {p.job}</span>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] font-mono">
+                <span className="text-slate-500">💰 Cash: <span className="text-slate-700 font-bold">${p.money.toFixed(0)}</span></span>
+                <span className="text-slate-500">😊 Happy: <span className={`font-bold ${p.happiness < 30 ? 'text-red-500' : 'text-slate-700'}`}>{p.happiness}</span></span>
+                <span className="text-slate-500">🎯 Dep: <span className="text-slate-700 font-bold">{p.dependability}</span></span>
+                <span className="text-slate-400 truncate">💼 {p.job}</span>
               </div>
             </div>
           ))}
@@ -1326,21 +1346,43 @@ const CoffeeShopContent = ({ state, actions }) => {
               </div>
               <div className="text-xs text-amber-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
+            {/* Experience progress */}
+            {player.job.promotion && (() => {
+              const nextJob = jobsData.find(j => j.id === player.job.promotion);
+              const expNeeded = nextJob?.requirements?.experience || 0;
+              const weeksWorked = player.job.weeksWorked || 0;
+              if (expNeeded === 0) return null;
+              const expPct = Math.min(100, (weeksWorked / expNeeded) * 100);
+              return (
+                <div className="mt-1 text-[10px] text-amber-700">
+                  <div className="flex justify-between mb-0.5">
+                    <span>Experience</span>
+                    <span>{weeksWorked}/{expNeeded} wks</span>
+                  </div>
+                  <div className="h-1.5 bg-amber-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${expPct}%` }} />
+                  </div>
+                </div>
+              );
+            })()}
             {(() => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
               return (
                 <button
                   onClick={() => actions.applyForJob(nextJob)}
-                  className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800"
+                  className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95"
                 >
-                  🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+                  🆙 Promote → {nextJob.title} (${nextJob.wage}/hr)
                 </button>
               );
             })()}
           </>
         ) : (
-          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Apply for a service job at the Library to work here.</div>
+          <div className="text-xs italic text-slate-400 p-3 bg-slate-100 rounded-lg">
+            <div className="font-bold text-slate-500 mb-1">👔 Staff Area</div>
+            Apply for a service job at the Library to work here.
+          </div>
         )}
       </div>
     </div>
@@ -1802,12 +1844,14 @@ const LeasingOfficeContent = ({ state, actions }) => {
                 happinessBoost: 2, relaxationBoost: 10, timeToRest: 2,
               })}
               disabled={player.timeRemaining < 2}
-              className="bg-teal-50 border-2 border-teal-200 hover:bg-teal-100 disabled:opacity-50 rounded-xl px-3 flex flex-col items-center justify-center text-center transition"
+              className={`border-2 hover:opacity-90 disabled:opacity-50 rounded-xl px-3 flex flex-col items-center justify-center text-center transition min-w-[80px]
+                ${(player.relaxation ?? 50) <= 20 ? 'bg-red-50 border-red-300 animate-pulse' : 'bg-teal-50 border-teal-200 hover:bg-teal-100'}
+              `}
               title="Rest at home (2h)"
             >
               <div className="text-2xl">🛁</div>
-              <div className="text-[9px] font-bold text-teal-700">Rest 2h</div>
-              <div className="text-[9px] text-teal-600">+10 relax</div>
+              <div className={`text-[9px] font-bold ${(player.relaxation ?? 50) <= 20 ? 'text-red-700' : 'text-teal-700'}`}>Rest 2h</div>
+              <div className="text-[9px] text-slate-500">{player.relaxation ?? 50}/100</div>
             </button>
           </div>
         </>
