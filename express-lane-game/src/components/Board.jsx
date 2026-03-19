@@ -238,19 +238,21 @@ const LocationPanel = ({ locationId, children, onClose }) => {
   const config = LOCATIONS_CONFIG[locationId];
   if (!config) return null;
   return (
-    <div className="absolute inset-x-2 sm:inset-x-4 top-4 bottom-16 sm:bottom-28 bg-white border-4 border-slate-800 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden">
-      <div className="bg-slate-100 border-b-2 border-slate-200 px-4 py-3 flex justify-between items-center flex-shrink-0">
-        <h2 className="text-xl font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+    <div className="absolute inset-x-2 sm:inset-x-4 top-4 bottom-16 sm:bottom-24 bg-white border-4 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden"
+      style={{ borderColor: config.color }}>
+      <div className="px-4 py-3 flex justify-between items-center flex-shrink-0"
+        style={{ background: config.color + '18', borderBottom: `2px solid ${config.color}40` }}>
+        <h2 className="text-xl font-black uppercase tracking-wide flex items-center gap-2" style={{ color: config.color }}>
           <span className="text-2xl">{config.emoji}</span> {config.label}
         </h2>
         <button
           onClick={onClose}
-          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-4 py-1.5 rounded-full text-sm shadow transition hover:scale-105 flex items-center gap-1"
+          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-4 py-1.5 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1"
         >
-          NEXT 👉
+          MAP 🗺️
         </button>
       </div>
-      <div className="flex-grow p-4 overflow-y-auto bg-slate-50">
+      <div className="flex-grow p-4 overflow-y-auto bg-white">
         {children}
       </div>
     </div>
@@ -329,15 +331,13 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
               <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
             </div>
           </div>
-          {/* Hunger */}
-          {player.hunger >= 40 && (
-            <div className="flex items-center gap-1">
-              <span className="text-[8px] text-slate-400 w-16 shrink-0">🍽️ Hunger {player.hunger}</span>
-              <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500' : 'bg-orange-400'}`} style={{ width: `${player.hunger}%` }} />
-              </div>
+          {/* Hunger — always shown */}
+          <div className="flex items-center gap-1">
+            <span className={`text-[8px] w-16 shrink-0 ${player.hunger >= 80 ? 'text-red-400 font-bold animate-pulse' : player.hunger >= 60 ? 'text-orange-400' : 'text-slate-400'}`}>🍽️ {player.hunger >= 80 ? 'STARVING' : player.hunger >= 60 ? 'Hungry' : 'Hunger'} {player.hunger}</span>
+            <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : player.hunger >= 30 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${player.hunger}%` }} />
             </div>
-          )}
+          </div>
           {/* Education + Job + clothing durability warning */}
           <div className="flex gap-2 text-[8px] flex-wrap items-center">
             <span className="text-slate-400">🎓 {player.education}</span>
@@ -894,7 +894,17 @@ const QuickEatsContent = ({ state, actions }) => {
             </button>
           );
         })}
-        <div className="mt-2 text-xs text-slate-400">Hunger: {player.hunger}/100</div>
+        {/* Hunger meter */}
+        <div className="mt-3 p-2 rounded-lg border" style={{ background: player.hunger >= 80 ? '#fef2f2' : player.hunger >= 60 ? '#fff7ed' : '#f0fdf4', borderColor: player.hunger >= 80 ? '#fca5a5' : player.hunger >= 60 ? '#fdba74' : '#86efac' }}>
+          <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: player.hunger >= 80 ? '#dc2626' : player.hunger >= 60 ? '#ea580c' : '#16a34a' }}>
+            <span>🍽️ Hunger</span>
+            <span>{player.hunger}/100 {player.hunger >= 80 ? '— STARVING!' : player.hunger >= 60 ? '— Getting bad' : player.hunger >= 30 ? '— OK' : '— Well fed'}</span>
+          </div>
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : player.hunger >= 30 ? 'bg-yellow-400' : 'bg-green-500'}`}
+              style={{ width: `${player.hunger}%` }} />
+          </div>
+        </div>
         <div className="mt-1 text-[10px] text-slate-400 italic">💡 Fresh Mart groceries save money — need a fridge from MegaMart</div>
       </div>
       <div>
@@ -1733,10 +1743,12 @@ const LeasingOfficeContent = ({ state, actions }) => {
           {/* Sleep / End Week button — only shown after housing is set */}
           <button
             onClick={actions.endWeek}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95"
+            className={`w-full text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95
+              ${player.timeRemaining <= 10 ? 'bg-indigo-500 animate-pulse shadow-indigo-400/50 shadow-lg' : 'bg-indigo-600 hover:bg-indigo-500'}
+            `}
           >
             😴 Sleep — End Week
-            <span className="text-xs font-normal opacity-75">({player.timeRemaining}h remaining)</span>
+            <span className={`text-xs font-normal opacity-75`}>({player.timeRemaining}h left)</span>
           </button>
           <div className="flex gap-2">
             <div className="bg-purple-50 p-3 rounded border border-purple-100 flex-1">
@@ -2010,7 +2022,7 @@ const Board = () => {
       )}
 
       {/* Padded map area — keeps buildings away from container edges */}
-      <div className="absolute inset-x-2 sm:inset-x-5 top-4 bottom-16 sm:bottom-24">
+      <div className="absolute inset-x-2 sm:inset-x-5 top-4 bottom-16 sm:bottom-24 bottom-[68px]">
         {/* Map background */}
         <MapBackground />
 
