@@ -1038,10 +1038,13 @@ const LibraryContent = ({ state, actions, setNotification }) => {
           <button
             onClick={actions.work}
             disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded hover:bg-emerald-100 disabled:opacity-50 text-sm"
+            className="w-full p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-sm transition active:scale-95"
           >
-            <div className="font-bold">Work Shift (8h)</div>
-            <div className="text-xs text-emerald-700">{player.job.title} · ${player.job.wage}/hr</div>
+            <div className="flex justify-between items-center">
+              <div className="font-bold">🏢 Work Shift (8h)</div>
+              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+            </div>
+            <div className="text-xs text-emerald-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
           </button>
         ) : isCorpEmployee && !hasLaptop ? (
           <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Need a 💻 Laptop for remote work.</div>
@@ -1061,9 +1064,12 @@ const LibraryContent = ({ state, actions, setNotification }) => {
 
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">🔧 Trade Dispatch</h3>
         {isTradeEmployee ? (
-          <button onClick={actions.work} disabled={player.timeRemaining < 8} className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-sm">
-            <div className="font-bold">Go to Site (8h)</div>
-            <div className="text-xs text-yellow-700">{player.job.title} · ${player.job.wage}/hr</div>
+          <button onClick={actions.work} disabled={player.timeRemaining < 8} className="w-full p-3 bg-yellow-50 border-2 border-yellow-300 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-sm transition active:scale-95">
+            <div className="flex justify-between items-center">
+              <div className="font-bold">🔧 Go to Site (8h)</div>
+              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+            </div>
+            <div className="text-xs text-yellow-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
           </button>
         ) : (
           <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers get dispatched here.</div>
@@ -1312,10 +1318,13 @@ const CoffeeShopContent = ({ state, actions }) => {
             <button
               onClick={actions.work}
               disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-amber-50 border border-amber-200 rounded hover:bg-amber-100 disabled:opacity-50 text-sm"
+              className="w-full p-3 bg-amber-50 border-2 border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-sm transition active:scale-95"
             >
-              <div className="font-bold">Work Shift (8h)</div>
-              <div className="text-xs text-amber-800">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="flex justify-between items-center">
+                <div className="font-bold">☕ Work Shift (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-amber-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
             {(() => {
               const nextJob = getNextPromotion(player);
@@ -1416,42 +1425,62 @@ const CityCollegeContent = ({ state, actions }) => {
   const textbook = itemsData.find(i => i.id === 'textbook');
   const textbookPrice = adjustedPrice(textbook.cost, economy);
   const ownsTextbook = player.inventory.some(i => i.id === 'textbook');
+
   return (
     <div className="h-full flex flex-col gap-3">
-      {player.currentCourse && (
-        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-          <h3 className="font-bold text-blue-800 text-sm">{player.currentCourse.title}</h3>
-          <div className="w-full bg-blue-200 h-3 rounded-full mt-1 overflow-hidden">
-            <div className="bg-blue-600 h-full" style={{ width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%` }} />
+      {/* Current course — prominent progress card */}
+      {player.currentCourse ? (
+        <div className="bg-blue-600 text-white p-3 rounded-xl shadow">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <div className="text-[10px] uppercase font-bold opacity-70 tracking-wide">Currently Enrolled</div>
+              <div className="font-black text-sm">{player.currentCourse.title}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs opacity-70">{player.currentCourse.progress}/{player.currentCourse.totalHours} hrs</div>
+              <div className="text-xs font-bold">{Math.round((player.currentCourse.progress / player.currentCourse.totalHours) * 100)}%</div>
+            </div>
           </div>
-          <div className="text-xs mt-1 text-blue-700">{player.currentCourse.progress}/{player.currentCourse.totalHours} hrs</div>
+          <div className="w-full bg-blue-800 h-3 rounded-full overflow-hidden mb-2">
+            <div className="bg-yellow-400 h-full rounded-full transition-all duration-500"
+              style={{ width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%` }} />
+          </div>
           {studyBonus > 0 && (
-            <div className="text-[10px] text-green-600 mt-0.5">📚 Study bonus: +{studyBonus}hrs/session</div>
+            <div className="text-[10px] text-blue-200 mb-1">📚 Study bonus active: +{studyBonus}h/session</div>
           )}
           <button
             onClick={actions.study}
             disabled={player.timeRemaining < 10}
-            className="mt-2 bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold hover:bg-blue-700 disabled:opacity-50 text-xs"
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-black py-2 rounded-lg disabled:opacity-50 text-sm transition active:scale-95"
           >
-            Study 10hrs {studyBonus > 0 ? `(+${studyBonus} bonus)` : ''}
+            📖 Study {10 + studyBonus}hrs
+            <span className="text-xs font-normal ml-1">({player.timeRemaining}h left this week)</span>
           </button>
         </div>
+      ) : (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+          <div className="font-bold mb-1">🎓 Currently: {player.education}</div>
+          <div className="text-slate-500">Enroll in a course below to advance your education.</div>
+        </div>
       )}
+
       {/* Textbook purchase */}
       {!ownsTextbook && (
         <button
           onClick={() => actions.buyItem({ ...textbook, cost: textbookPrice })}
           disabled={player.money < textbookPrice}
-          className="w-full flex justify-between items-center p-2 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 text-xs"
+          className="w-full flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 disabled:opacity-50 text-xs transition"
         >
           <div>
-            <div className="font-bold">📚 Buy Textbook</div>
-            <div className="text-slate-500">Reduces hours needed per study session</div>
+            <div className="font-bold">📚 Buy Textbook <span className="text-green-600 font-normal">(saves time!)</span></div>
+            <div className="text-slate-500">+2hrs per study session</div>
           </div>
-          <span className="font-mono">${textbookPrice}</span>
+          <span className="font-mono font-bold">${textbookPrice}</span>
         </button>
       )}
-      <div className="flex-grow overflow-y-auto space-y-1">
+
+      <div className="flex-grow overflow-y-auto space-y-1.5">
+        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Available Courses</div>
         {educationData.map(course => {
           const eduReq = course.requirements?.education;
           const itemReq = course.requirements?.item;
@@ -1459,25 +1488,32 @@ const CityCollegeContent = ({ state, actions }) => {
           const itemOk = !itemReq || player.inventory.some(i => i.id === itemReq);
           const canEnroll = eduOk && itemOk;
           const alreadyDone = meetsEducation(player.education, course.degree);
+          const isActive = player.currentCourse?.id === course.id;
           return (
             <button
               key={course.id}
               onClick={() => canEnroll && !alreadyDone && !player.currentCourse && actions.enroll(course)}
               disabled={!canEnroll || alreadyDone || !!player.currentCourse}
-              className="w-full flex justify-between items-center p-2 border rounded hover:bg-blue-50 disabled:opacity-50 text-xs"
+              className={`w-full flex justify-between items-start p-2.5 border rounded-lg text-xs transition
+                ${alreadyDone ? 'bg-green-50 border-green-200 opacity-70' :
+                  isActive ? 'bg-blue-50 border-blue-400' :
+                  canEnroll && !player.currentCourse ? 'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer' :
+                  'bg-slate-50 border-slate-100 opacity-50'}`}
             >
               <div className="text-left">
-                <div className="font-bold">
-                  {alreadyDone ? '✅ ' : !canEnroll ? '🔒 ' : ''}{course.title}
+                <div className="font-bold flex items-center gap-1">
+                  {alreadyDone ? '✅' : isActive ? '📖' : !canEnroll ? '🔒' : '🎓'}
+                  <span>{course.title}</span>
+                  <span className="text-slate-400 font-normal">→ {course.degree}</span>
                 </div>
-                <div className="text-slate-400">
-                  {course.totalHours}hrs
-                  {eduReq && !eduOk ? ` · Needs ${eduReq}` : ''}
-                  {itemReq && !itemOk ? ` · Needs ${itemReq.replace(/_/g, ' ')}` : ''}
-                  {canEnroll && !alreadyDone ? ` · ${course.description}` : ''}
+                <div className="text-slate-500 mt-0.5">
+                  {course.totalHours}h total
+                  {eduReq && !eduOk ? <span className="text-red-500 ml-1">· Need {eduReq}</span> : ''}
+                  {itemReq && !itemOk ? <span className="text-red-500 ml-1">· Need {itemReq.replace(/_/g, ' ')}</span> : ''}
+                  {canEnroll && !alreadyDone && !isActive ? <span className="text-slate-400 ml-1">· {course.description}</span> : ''}
                 </div>
               </div>
-              <span className="font-mono font-bold ml-2">${course.cost}</span>
+              <span className="font-mono font-bold ml-2 shrink-0 text-slate-700">${course.cost}</span>
             </button>
           );
         })}
@@ -1539,10 +1575,13 @@ const TechStoreContent = ({ state, actions }) => {
             <button
               onClick={actions.work}
               disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-50 text-sm"
+              className="w-full p-3 bg-blue-50 border-2 border-blue-300 rounded-xl hover:bg-blue-100 disabled:opacity-50 text-sm transition active:scale-95"
             >
-              <div className="font-bold">Code Sprint (8h)</div>
-              <div className="text-xs text-blue-700">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="flex justify-between items-center">
+                <div className="font-bold">💻 Code Sprint (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-blue-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
             {/* Promotion check */}
             {(() => {
@@ -2022,17 +2061,17 @@ const Board = () => {
       )}
 
       {/* Padded map area — keeps buildings away from container edges */}
-      <div className="absolute inset-x-2 sm:inset-x-5 top-4 bottom-16 sm:bottom-24 bottom-[68px]">
+      <div className="absolute inset-x-2 sm:inset-x-5 top-1 bottom-16 sm:bottom-24">
         {/* Map background */}
         <MapBackground />
 
-        {/* Economy pill — always visible floating above center of ring */}
+        {/* Economy pill — top-center, tucked just below top edge */}
         {(() => {
           const { economy, week } = state;
-          const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-600';
+          const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-500';
           const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '➡️';
           return (
-            <div className={`absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 pointer-events-none`}>
+            <div className={`absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 pointer-events-none opacity-80`}>
               <span>{icon}</span><span>{economy}</span><span className="opacity-60">·</span><span>Wk {week}</span>
             </div>
           );
