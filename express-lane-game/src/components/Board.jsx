@@ -819,23 +819,47 @@ const NotificationFeed = ({ history, onOpenLog }) => (
 );
 
 // ─── Full log modal ───────────────────────────────────────────────────────────
-const FullLogModal = ({ history, onClose }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-    <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl shadow-2xl p-4 max-w-sm w-full mx-4 max-h-[80%] flex flex-col" onClick={e => e.stopPropagation()}>
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-white font-black text-base">📋 Full Event Log</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-white text-lg">✕</button>
-      </div>
-      <div className="flex-grow overflow-y-auto space-y-0.5 pr-1">
-        {history.length === 0
-          ? <div className="text-slate-500 italic text-xs text-center">No events yet.</div>
-          : history.map((entry, i) => (
-              <div key={i} className="text-[11px] text-slate-300 border-b border-slate-800 last:border-0 py-1">{entry}</div>
-            ))}
+const FullLogModal = ({ history, onClose }) => {
+  // Color-code log entries by keyword
+  const entryColor = (entry) => {
+    const e = entry.toLowerCase();
+    if (e.includes('hungry') || e.includes('starving') || e.includes('fired') || e.includes('evict')) return 'text-red-400';
+    if (e.includes('earned') || e.includes('worked') || e.includes('hired') || e.includes('promoted') || e.includes('enrolled')) return 'text-green-400';
+    if (e.includes('bought') || e.includes('moved') || e.includes('paid')) return 'text-blue-400';
+    if (e.includes('week') && e.includes('rent')) return 'text-slate-400';
+    return 'text-slate-300';
+  };
+  const entryIcon = (entry) => {
+    const e = entry.toLowerCase();
+    if (e.includes('worked') || e.includes('earned')) return '💰';
+    if (e.includes('hired') || e.includes('promoted')) return '🎉';
+    if (e.includes('hungry') || e.includes('starving')) return '🍽️';
+    if (e.includes('moved') || e.includes('rent')) return '🏠';
+    if (e.includes('bought') || e.includes('enrolled')) return '🛒';
+    return '·';
+  };
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl shadow-2xl p-4 max-w-sm w-full mx-4 max-h-[80%] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-white font-black text-base">📋 Event Log</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">✕</button>
+        </div>
+        <div className="text-[9px] text-slate-500 mb-2 uppercase tracking-wide">{history.length} events · newest first</div>
+        <div className="flex-grow overflow-y-auto space-y-0.5 pr-1">
+          {history.length === 0
+            ? <div className="text-slate-500 italic text-xs text-center py-4">No events yet.</div>
+            : [...history].reverse().map((entry, i) => (
+                <div key={i} className={`text-[11px] flex gap-1.5 items-start border-b border-slate-800 last:border-0 py-1 ${entryColor(entry)}`}>
+                  <span className="shrink-0 w-4 text-center">{entryIcon(entry)}</span>
+                  <span>{entry}</span>
+                </div>
+              ))}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Week summary modal ───────────────────────────────────────────────────────
 const WeekSummaryModal = ({ summary, onClose }) => {
