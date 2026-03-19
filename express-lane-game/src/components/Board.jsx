@@ -913,28 +913,42 @@ const QuickEatsContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Weekly Meal Plans</h3>
-        <p className="text-[10px] text-slate-500 mb-2">Each plan feeds you for the whole week — auto-eaten at week's end. No fridge needed.</p>
+        <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">🍔 Weekly Meal Plans</h3>
         {storedMeal ? (
-          <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2">
-            ✅ <strong>{storedMeal.name}</strong> ready for this week.
+          <div className="p-2.5 bg-green-50 border-2 border-green-300 rounded-xl text-xs text-green-800 mb-2 flex items-center gap-2">
+            <span className="text-lg">✅</span>
+            <div>
+              <div className="font-bold">{storedMeal.name} ready!</div>
+              <div className="text-green-600">You're covered for this week.</div>
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <div className={`p-2 rounded-lg border text-xs mb-2 ${player.hunger > 50 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+            ⚠️ <strong>No food for this week</strong> — buy a plan below to avoid the hunger penalty!
+          </div>
+        )}
+        <p className="text-[10px] text-slate-400 mb-2">Auto-eaten at week's end. No fridge needed.</p>
         {weeklyMeals.map(item => {
           const price = adjustedPrice(item.cost, economy);
           const owned = !!storedMeal;
+          const canAfford = player.money >= price;
           return (
             <button
               key={item.id}
               onClick={() => actions.buyItem({ ...item, cost: price })}
-              disabled={owned || player.money < price}
-              className="w-full flex justify-between items-start p-2 bg-white border rounded hover:bg-orange-50 disabled:opacity-50 mb-1 text-sm"
+              disabled={owned || !canAfford}
+              className={`w-full text-left p-2.5 border-2 rounded-xl mb-1.5 text-sm transition active:scale-95
+                ${owned ? 'bg-green-50 border-green-200 opacity-60' :
+                  canAfford ? 'bg-white border-orange-200 hover:border-orange-400 hover:bg-orange-50' :
+                  'bg-slate-50 border-slate-200 opacity-50'}`}
             >
-              <div className="text-left">
-                <div className="font-medium">🍔 {item.name}</div>
-                <div className="text-[10px] text-slate-500">{item.effect}</div>
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-bold">🍔 {item.name}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{item.effect}</div>
+                </div>
+                <span className="font-mono font-bold text-sm shrink-0 ml-2">${price}<span className="text-[9px] font-normal text-slate-400">/wk</span></span>
               </div>
-              <span className="font-mono text-xs ml-2 shrink-0">${price}/wk</span>
             </button>
           );
         })}
@@ -957,17 +971,22 @@ const QuickEatsContent = ({ state, actions }) => {
           <button
             onClick={actions.gigWork}
             disabled={player.timeRemaining < 4}
-            className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm"
+            className="w-full p-3 bg-green-50 border-2 border-green-300 rounded-xl hover:bg-green-100 disabled:opacity-50 text-sm transition active:scale-95"
           >
-            <div>
-              <div className="font-bold">🚗 Delivery Run</div>
-              <div className="text-xs text-slate-500">Economy adjusted</div>
+            <div className="flex justify-between items-center">
+              <div className="font-bold">🚗 Delivery Run (4h)</div>
+              <div className="font-mono font-black text-green-600">+${Math.floor(60 * (state.economy === 'Boom' ? 1.3 : state.economy === 'Depression' ? 0.8 : 1.0))}</div>
             </div>
-            <span className="font-mono text-green-600">+${Math.floor(60 * (state.economy === 'Boom' ? 1.3 : state.economy === 'Depression' ? 0.8 : 1.0))}</span>
+            <div className="text-xs text-green-700 mt-0.5">Economy: {state.economy} · flexible hours</div>
           </button>
         ) : (
-          <div className="text-xs text-slate-400 italic p-2 bg-slate-100 rounded">
-            Need a 📱 Smartphone to unlock gig work.
+          <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="font-bold text-slate-600 mb-1">🚗 Gig Delivery (locked)</div>
+            <div className="text-slate-400 mb-2">Earn extra cash between jobs — any time, any week.</div>
+            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5">
+              <span>📱</span>
+              <span className="text-blue-700 text-[10px] font-bold">Buy a Smartphone at Tech Store to unlock</span>
+            </div>
           </div>
         )}
       </div>
