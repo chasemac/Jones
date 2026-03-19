@@ -1268,37 +1268,71 @@ const GroceryStoreContent = ({ state, actions }) => {
 const MegaMartContent = ({ state, actions }) => {
   const { player, economy } = state;
   const appliances = itemsData.filter(i => i.type === 'appliance');
+  const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
+  const hasFreezer = player.inventory.some(i => i.id === 'freezer');
+  const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
+  const hasStorage = hasFridge || hasFreezer;
+
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
-      <div className="flex flex-col items-center justify-center bg-red-50 rounded-lg p-4">
-        <div className="text-7xl mb-2">🏪</div>
-        <div className="text-xs font-bold text-red-800 text-center">MegaMart</div>
-        <div className="text-[10px] text-red-600 mt-1 text-center">Everything for your home</div>
+      {/* Left: Home status dashboard */}
+      <div className="space-y-2">
+        <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏠 Your Home Setup</h3>
+        <div className={`p-2.5 rounded-lg border text-xs ${hasStorage ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+          <div className="flex justify-between items-center">
+            <span className="font-bold">{hasStorage ? (hasFreezer ? '🧊 Chest Freezer' : '❄️ Refrigerator') : '❌ No Food Storage'}</span>
+            {hasStorage ? <span className="text-green-600 font-bold">✅</span> : <span className="text-amber-600 text-[9px]">buy one!</span>}
+          </div>
+          {hasStorage
+            ? <div className="text-slate-500 mt-0.5">{hasFreezer ? 'Stores 4 weeks of groceries' : 'Stores 2 weeks of groceries'}</div>
+            : <div className="text-amber-700 mt-0.5">Without a fridge, food spoils at week's end</div>}
+        </div>
+        <div className={`p-2.5 rounded-lg border text-xs ${hasHotTub ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+          <div className="flex justify-between items-center">
+            <span className="font-bold">{hasHotTub ? '🛁 Hot Tub' : '❌ No Hot Tub'}</span>
+            {hasHotTub ? <span className="text-green-600 font-bold">✅</span> : <span className="text-slate-400 text-[9px]">luxury</span>}
+          </div>
+          <div className="text-slate-500 mt-0.5">{hasHotTub ? '+3 Relaxation/week automatically' : 'Prevents exhaustion burnout'}</div>
+        </div>
+        <div className="bg-red-50 rounded-xl p-3 border border-red-100 mt-2">
+          <div className="text-xs font-bold text-red-800 mb-1">💡 Shopping Tips</div>
+          <div className="text-[10px] text-red-700 space-y-1">
+            <div>• Fridge → buy groceries in bulk at Fresh Mart</div>
+            <div>• Freezer → stock 4 weeks of food at once</div>
+            <div>• Hot Tub → auto-relaxation, avoid burnout</div>
+          </div>
+        </div>
       </div>
+      {/* Right: Buy appliances */}
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Appliances</h3>
+        <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances</h3>
         {appliances.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
           const price = adjustedPrice(item.cost, economy);
-          const upgrading = item.id === 'freezer' && player.inventory.some(i => i.id === 'refrigerator');
+          const upgrading = item.id === 'freezer' && hasFridge;
+          const isRecommended = !hasStorage && (item.id === 'refrigerator');
           return (
             <button
               key={item.id}
               onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
               disabled={owned}
-              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-red-50 disabled:opacity-60 text-sm"
+              className={`w-full text-left p-2.5 border rounded-lg mb-1.5 text-xs transition
+                ${owned ? 'bg-green-50 border-green-200 opacity-70' :
+                  isRecommended ? 'bg-amber-50 border-amber-300 hover:border-red-400 hover:bg-red-50' :
+                  'bg-white border-slate-200 hover:border-red-400 hover:bg-red-50'}`}
             >
-              <div className="text-left">
-                <div>{item.name} {upgrading ? '(upgrade)' : ''}</div>
-                <div className="text-[9px] text-slate-400">{item.effect}</div>
+              <div className="flex justify-between items-start mb-0.5">
+                <span className="font-bold">
+                  {owned ? '✅ ' : isRecommended ? '⭐ ' : ''}{item.name}
+                  {upgrading ? <span className="text-amber-600 font-normal"> (upgrade)</span> : ''}
+                </span>
+                <span className="font-mono font-bold">{owned ? 'Owned' : `$${price}`}</span>
               </div>
-              <span className="font-mono text-xs">{owned ? '✅' : `$${price}`}</span>
+              <div className="text-slate-400">{item.effect}</div>
+              {isRecommended && !owned && <div className="text-amber-600 font-bold text-[9px] mt-0.5">Recommended first purchase!</div>}
             </button>
           );
         })}
-        <div className="mt-3 text-[10px] text-slate-400 italic">
-          💡 A fridge lets you stock groceries at Fresh Mart — auto-eaten each week so you skip the store.
-        </div>
       </div>
     </div>
   );
