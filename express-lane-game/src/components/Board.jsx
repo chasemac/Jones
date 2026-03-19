@@ -576,30 +576,35 @@ const InventoryModal = ({ inventory, onClose }) => {
 
 // ─── Hunger warning modal ────────────────────────────────────────────────────
 const HungerWarningModal = ({ warning, onClose }) => {
-  const { hunger, penalty } = warning;
+  const { hunger, penalty, hadSomeFood } = warning;
   const severity = hunger >= 80 ? 'starving' : hunger >= 50 ? 'very hungry' : 'hungry';
   const emoji = hunger >= 80 ? '😵' : hunger >= 50 ? '😫' : '😟';
-  const bgColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
+  const borderColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className={`bg-white border-4 ${bgColor} rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4`}>
+      <div className={`bg-white border-4 ${borderColor} rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4`}>
         <div className="text-center text-5xl mb-3">{emoji}</div>
-        <h3 className="text-xl font-black text-center text-slate-800 mb-1">You Went Hungry!</h3>
+        <h3 className="text-xl font-black text-center text-slate-800 mb-1">
+          {hadSomeFood ? 'Still Hungry!' : 'You Went Hungry!'}
+        </h3>
         <p className="text-slate-600 text-center text-sm mb-4">
-          You didn't buy any food last week. You're {severity} ({hunger}/100 hunger).
+          {hadSomeFood
+            ? `Snacks helped a little, but you ended the week ${severity} (${hunger}/100). A weekly meal plan covers you properly.`
+            : `You didn't buy any food last week. You're ${severity} (${hunger}/100 hunger).`}
         </p>
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-4">
           <div className="text-2xl font-black text-red-600">-{penalty} hours</div>
-          <div className="text-xs text-red-400">deducted from this week's time</div>
+          <div className="text-xs text-red-400">
+            {hadSomeFood ? 'reduced penalty — snacks helped a bit' : 'deducted from this week\'s time'}
+          </div>
         </div>
         <p className="text-[11px] text-slate-400 text-center mb-4">
-          Visit Quick Eats or Coffee Shop to buy a weekly food plan before ending your next week!
+          {hadSomeFood
+            ? 'Buy a weekly plan at Quick Eats or Coffee Shop to avoid the penalty entirely!'
+            : 'Visit Quick Eats or Coffee Shop to buy a weekly food plan next week!'}
         </p>
-        <button
-          onClick={onClose}
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition text-sm"
-        >
-          Got it — I'll eat next week 🍔
+        <button onClick={onClose} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition text-sm">
+          Got it — I'll eat better next week 🍔
         </button>
       </div>
     </div>

@@ -39,6 +39,7 @@ export const buildPlayer = (index, startingMoney) => ({
   currentCourse: null,
   inventory: [],
   weekDone: false, // has this player ended their turn this week?
+  ateFoodThisWeek: false, // true if any food (immediate or plan) was purchased this week
 });
 
 // ─── Initial State Builder ────────────────────────────────────────────────────
@@ -270,6 +271,7 @@ export const gameReducer = (state, action) => {
           hunger: Math.max(0, p.hunger - hungerReduction),
           happiness: Math.min(100, p.happiness + happinessBoost),
           timeRemaining: Math.max(0, p.timeRemaining - (item.timeToEat || 1)),
+          ateFoodThisWeek: true, // counts toward hunger penalty reduction
         }));
         return autoEndIfNeeded(s);
       }
@@ -649,21 +651,36 @@ export const gameReducer = (state, action) => {
           }
         }
 
-        // 7. Hunger → time penalty (graduated by hunger level; always shown if player didn't eat)
-        // Clear previous hunger warning
+        // 7. Hunger → time penalty (graduated by hunger + what the player ate)
+        // Track if they had any quick bites (immediate food like espresso/croissant) and reset flag
+        const ateImmediateFood = np.ateFoodThisWeek || false;
+        np.ateFoodThisWeek = false; // reset for next week
         np.hungerWarning = null;
         let hungryPenalty = 0;
-        if (!ateThisWeek && np.hunger > 0) {
-          // Progressive penalty based on accumulated hunger
+
+        if (ateThisWeek) {
+          // Had a proper weekly plan — only penalise if still somehow starving (e.g. groceries spoiled)
+          if (np.hunger >= 80) {
+            hungryPenalty = 20;
+            playerLog.push(`${np.name}: starving despite eating! -20h next week.`);
+          }
+        } else if (ateImmediateFood) {
+          // Bought individual food items (espresso/croissant) but no weekly plan
+          // Penalty is halved — they made some effort, but it's not enough for a full week
+          if (np.hunger >= 80)      hungryPenalty = 10;
+          else if (np.hunger >= 50) hungryPenalty = 5;
+          // hunger < 50 with some food eaten → no penalty (they managed ok with snacks)
+          if (hungryPenalty > 0) {
+            np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: true, playerName: np.name };
+            playerLog.push(`${np.name}: only had snacks — still hungry! -${hungryPenalty}h next week.`);
+          }
+        } else {
+          // No food at all — full graduated penalty
           if (np.hunger >= 80)      hungryPenalty = 20;
           else if (np.hunger >= 50) hungryPenalty = 10;
           else                      hungryPenalty = 5;
-          np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, playerName: np.name };
+          np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: false, playerName: np.name };
           playerLog.push(`${np.name}: went hungry (no food bought)! -${hungryPenalty}h next week.`);
-        } else if (np.hunger >= 80) {
-          // Even with food, if hunger is still >=80 (e.g. groceries spoiled), apply starvation penalty
-          hungryPenalty = 20;
-          playerLog.push(`${np.name}: starving despite eating! -20h next week.`);
         }
         const reduction = (np.maxTimeReduction || 0) + hungryPenalty;
         np.maxTime = Math.max(20, BASE_MAX_TIME - reduction);
