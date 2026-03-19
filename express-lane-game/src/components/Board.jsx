@@ -1555,10 +1555,10 @@ const TechStoreContent = ({ state, actions }) => {
 
 const NeoBankContent = ({ state, actions }) => {
   const { player } = state;
-  const [depositAmt, setDepositAmt] = useState(100);
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = calculateNetWorth(player);
   const wealthPct = Math.min(100, Math.max(0, (netWorth / goals.wealth) * 100));
+  const AMOUNTS = [50, 100, 250, 500];
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-3">
@@ -1573,37 +1573,71 @@ const NeoBankContent = ({ state, actions }) => {
             <div className={`h-full rounded-full transition-all duration-500 ${netWorth >= goals.wealth ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${wealthPct}%` }} />
           </div>
         </div>
+        {/* Savings */}
         <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
           <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1%/wk)</div>
-          <div className="text-2xl font-mono mb-2">${player.savings}</div>
-          <div className="flex gap-1">
-            <input
-              type="number"
-              value={depositAmt}
-              onChange={e => setDepositAmt(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-20 border rounded px-1 py-0.5 text-xs"
-              min="1"
-            />
-            <button onClick={() => actions.bankTransaction('deposit', depositAmt)} className="flex-1 bg-white border border-indigo-200 py-0.5 rounded hover:bg-indigo-100 text-xs">Dep</button>
-            <button onClick={() => actions.bankTransaction('withdraw', depositAmt)} className="flex-1 bg-white border border-indigo-200 py-0.5 rounded hover:bg-indigo-100 text-xs">W/D</button>
+          <div className="text-2xl font-mono mb-2">${player.savings.toLocaleString()}</div>
+          <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Deposit</div>
+          <div className="grid grid-cols-4 gap-1 mb-1">
+            {AMOUNTS.map(amt => (
+              <button key={amt} onClick={() => actions.bankTransaction('deposit', amt)}
+                disabled={player.money < amt}
+                className="bg-white border border-indigo-200 rounded py-1 text-[10px] font-bold hover:bg-indigo-100 disabled:opacity-40 transition">
+                ${amt}
+              </button>
+            ))}
           </div>
           {player.money > 0 && (
-            <button
-              onClick={() => actions.bankTransaction('deposit', Math.floor(player.money))}
-              className="w-full mt-1 bg-indigo-600 text-white text-[10px] font-bold py-1 rounded hover:bg-indigo-700 transition"
-            >
-              💰 Deposit All (${Math.floor(player.money)})
+            <button onClick={() => actions.bankTransaction('deposit', Math.floor(player.money))}
+              className="w-full bg-indigo-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-indigo-700 transition mb-2">
+              💰 Deposit All (${Math.floor(player.money).toLocaleString()})
             </button>
           )}
-        </div>
-        <div className="bg-red-50 p-3 rounded border border-red-100">
-          <div className="text-xs font-bold text-red-700 mb-1">Debt (5%/wk)</div>
-          <div className="text-2xl font-mono mb-2 text-red-600">${player.debt}</div>
-          <div className="flex gap-1">
-            <button onClick={() => actions.bankTransaction('repay', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Pay ${depositAmt}</button>
-            <button onClick={() => actions.bankTransaction('borrow', depositAmt)} className="flex-1 bg-white border border-red-200 py-0.5 rounded hover:bg-red-100 text-xs">Borrow</button>
+          <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Withdraw</div>
+          <div className="grid grid-cols-4 gap-1">
+            {AMOUNTS.map(amt => (
+              <button key={amt} onClick={() => actions.bankTransaction('withdraw', amt)}
+                disabled={player.savings < amt}
+                className="bg-white border border-indigo-200 rounded py-1 text-[10px] font-bold hover:bg-indigo-100 disabled:opacity-40 transition">
+                ${amt}
+              </button>
+            ))}
           </div>
-          <div className="text-[9px] text-red-500 mt-1">⚠️ 5% interest/week — repay fast!</div>
+        </div>
+        {/* Debt */}
+        <div className="bg-red-50 p-3 rounded border border-red-100">
+          <div className="text-xs font-bold text-red-700 mb-1">Debt (5%/wk interest)</div>
+          <div className={`text-2xl font-mono mb-2 ${player.debt > 0 ? 'text-red-600' : 'text-slate-400'}`}>${player.debt.toLocaleString()}</div>
+          {player.debt > 0 && (
+            <>
+              <div className="text-[9px] text-red-500 mb-1 font-semibold uppercase tracking-wide">Repay</div>
+              <div className="grid grid-cols-4 gap-1 mb-1">
+                {AMOUNTS.map(amt => (
+                  <button key={amt} onClick={() => actions.bankTransaction('repay', amt)}
+                    disabled={player.money < amt || player.debt === 0}
+                    className="bg-white border border-red-200 rounded py-1 text-[10px] font-bold hover:bg-red-100 disabled:opacity-40 transition">
+                    ${amt}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => actions.bankTransaction('repay', player.debt)}
+                disabled={player.money < player.debt}
+                className="w-full bg-red-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-red-700 disabled:opacity-40 transition">
+                Repay All (${player.debt.toLocaleString()})
+              </button>
+            </>
+          )}
+          <div className="text-[9px] text-red-500 mb-1 font-semibold uppercase tracking-wide mt-2">Borrow</div>
+          <div className="grid grid-cols-4 gap-1">
+            {AMOUNTS.map(amt => (
+              <button key={amt} onClick={() => actions.bankTransaction('borrow', amt)}
+                disabled={player.debt + amt > 5000}
+                className="bg-white border border-red-200 rounded py-1 text-[10px] font-bold hover:bg-red-100 disabled:opacity-40 transition">
+                ${amt}
+              </button>
+            ))}
+          </div>
+          <div className="text-[9px] text-red-400 mt-1">⚠️ Max $5,000 debt. 5%/wk interest!</div>
         </div>
         <div className="mt-3 pt-2 border-t border-slate-200">
           <h3 className="font-bold text-xs mb-2 text-slate-600">🛡️ Insurance</h3>
