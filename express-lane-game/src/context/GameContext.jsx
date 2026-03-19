@@ -69,7 +69,7 @@ export const GameProvider = ({ children }) => {
     travel: (locationId) => { playSound('move'); dispatch({ type: 'TRAVEL', locationId }); },
     work: () => { playSound('coin'); dispatch({ type: 'WORK' }); },
     gigWork: () => { playSound('coin'); dispatch({ type: 'GIG_WORK' }); },
-    applyForJob: (job) => dispatch({ type: 'APPLY_FOR_JOB', job }),
+    applyForJob: (job, isPromotion = false) => dispatch({ type: 'APPLY_FOR_JOB', job, isPromotion }),
     buyItem: (item) => { playSound('coin'); dispatch({ type: 'BUY_ITEM', item }); },
     sellItem: (item) => dispatch({ type: 'SELL_ITEM', item }),
     enroll: (course) => { playSound('success'); dispatch({ type: 'ENROLL', course }); },

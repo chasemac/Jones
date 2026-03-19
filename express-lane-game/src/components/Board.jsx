@@ -994,159 +994,208 @@ const QuickEatsContent = ({ state, actions }) => {
   );
 };
 
+// Company directory data for the job board
+const COMPANIES = [
+  { id: 'Corner Mart',        emoji: '🏪', industry: 'Retail',      color: 'blue',   desc: 'Local convenience store chain.' },
+  { id: 'Brew & Co',          emoji: '☕', industry: 'Food Service', color: 'amber',  desc: 'Specialty coffee & café.' },
+  { id: 'FreshMart Warehouse',emoji: '📦', industry: 'Logistics',   color: 'green',  desc: 'Grocery distribution & stocking.' },
+  { id: 'Meridian Corp',      emoji: '🏢', industry: 'Corporate',   color: 'indigo', desc: 'Mid-size business services firm.' },
+  { id: 'ByteForge',          emoji: '💻', industry: 'Tech',        color: 'violet', desc: 'Software startup, fast growth.' },
+  { id: 'ProTrade',           emoji: '🔧', industry: 'Trades',      color: 'yellow', desc: 'Electrical, plumbing & labor.' },
+  { id: 'QuickDash',          emoji: '🚗', industry: 'Gig',         color: 'orange', desc: 'Food & package delivery platform.' },
+];
+
+const COMPANY_COLOR_MAP = {
+  blue:   { bg: 'bg-blue-50',   border: 'border-blue-300',   badge: 'bg-blue-100 text-blue-700',   btn: 'bg-blue-500 hover:bg-blue-600' },
+  amber:  { bg: 'bg-amber-50',  border: 'border-amber-300',  badge: 'bg-amber-100 text-amber-700', btn: 'bg-amber-500 hover:bg-amber-600' },
+  green:  { bg: 'bg-green-50',  border: 'border-green-300',  badge: 'bg-green-100 text-green-700', btn: 'bg-green-500 hover:bg-green-600' },
+  indigo: { bg: 'bg-indigo-50', border: 'border-indigo-300', badge: 'bg-indigo-100 text-indigo-700',btn: 'bg-indigo-500 hover:bg-indigo-600' },
+  violet: { bg: 'bg-violet-50', border: 'border-violet-300', badge: 'bg-violet-100 text-violet-700',btn: 'bg-violet-500 hover:bg-violet-600' },
+  yellow: { bg: 'bg-yellow-50', border: 'border-yellow-300', badge: 'bg-yellow-100 text-yellow-700',btn: 'bg-yellow-500 hover:bg-yellow-600' },
+  orange: { bg: 'bg-orange-50', border: 'border-orange-300', badge: 'bg-orange-100 text-orange-700',btn: 'bg-orange-500 hover:bg-orange-600' },
+};
+
 const LibraryContent = ({ state, actions, setNotification }) => {
   const { player } = state;
-  const availableJobs = jobsData.filter(j => j.id !== 'gig_driver').sort((a, b) => a.wage - b.wage);
   const isCorpEmployee = player.job?.type === 'corporate';
   const isTradeEmployee = player.job?.type === 'trade';
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
-  const [showCareerPaths, setShowCareerPaths] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
 
-  const handleApply = (job) => {
-    const prev = state;
-    actions.applyForJob(job);
-    // Notification will come from lastJobResult — handled in Board
+  const companyJobs = selectedCompany
+    ? jobsData.filter(j => j.company === selectedCompany.id)
+    : [];
+
+  const co = selectedCompany ? COMPANY_COLOR_MAP[selectedCompany.color] : null;
+
+  // Rejection difficulty label based on chance
+  const difficultyLabel = (chance) => {
+    if (chance <= 0.1) return { label: 'Easy', cls: 'bg-green-100 text-green-700' };
+    if (chance <= 0.2) return { label: 'Moderate', cls: 'bg-yellow-100 text-yellow-700' };
+    return { label: 'Competitive', cls: 'bg-red-100 text-red-600' };
   };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
-      <div className="flex flex-col">
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📋 Job Board</h3>
-        <div className="flex-grow overflow-y-auto space-y-1">
-          {availableJobs.map(job => {
-            const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
-            const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
-            const meetsDep = !job.requirements?.dependability || player.dependability >= job.requirements.dependability;
-            const meetsItm = !job.requirements?.item || player.inventory.some(i => i.id === job.requirements.item);
-            const canApply = meetsExp && meetsEdu && meetsDep && meetsItm;
-            return (
-              <button
-                key={job.id}
-                onClick={() => handleApply(job)}
-                className={`w-full text-left p-2 border rounded text-xs group ${canApply ? 'bg-white hover:border-emerald-400' : 'bg-slate-50'}`}
-              >
-                <div className="flex justify-between mb-0.5">
-                  <span className={`font-bold ${canApply ? 'group-hover:text-emerald-600' : 'text-slate-500'}`}>{job.title}</span>
-                  <span className="font-mono">${job.wage}/hr</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {!job.requirements?.education && !job.requirements?.experience && !job.requirements?.dependability && !job.requirements?.item
-                    ? <span className="text-[9px] text-slate-400">Entry Level — No requirements</span>
-                    : null}
-                  {job.requirements?.education && (
-                    <span className={`text-[9px] px-1 rounded ${meetsEdu ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                      🎓 {job.requirements.education}
-                    </span>
-                  )}
-                  {job.requirements?.experience && (
-                    <span className={`text-[9px] px-1 rounded ${meetsExp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                      ⏱ {job.requirements.experience}wks exp
-                    </span>
-                  )}
-                  {job.requirements?.dependability && (
-                    <span className={`text-[9px] px-1 rounded ${meetsDep ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                      🎯 {job.requirements.dependability} dep
-                    </span>
-                  )}
-                  {job.requirements?.item && (
-                    <span className={`text-[9px] px-1 rounded ${meetsItm ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                      📦 {job.requirements.item.replace(/_/g, ' ')}
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        {/* Career Paths info */}
-        <button
-          onClick={() => setShowCareerPaths(s => !s)}
-          className="w-full mt-2 text-xs text-slate-500 hover:text-emerald-600 flex items-center gap-1 py-1 border-t border-slate-200"
-        >
-          {showCareerPaths ? '▼' : '▶'} Career Paths
-        </button>
-        {showCareerPaths && (
-          <div className="text-[10px] space-y-2 bg-slate-50 p-2 rounded border border-slate-200">
-            {CAREER_TRACKS.map(track => (
-              <div key={track.label}>
-                <div className="font-bold text-slate-600 mb-0.5">{track.label}</div>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {track.jobs.map((jobId, i) => {
-                    const job = jobsData.find(j => j.id === jobId);
-                    if (!job) return null;
-                    const isCurrent = player.job?.id === jobId;
-                    const isNext = player.job?.promotion === jobId;
-                    return (
-                      <React.Fragment key={jobId}>
-                        {i > 0 && <span className="text-slate-400">→</span>}
-                        <span className={`px-1 py-0.5 rounded text-[9px] font-semibold ${
-                          isCurrent ? 'bg-emerald-200 text-emerald-800' :
-                          isNext ? 'bg-yellow-100 text-yellow-800 ring-1 ring-yellow-400' :
-                          'bg-slate-100 text-slate-500'
-                        }`}>
-                          {job.title} ${job.wage}
-                        </span>
-                      </React.Fragment>
-                    );
-                  })}
-                </div>
+      {/* Left: Company Directory or Job Listings */}
+      <div className="flex flex-col min-h-0">
+        {!selectedCompany ? (
+          <>
+            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🏢 Companies Hiring</h3>
+            <div className="flex-grow overflow-y-auto space-y-1.5">
+              {COMPANIES.map(company => {
+                const jobs = jobsData.filter(j => j.company === company.id);
+                const entryJobs = jobs.filter(j => !j.requirements?.education && !j.requirements?.experience && !j.requirements?.dependability && !j.requirements?.item);
+                const colors = COMPANY_COLOR_MAP[company.color];
+                const isCurrentEmployer = player.job?.company === company.id;
+                return (
+                  <button
+                    key={company.id}
+                    onClick={() => setSelectedCompany(company)}
+                    className={`w-full text-left p-2.5 border-2 rounded-xl transition active:scale-95 group ${colors.bg} ${colors.border} ${isCurrentEmployer ? 'ring-2 ring-emerald-400' : 'hover:brightness-95'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{company.emoji}</span>
+                        <div>
+                          <div className="font-bold text-xs flex items-center gap-1">
+                            {company.id}
+                            {isCurrentEmployer && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">current</span>}
+                          </div>
+                          <div className={`text-[9px] px-1 rounded inline-block ${colors.badge}`}>{company.industry}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[9px] text-slate-500">{jobs.length} position{jobs.length !== 1 ? 's' : ''}</div>
+                        {entryJobs.length > 0 && <div className="text-[9px] text-green-600 font-semibold">✓ entry level</div>}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 mb-2 border-b border-slate-300 pb-1">
+              <button onClick={() => setSelectedCompany(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">‹</button>
+              <span className="text-lg">{selectedCompany.emoji}</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm leading-tight">{selectedCompany.id}</h3>
+                <p className="text-[9px] text-slate-500 truncate">{selectedCompany.desc}</p>
               </div>
-            ))}
-          </div>
+            </div>
+            <div className="flex-grow overflow-y-auto space-y-2">
+              {companyJobs.map(job => {
+                const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
+                const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
+                const meetsDep = !job.requirements?.dependability || player.dependability >= job.requirements.dependability;
+                const meetsItm = !job.requirements?.item || player.inventory.some(i => i.id === job.requirements.item);
+                const canApply = meetsExp && meetsEdu && meetsDep && meetsItm;
+                const isCurrentJob = player.job?.id === job.id;
+                const diff = difficultyLabel(job.rejectionChance || 0.25);
+                const isEntryLevel = !job.requirements?.education && !job.requirements?.experience && !job.requirements?.dependability && !job.requirements?.item;
+                return (
+                  <div key={job.id} className={`border-2 rounded-xl p-2.5 ${co.bg} ${co.border} ${isCurrentJob ? 'ring-2 ring-emerald-400' : ''}`}>
+                    <div className="flex justify-between items-start mb-1">
+                      <div>
+                        <div className="font-bold text-xs flex items-center gap-1">
+                          {job.title}
+                          {isCurrentJob && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">you're here</span>}
+                        </div>
+                        <div className="text-[9px] text-slate-500 mt-0.5">{job.description}</div>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <div className="font-mono font-black text-sm text-green-700">${job.wage}/hr</div>
+                        <div className={`text-[9px] px-1 rounded ${diff.cls}`}>{diff.label}</div>
+                      </div>
+                    </div>
+                    {/* Requirements */}
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {isEntryLevel
+                        ? <span className="text-[9px] text-green-600 font-semibold">✓ No requirements — open to all</span>
+                        : <>
+                          {job.requirements?.education && <span className={`text-[9px] px-1 rounded ${meetsEdu ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎓 {job.requirements.education}</span>}
+                          {job.requirements?.experience && <span className={`text-[9px] px-1 rounded ${meetsExp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>⏱ {job.requirements.experience}wks exp</span>}
+                          {job.requirements?.dependability && <span className={`text-[9px] px-1 rounded ${meetsDep ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎯 {job.requirements.dependability} dep</span>}
+                          {job.requirements?.item && <span className={`text-[9px] px-1 rounded ${meetsItm ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>📦 {job.requirements.item.replace(/_/g, ' ')}</span>}
+                        </>
+                      }
+                    </div>
+                    {/* Apply button */}
+                    {isCurrentJob ? (
+                      <div className="text-[10px] text-center text-emerald-700 font-semibold py-1">✓ Currently employed here</div>
+                    ) : (
+                      <button
+                        onClick={() => actions.applyForJob(job)}
+                        disabled={player.timeRemaining < 2}
+                        className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${co.btn}`}
+                      >
+                        {canApply ? '📋 Apply (costs 2 hrs)' : '🚫 Apply anyway (likely rejected)'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
-      <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Remote Work</h3>
-        {isCorpEmployee && hasLaptop ? (
-          <button
-            onClick={actions.work}
-            disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-sm transition active:scale-95"
-          >
-            <div className="flex justify-between items-center">
-              <div className="font-bold">🏢 Work Shift (8h)</div>
-              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
-            </div>
-            <div className="text-xs text-emerald-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
-          </button>
-        ) : isCorpEmployee && !hasLaptop ? (
-          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Need a 💻 Laptop for remote work.</div>
-        ) : (
-          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Corporate employees can work remotely here with a laptop.</div>
-        )}
-        {/* Promotion check for corp employees */}
-        {isCorpEmployee && (() => {
-          const nextJob = getNextPromotion(player);
-          if (!nextJob) return null;
-          return (
-            <button onClick={() => actions.applyForJob(nextJob)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
-              🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-            </button>
-          );
-        })()}
 
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2 mt-3">🔧 Trade Dispatch</h3>
-        {isTradeEmployee ? (
-          <button onClick={actions.work} disabled={player.timeRemaining < 8} className="w-full p-3 bg-yellow-50 border-2 border-yellow-300 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-sm transition active:scale-95">
-            <div className="flex justify-between items-center">
-              <div className="font-bold">🔧 Go to Site (8h)</div>
-              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
-            </div>
-            <div className="text-xs text-yellow-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
-          </button>
-        ) : (
-          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers get dispatched here.</div>
-        )}
-        {/* Promotion check for trade employees */}
-        {isTradeEmployee && (() => {
-          const nextJob = getNextPromotion(player);
-          if (!nextJob) return null;
-          return (
-            <button onClick={() => actions.applyForJob(nextJob)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
-              🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+      {/* Right: Work + Remote/Trade panels */}
+      <div className="flex flex-col gap-3">
+        <div>
+          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Remote Work</h3>
+          {isCorpEmployee && hasLaptop ? (
+            <button
+              onClick={actions.work}
+              disabled={player.timeRemaining < 8}
+              className="w-full p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-sm transition active:scale-95"
+            >
+              <div className="flex justify-between items-center">
+                <div className="font-bold">🏢 Work Shift (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-emerald-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
-          );
-        })()}
+          ) : isCorpEmployee && !hasLaptop ? (
+            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Need a 💻 Laptop for remote work.</div>
+          ) : (
+            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Corporate employees can work remotely here with a laptop.</div>
+          )}
+          {isCorpEmployee && (() => {
+            const nextJob = getNextPromotion(player);
+            if (!nextJob) return null;
+            return (
+              <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+              </button>
+            );
+          })()}
+        </div>
+        <div>
+          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🔧 Trade Dispatch</h3>
+          {isTradeEmployee ? (
+            <button onClick={actions.work} disabled={player.timeRemaining < 8} className="w-full p-3 bg-yellow-50 border-2 border-yellow-300 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-sm transition active:scale-95">
+              <div className="flex justify-between items-center">
+                <div className="font-bold">🔧 Go to Site (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-yellow-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+            </button>
+          ) : (
+            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers get dispatched here.</div>
+          )}
+          {isTradeEmployee && (() => {
+            const nextJob = getNextPromotion(player);
+            if (!nextJob) return null;
+            return (
+              <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+              </button>
+            );
+          })()}
+        </div>
       </div>
     </div>
   );
@@ -1476,7 +1525,7 @@ const CoffeeShopContent = ({ state, actions }) => {
               if (!nextJob) return null;
               return (
                 <button
-                  onClick={() => actions.applyForJob(nextJob)}
+                  onClick={() => actions.applyForJob(nextJob, true)}
                   className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95"
                 >
                   🆙 Promote → {nextJob.title} (${nextJob.wage}/hr)
@@ -1736,7 +1785,7 @@ const TechStoreContent = ({ state, actions }) => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
               return (
-                <button onClick={() => actions.applyForJob(nextJob)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+                <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
                   🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
                 </button>
               );
@@ -1773,7 +1822,12 @@ const NeoBankContent = ({ state, actions }) => {
         {/* Savings */}
         <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
           <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1%/wk)</div>
-          <div className="text-2xl font-mono mb-2">${player.savings.toLocaleString()}</div>
+          <div className="text-2xl font-mono">${player.savings.toLocaleString()}</div>
+          {player.savings > 0 ? (
+            <div className="text-[10px] text-green-600 font-semibold mb-2">+${Math.round(player.savings * 0.01).toLocaleString()} interest next week</div>
+          ) : (
+            <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1%/wk interest</div>
+          )}
           <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Deposit</div>
           <div className="grid grid-cols-4 gap-1 mb-1">
             {AMOUNTS.map(amt => (
