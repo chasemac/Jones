@@ -1137,13 +1137,21 @@ const GroceryStoreContent = ({ state, actions }) => {
   const storedServings = player.inventory.filter(i => i.id === 'groceries').length;
   const maxStorage = hasFreezer ? 4 : hasFridge ? 2 : 1;
   const groceryPrice = adjustedPrice(groceryItem.cost, economy);
-  const full = storedServings >= maxStorage;
+  const canBuy = (n) => storedServings + n <= maxStorage && player.money >= groceryPrice * n;
+
+  // How many can we buy at once (up to storage cap)
+  const slotsOpen = maxStorage - storedServings;
+  const bulkOptions = hasStorage
+    ? Array.from({ length: slotsOpen }, (_, i) => i + 1).filter(n => player.money >= groceryPrice * n)
+    : [1]; // no fridge: can only hold 1 at a time anyway
+
   return (
     <div className="grid grid-cols-2 gap-4 h-full">
       <div className="flex flex-col items-center justify-center bg-green-50 rounded-lg p-4">
         <div className="text-7xl mb-2">🛒</div>
         <div className="text-xs font-bold text-green-800 text-center">Fresh Mart</div>
-        <div className="text-[10px] text-green-600 mt-1 text-center">Affordable groceries — get a fridge to store more!</div>
+        <div className="text-[10px] text-green-600 mt-1 text-center">Affordable groceries — get a fridge to stock up!</div>
+        <div className="mt-2 text-[10px] text-slate-500">Hunger: {player.hunger}/100</div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Groceries</h3>
@@ -1151,33 +1159,41 @@ const GroceryStoreContent = ({ state, actions }) => {
         {/* Spoilage warning if no fridge */}
         {!hasStorage && (
           <div className="mb-2 p-2 bg-amber-50 border border-amber-300 rounded text-[10px] text-amber-800">
-            ⚠️ <strong>No fridge!</strong> Food spoils at week's end — you'll get food poisoning (−20hrs). Buy a fridge at MegaMart.
+            ⚠️ <strong>No fridge!</strong> Food spoils at week's end. Buy a fridge at MegaMart to store up to 2 weeks.
           </div>
         )}
 
-        <button
-          onClick={() => actions.buyItem({ ...groceryItem, cost: groceryPrice })}
-          disabled={full || player.money < groceryPrice}
-          className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm mb-1"
-        >
-          <div>
-            <div className="font-bold">🥦 Groceries (1 week)</div>
-            <div className="text-[10px] text-slate-500">
-              {hasStorage ? `${storedServings}/${maxStorage} weeks stored` : 'Holds 1 week (no fridge)'}
-            </div>
+        {storedServings >= maxStorage ? (
+          <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2">
+            ✅ Stocked up! ({storedServings}/{maxStorage} weeks stored)
           </div>
-          <span className="font-mono text-xs">${groceryPrice}</span>
-        </button>
+        ) : (
+          <div className="space-y-1">
+            {bulkOptions.map(n => (
+              <button
+                key={n}
+                onClick={() => {
+                  // Buy n servings one by one (reducer handles each individually)
+                  for (let i = 0; i < n; i++) actions.buyItem({ ...groceryItem, cost: groceryPrice });
+                }}
+                disabled={!canBuy(n)}
+                className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm"
+              >
+                <div>
+                  <div className="font-bold">🥦 {n === 1 ? '1 week' : `${n} weeks`} of groceries</div>
+                  {n > 1 && <div className="text-[10px] text-green-600">Stock up & save trips!</div>}
+                </div>
+                <span className="font-mono text-xs">${groceryPrice * n}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {hasStorage && (
-          <div className="text-[10px] text-green-700 mt-1">
-            🧊 {hasFreezer ? 'Freezer' : 'Fridge'} stores up to {maxStorage} weeks — auto-eaten each week.
+          <div className="text-[10px] text-green-700 mt-2">
+            🧊 {hasFreezer ? 'Freezer' : 'Fridge'}: {storedServings}/{maxStorage} weeks stored — auto-eaten each week.
           </div>
         )}
-
-        <div className="mt-3 border-t border-slate-200 pt-2 text-xs text-slate-400">
-          Hunger: {player.hunger}/100
-        </div>
       </div>
     </div>
   );
@@ -1317,14 +1333,17 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
   const [confirmIdx, setConfirmIdx] = React.useState(null);
+  // Consumables (food, weekly plans, coffee plans) can't be pawned — they have no resale value
+  const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
+  const pawnable = player.inventory.filter(item => !UNSELLABLE_TYPES.has(item.type));
   return (
     <div className="grid grid-cols-2 gap-4">
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Pawn Shop</h3>
         <p className="text-xs italic text-slate-500 mb-2">"50¢ on the dollar, take it or leave it."</p>
-        {player.inventory.length === 0 ? (
-          <div className="text-xs text-slate-400 italic">Nothing to sell.</div>
-        ) : player.inventory.map((item, i) => (
+        {pawnable.length === 0 ? (
+          <div className="text-xs text-slate-400 italic">Nothing to sell.{player.inventory.length > 0 ? ' (Food & consumables can\'t be pawned.)' : ''}</div>
+        ) : pawnable.map((item, i) => (
           <div key={i} className="flex justify-between items-center p-2 bg-white border rounded mb-1 text-xs">
             <span className="truncate mr-1">{item.name}</span>
             {confirmIdx === i ? (
