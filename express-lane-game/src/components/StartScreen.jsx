@@ -27,32 +27,32 @@ const StartScreen = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900 flex justify-center items-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 text-center">
+    <div className="fixed inset-0 bg-slate-900 flex flex-col items-center overflow-y-auto z-50 py-2 sm:py-6 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-8 text-center my-auto">
 
-        <h1 className="text-5xl font-black mb-1 text-indigo-700">Life in the Express Lane</h1>
-        <p className="text-slate-500 mb-6 text-sm">A satirical life-sim. Beat The Joneses.</p>
+        <h1 className="text-2xl sm:text-5xl font-black mb-1 text-indigo-700 leading-tight">Life in the Express Lane</h1>
+        <p className="text-slate-500 mb-3 text-xs sm:text-sm">A satirical life-sim. Beat The Joneses.</p>
 
-        {/* How to win */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 text-left">
+        {/* How to win — always 4 columns, compact on mobile */}
+        <div className="grid grid-cols-4 gap-2 mb-3 text-left">
           {[
-            { icon: '💰', label: 'Wealth',     desc: 'Hit your net worth target' },
-            { icon: '😊', label: 'Happiness',  desc: 'Keep your spirits up' },
-            { icon: '🎓', label: 'Education',  desc: 'Earn the right degree' },
-            { icon: '🎯', label: 'Career',     desc: 'Build your dependability' },
+            { icon: '💰', label: 'Wealth',    desc: 'Hit your net worth target' },
+            { icon: '😊', label: 'Happiness', desc: 'Keep your spirits up' },
+            { icon: '🎓', label: 'Education', desc: 'Earn the right degree' },
+            { icon: '🎯', label: 'Career',    desc: 'Build dependability' },
           ].map(g => (
-            <div key={g.label} className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
-              <div className="text-2xl mb-1">{g.icon}</div>
-              <div className="font-bold text-indigo-800 text-sm">{g.label}</div>
-              <div className="text-xs text-indigo-600">{g.desc}</div>
+            <div key={g.label} className="bg-indigo-50 p-2 sm:p-3 rounded-lg border border-indigo-100">
+              <div className="text-xl sm:text-2xl mb-0.5">{g.icon}</div>
+              <div className="font-bold text-indigo-800 text-[11px] sm:text-sm">{g.label}</div>
+              <div className="text-[9px] sm:text-xs text-indigo-600 hidden sm:block">{g.desc}</div>
             </div>
           ))}
         </div>
 
         {/* Difficulty selection */}
-        <div className="mb-6">
-          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Choose Difficulty</div>
-          <div className="grid grid-cols-3 gap-3">
+        <div className="mb-3">
+          <div className="text-xs font-bold text-slate-600 uppercase mb-2">Choose Difficulty</div>
+          <div className="grid grid-cols-3 gap-2">
             {Object.entries(DIFFICULTY_PRESETS).map(([key, preset]) => {
               const meta = DIFFICULTY_DESCRIPTIONS[key];
               const isSelected = selectedDifficulty === key;
@@ -60,19 +60,19 @@ const StartScreen = () => {
                 <button
                   key={key}
                   onClick={() => setSelectedDifficulty(key)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${isSelected
+                  className={`p-2 sm:p-3 rounded-xl border-2 text-left transition-all ${isSelected
                     ? 'border-indigo-500 bg-indigo-50 shadow-md scale-105'
                     : 'border-slate-200 hover:border-slate-400'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{meta.icon}</div>
-                  <div className="font-black text-sm">{preset.label}</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">{meta.flavor}</div>
-                  <div className="mt-2 space-y-0.5 text-[10px] text-slate-600">
-                    <div>💰 Net Worth: ${preset.goals.wealth.toLocaleString()}</div>
-                    <div>😊 Happiness: {preset.goals.happiness}</div>
-                    <div>🎓 Edu: {preset.goals.education}</div>
-                    <div>🎯 Dep: {preset.goals.careerDependability}</div>
+                  <div className="text-xl sm:text-2xl mb-0.5">{meta.icon}</div>
+                  <div className="font-black text-xs sm:text-sm">{preset.label}</div>
+                  <div className="text-[9px] sm:text-[11px] text-slate-500 mt-0.5 hidden sm:block">{meta.flavor}</div>
+                  <div className="mt-1 sm:mt-2 space-y-0.5 text-[9px] sm:text-[10px] text-slate-600">
+                    <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
+                    <div>😊 {preset.goals.happiness}</div>
+                    <div>🎓 {preset.goals.education}</div>
+                    <div>🎯 {preset.goals.careerDependability} dep</div>
                   </div>
                 </button>
               );
@@ -81,30 +81,30 @@ const StartScreen = () => {
         </div>
 
         {/* Player count */}
-        <div className="mb-6">
-          <div className="text-sm font-bold text-slate-600 uppercase mb-2">Players</div>
+        <div className="mb-3">
+          <div className="text-xs font-bold text-slate-600 uppercase mb-2">Players</div>
           <div className="flex gap-2 justify-center">
             {[1, 2, 3, 4].map(n => (
               <button
                 key={n}
                 onClick={() => setPlayerCount(n)}
-                className={`w-14 h-14 rounded-xl border-2 font-black text-lg transition-all ${playerCount === n
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-2 font-black text-base sm:text-lg transition-all ${playerCount === n
                   ? 'border-indigo-500 bg-indigo-50 scale-110 shadow'
                   : 'border-slate-200 hover:border-slate-400'
                 }`}
               >
                 {['😎','🤠','🥸','🧑‍🚀'][n-1]}
-                <div className="text-[10px] font-bold text-slate-500">{n}P</div>
+                <div className="text-[9px] sm:text-[10px] font-bold text-slate-500">{n}P</div>
               </button>
             ))}
           </div>
         </div>
 
         {/* Buttons */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:gap-3">
           <button
             onClick={handleStart}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl py-4 px-12 rounded-full shadow-lg transition-transform hover:scale-105"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg sm:text-xl py-3 sm:py-4 px-8 sm:px-12 rounded-full shadow-lg transition-transform hover:scale-105"
           >
             New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label} {playerCount > 1 ? `(${playerCount}P)` : ''}
           </button>
@@ -128,7 +128,7 @@ const StartScreen = () => {
           )}
         </div>
 
-        <p className="mt-5 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-slate-400">
           A modern satire inspired by "Jones in the Fast Lane" (Sierra On-Line, 1990).
         </p>
       </div>
