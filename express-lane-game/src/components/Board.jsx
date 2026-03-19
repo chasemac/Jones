@@ -655,8 +655,11 @@ const RingTips = ({ player, week }) => {
     <>
       {/* Expanded panel — bottom sheet on mobile, floats on sm+ */}
       {open && (
-        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-52 bg-amber-50 border-t-2 sm:border-2 border-amber-300 sm:rounded-xl p-4 sm:p-3 shadow-xl z-40">
-          <div className="text-[10px] font-black uppercase text-amber-600 mb-2">💡 What to do next</div>
+        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-52 bg-amber-50 border-t-2 sm:border-2 border-amber-300 sm:rounded-xl p-3 shadow-xl z-40 max-h-48 overflow-y-auto">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-[10px] font-black uppercase text-amber-600">💡 What to do next</div>
+            <button onClick={() => setOpen(false)} className="text-amber-500 hover:text-amber-800 text-lg leading-none font-bold px-1">×</button>
+          </div>
           <div className="space-y-2">
             {tips.slice(0, 3).map((tip, i) => (
               <div key={i} className="flex gap-1.5 items-start">
@@ -693,14 +696,19 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
     <>
       {/* Expanded panel — bottom sheet on mobile, floats on sm+ */}
       {open && (
-        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[14rem] sm:w-52 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-xl p-4 sm:p-3 shadow-xl z-40">
-          <div className="flex items-center gap-2 border-b border-slate-200 pb-2 mb-2">
-            <div className="text-2xl">🤑</div>
-            <div>
-              <div className="text-[10px] font-bold uppercase text-slate-500">The Joneses</div>
-              <div className="text-xs font-bold">{jones.jobTitle}</div>
+        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[14rem] sm:w-52 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-xl p-3 shadow-xl z-40 max-h-52 overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
+            <div className="flex items-center gap-2">
+              <div className="text-2xl">🤑</div>
+              <div>
+                <div className="text-[10px] font-bold uppercase text-slate-500">The Joneses</div>
+                <div className="text-xs font-bold">{jones.jobTitle}</div>
+              </div>
             </div>
+            <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-700 text-lg leading-none font-bold px-1">×</button>
           </div>
+          {/* Stats */}
           <div className="space-y-1 text-[10px]">
             <div className="flex justify-between">
               <span className="text-slate-500">💰 Net Worth</span>
@@ -715,6 +723,7 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
               <span className="font-mono font-bold text-slate-600">{jones.education}</span>
             </div>
           </div>
+          {/* You vs Jones */}
           <div className="mt-2 pt-2 border-t border-slate-200">
             <div className="text-[9px] font-bold uppercase text-slate-400 mb-1">You vs Jones</div>
             <div className="text-[9px] space-y-0.5">
