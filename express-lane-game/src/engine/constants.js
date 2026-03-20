@@ -94,6 +94,7 @@ export const LOCATION_ORDER = [
   'grocery_store',   // bottom row, between Black's Mkt and City College
   'city_college',
   'tech_store',
+  'home',            // left side, between tech_store and neobank
   'neobank',
 ];
 

@@ -62,7 +62,7 @@ const getNextPromotion = (player) => {
 
 // ─── Location config: label, emoji, board position (% from top-left) ─────────
 const LOCATIONS_CONFIG = {
-  leasing_office:  { emoji: '🏢', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 8  } },
+  leasing_office:  { emoji: '🏠', label: 'Leasing',       color: '#9333ea', pos: { x: 5,  y: 8  } },
   quick_eats:      { emoji: '🍔', label: 'Quick Eats',    color: '#ea580c', pos: { x: 38, y: 8  } },
   public_library:  { emoji: '📚', label: 'Library',       color: '#059669', pos: { x: 72, y: 8  } },
   trendsetters:    { emoji: '👕', label: 'TrendSetters',  color: '#db2777', pos: { x: 88, y: 20 } },
@@ -72,7 +72,15 @@ const LOCATIONS_CONFIG = {
   grocery_store:   { emoji: '🛒', label: 'Fresh Mart',    color: '#16a34a', pos: { x: 44, y: 85 } },
   city_college:    { emoji: '🎓', label: 'City College',  color: '#2563eb', pos: { x: 28, y: 85 } },
   tech_store:      { emoji: '📱', label: 'Tech Store',    color: '#475569', pos: { x: 5,  y: 85 } },
+  home:            { emoji: '🏠', label: 'Home',          color: '#7c3aed', pos: { x: 5,  y: 66 } },
   neobank:         { emoji: '🏦', label: 'NeoBank',       color: '#4f46e5', pos: { x: 5,  y: 47 } },
+};
+
+// Dynamic home emoji based on housing tier
+const homeEmoji = (housing) => {
+  if (!housing || housing.homeType === 'moms_house') return '🏠';
+  if (housing.homeType === 'luxury_condo') return '🌇';
+  return '🏘️'; // apartment
 };
 
 // ─── Map background SVG ───────────────────────────────────────────────────────
@@ -81,7 +89,7 @@ const LOCATIONS_CONFIG = {
 // not "5%" strings, so the viewBox is required for % equivalence.
 // Ring road traces all 11 building positions in LOCATION_ORDER (Monopoly-style).
 // megamart sits at (75,74) on the bottom-right diagonal; bottom row buildings spread evenly.
-const RING_PATH = "M 5 8 L 38 8 L 72 8 L 88 20 L 88 50 L 75 74 L 60 85 L 44 85 L 28 85 L 5 85 Z";
+const RING_PATH = "M 5 8 L 38 8 L 72 8 L 88 20 L 88 50 L 75 74 L 60 85 L 44 85 L 28 85 L 5 85 L 5 66 Z";
 
 const MapBackground = () => (
   <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
@@ -1017,9 +1025,7 @@ const COMPANY_COLOR_MAP = {
 
 const LibraryContent = ({ state, actions, setNotification }) => {
   const { player } = state;
-  const isCorpEmployee = player.job?.type === 'corporate';
   const isTradeEmployee = player.job?.type === 'trade';
-  const hasLaptop = player.inventory.some(i => i.id === 'laptop');
   const [selectedCompany, setSelectedCompany] = useState(null);
 
   const companyJobs = selectedCompany
@@ -1142,37 +1148,8 @@ const LibraryContent = ({ state, actions, setNotification }) => {
         )}
       </div>
 
-      {/* Right: Work + Remote/Trade panels */}
+      {/* Right: Trade Dispatch */}
       <div className="flex flex-col gap-3">
-        <div>
-          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Remote Work</h3>
-          {isCorpEmployee && hasLaptop ? (
-            <button
-              onClick={actions.work}
-              disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-sm transition active:scale-95"
-            >
-              <div className="flex justify-between items-center">
-                <div className="font-bold">🏢 Work Shift (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
-              </div>
-              <div className="text-xs text-emerald-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
-            </button>
-          ) : isCorpEmployee && !hasLaptop ? (
-            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Need a 💻 Laptop for remote work.</div>
-          ) : (
-            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Corporate employees can work remotely here with a laptop.</div>
-          )}
-          {isCorpEmployee && (() => {
-            const nextJob = getNextPromotion(player);
-            if (!nextJob) return null;
-            return (
-              <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
-                🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-              </button>
-            );
-          })()}
-        </div>
         <div>
           <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🔧 Trade Dispatch</h3>
           {isTradeEmployee ? (
@@ -1184,7 +1161,7 @@ const LibraryContent = ({ state, actions, setNotification }) => {
               <div className="text-xs text-yellow-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
           ) : (
-            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers get dispatched here.</div>
+            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers pick up dispatch jobs here. Corporate &amp; remote workers go home.</div>
           )}
           {isTradeEmployee && (() => {
             const nextJob = getNextPromotion(player);
@@ -1364,6 +1341,7 @@ const MegaMartContent = ({ state, actions }) => {
   const hasFreezer = player.inventory.some(i => i.id === 'freezer');
   const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
   const hasStorage = hasFridge || hasFreezer;
+  const isRetailEmployee = player.job?.workLocation === 'megamart';
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
@@ -1395,8 +1373,33 @@ const MegaMartContent = ({ state, actions }) => {
           </div>
         </div>
       </div>
-      {/* Right: Buy appliances */}
+      {/* Right: Work shift + Buy appliances */}
       <div>
+        {isRetailEmployee && (
+          <div className="mb-3">
+            <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏪 Staff Only</h3>
+            <button
+              onClick={actions.work}
+              disabled={player.timeRemaining < 8}
+              className="w-full p-3 bg-red-50 border-2 border-red-300 rounded-xl hover:bg-red-100 disabled:opacity-50 text-sm transition active:scale-95 mb-2"
+            >
+              <div className="flex justify-between items-center">
+                <div className="font-bold">🛒 Work Shift (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-red-700 mt-0.5">{player.job.title} · {player.job.company}</div>
+            </button>
+            {(() => {
+              const nextJob = getNextPromotion(player);
+              if (!nextJob) return null;
+              return (
+                <button onClick={() => actions.applyForJob(nextJob, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
+                  🆙 Promote → {nextJob.title} (${nextJob.wage}/hr)
+                </button>
+              );
+            })()}
+          </div>
+        )}
         <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances</h3>
         {appliances.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
@@ -1432,7 +1435,8 @@ const MegaMartContent = ({ state, actions }) => {
 
 const CoffeeShopContent = ({ state, actions }) => {
   const { player, economy } = state;
-  const isServiceEmployee = player.job?.type === 'service';
+  // Only Brew & Co service jobs work here (cashier/stock_clerk work at MegaMart)
+  const isServiceEmployee = player.job?.type === 'service' && (player.job?.workLocation || 'coffee_shop') === 'coffee_shop';
   const espressoPrice = adjustedPrice(5, economy);
   const pastryPrice = adjustedPrice(8, economy);
   const coffeeWeeklyPlans = itemsData.filter(i => i.type === 'weekly_coffee');
@@ -1960,88 +1964,178 @@ const NeoBankContent = ({ state, actions }) => {
   );
 };
 
+// ─── Home ─────────────────────────────────────────────────────────────────────
+const HomeContent = ({ state, actions }) => {
+  const { player } = state;
+  const relax = player.relaxation ?? 50;
+  const isLowRelax = relax <= 20;
+  const homeType = player.housing?.homeType;
+  const emoji = homeEmoji(player.housing);
+  const homeName = homeType === 'luxury_condo' ? 'Luxury Condo' : homeType === 'apartment' ? 'Your Apartment' : "Mom's House";
+  const isWFH = player.job?.workLocation === 'home';
+  const isCorpRemote = player.job?.type === 'corporate' && !isWFH;
+  const hasLaptop = player.inventory.some(i => i.id === 'laptop');
+  const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      {/* Left: sleep + rest */}
+      <div className="space-y-3">
+        {/* Sleep / End Week */}
+        <button
+          onClick={actions.endWeek}
+          className={`w-full text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95
+            ${player.timeRemaining <= 10 ? 'bg-indigo-500 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500'}
+          `}
+        >
+          😴 Sleep — End Week
+          <span className="text-xs font-normal opacity-75">({player.timeRemaining}h left)</span>
+        </button>
+
+        {/* Current home card */}
+        <div className={`rounded-xl border-2 p-3 ${homeType === 'luxury_condo' ? 'bg-yellow-50 border-yellow-300' : homeType === 'apartment' ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-2xl">{emoji}</span>
+            <div>
+              <div className="font-black text-sm">{homeName}</div>
+              <div className="text-[10px] text-slate-500">{player.housing?.title} · ${player.housing?.rent ?? 0}/wk</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-slate-500">
+            <span>🔒 {player.housing?.security ?? 'High'} security</span>
+            {hasHotTub && <span>🛁 Hot tub</span>}
+          </div>
+        </div>
+
+        {/* Rest options */}
+        <div>
+          <h3 className="font-bold text-xs text-slate-500 uppercase tracking-wide mb-1.5">Relax at Home</h3>
+          <div className="flex gap-2">
+            {[2, 4].map(hrs => (
+              <button
+                key={hrs}
+                onClick={() => actions.rest(hrs)}
+                disabled={player.timeRemaining < hrs}
+                className={`flex-1 py-2 border-2 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-40
+                  ${isLowRelax ? 'bg-red-50 border-red-300 text-red-700 animate-pulse' : 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100'}
+                `}
+              >
+                <div className="text-lg">🛁</div>
+                <div>Rest {hrs}h</div>
+                <div className="text-[9px] opacity-75">+{hrs * 5} relax</div>
+              </button>
+            ))}
+          </div>
+          <div className="mt-1 text-[9px] text-slate-400 text-center">Relaxation: {relax}/100 {isLowRelax ? '⚠️ Burnout risk!' : ''}</div>
+        </div>
+      </div>
+
+      {/* Right: WFH work */}
+      <div className="space-y-3">
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Work from Home</h3>
+
+        {/* Data Entry — WFH, no laptop needed */}
+        {isWFH && (
+          <button
+            onClick={actions.work}
+            disabled={player.timeRemaining < 8}
+            className="w-full p-3 bg-violet-50 border-2 border-violet-300 rounded-xl hover:bg-violet-100 disabled:opacity-50 text-sm transition active:scale-95"
+          >
+            <div className="flex justify-between items-center">
+              <div className="font-bold">🖥️ Work Shift (8h)</div>
+              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+            </div>
+            <div className="text-xs text-violet-700 mt-0.5">{player.job.title} · WFH — no commute!</div>
+          </button>
+        )}
+
+        {/* Corporate remote — needs laptop */}
+        {isCorpRemote && hasLaptop && (
+          <button
+            onClick={actions.work}
+            disabled={player.timeRemaining < 8}
+            className="w-full p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-sm transition active:scale-95"
+          >
+            <div className="flex justify-between items-center">
+              <div className="font-bold">🏢 Work Remotely (8h)</div>
+              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+            </div>
+            <div className="text-xs text-emerald-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+          </button>
+        )}
+        {isCorpRemote && !hasLaptop && (
+          <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">Need a 💻 Laptop to work remotely from home.</div>
+        )}
+
+        {!isWFH && !isCorpRemote && (
+          <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">
+            {player.job ? `${player.job.title}s report to ${player.job.company} — head to your work location.` : 'Get a job to work from home or remotely.'}
+          </div>
+        )}
+
+        {/* Promotion at home for WFH/remote workers */}
+        {(isWFH || isCorpRemote) && (() => {
+          const nextJob = getNextPromotion(player);
+          if (!nextJob) return null;
+          return (
+            <button onClick={() => actions.applyForJob(nextJob, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
+              🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+            </button>
+          );
+        })()}
+      </div>
+    </div>
+  );
+};
+
+// ─── Leasing Office ───────────────────────────────────────────────────────────
 const LeasingOfficeContent = ({ state, actions }) => {
   const { player } = state;
   const isFirstVisit = state.week === 1 && !player.hasChosenHousing;
   return (
     <div className="space-y-3">
-
-      {/* Week 1 onboarding: pick housing before anything else */}
-      {isFirstVisit ? (
+      {isFirstVisit && (
         <div className="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-4 mb-1">
           <div className="font-black text-base text-indigo-900 mb-1">👋 Welcome to Life in the Express Lane!</div>
           <p className="text-xs text-indigo-700 mb-3">First things first — choose a place to live. Your rent comes out each week, so pick what you can afford.</p>
           <ul className="text-xs text-indigo-700 space-y-1 list-disc list-inside mb-2">
-            <li>📚 <strong>Library</strong> — get your first job</li>
+            <li>📚 <strong>Library</strong> — browse companies &amp; apply for jobs</li>
             <li>🍔 <strong>Quick Eats</strong> — buy weekly meals so you don't starve</li>
-            <li>☕ <strong>Coffee Shop</strong> — buy weekly coffee plans &amp; work shifts</li>
-            <li>🏦 <strong>NeoBank</strong> — save your money at 1%/week</li>
+            <li>☕ <strong>Coffee Shop</strong> — weekly coffee plans &amp; work shifts</li>
+            <li>🏠 <strong>Home</strong> — sleep, rest, and work from home</li>
           </ul>
           <div className="text-[10px] text-indigo-500">Hunger grows +25/week. Hit 80 and you lose 20hrs next week!</div>
         </div>
-      ) : (
-        <>
-          {/* Sleep / End Week button — only shown after housing is set */}
-          <button
-            onClick={actions.endWeek}
-            className={`w-full text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95
-              ${player.timeRemaining <= 10 ? 'bg-indigo-500 animate-pulse shadow-indigo-400/50 shadow-lg' : 'bg-indigo-600 hover:bg-indigo-500'}
-            `}
-          >
-            😴 Sleep — End Week
-            <span className={`text-xs font-normal opacity-75`}>({player.timeRemaining}h left)</span>
-          </button>
-          <div className="flex gap-2">
-            <div className="bg-purple-50 p-3 rounded border border-purple-100 flex-1">
-              <div className="text-xs font-bold text-purple-600 uppercase">Current Home</div>
-              <div className="text-base font-bold">{player.housing?.title || 'Homeless'}</div>
-              <div className="text-xs text-slate-500">Rent: ${player.housing?.rent}/wk · {player.housing?.security} security</div>
-            </div>
-            {/* Rest at home — quick relaxation recovery */}
-            <button
-              onClick={() => actions.buyItem({
-                id: 'rest_home', name: 'Rest at Home', cost: 0, type: 'entertainment',
-                happinessBoost: 2, relaxationBoost: 10, timeToRest: 2,
-              })}
-              disabled={player.timeRemaining < 2}
-              className={`border-2 hover:opacity-90 disabled:opacity-50 rounded-xl px-3 flex flex-col items-center justify-center text-center transition min-w-[80px]
-                ${(player.relaxation ?? 50) <= 20 ? 'bg-red-50 border-red-300 animate-pulse' : 'bg-teal-50 border-teal-200 hover:bg-teal-100'}
-              `}
-              title="Rest at home (2h)"
-            >
-              <div className="text-2xl">🛁</div>
-              <div className={`text-[9px] font-bold ${(player.relaxation ?? 50) <= 20 ? 'text-red-700' : 'text-teal-700'}`}>Rest 2h</div>
-              <div className="text-[9px] text-slate-500">{player.relaxation ?? 50}/100</div>
-            </button>
-          </div>
-        </>
       )}
 
-      {/* Housing options — always shown */}
+      <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+        {isFirstVisit ? '🏠 Choose your home to begin:' : '🔄 Change Your Lease'}
+      </div>
+
       <div className="space-y-2">
-        {isFirstVisit && (
-          <div className="text-sm font-black text-slate-700 mb-1">🏠 Choose your home to begin:</div>
-        )}
         {housingData.map(h => {
           const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
           const isCurrent = player.housing?.id === h.id;
+          const tierEmoji = h.homeType === 'luxury_condo' ? '🌇' : h.homeType === 'apartment' ? '🏘️' : '🏠';
           return (
             <button
               key={h.id}
               onClick={() => actions.rentApartment(h)}
               disabled={isCurrent}
-              className={`w-full flex justify-between items-center p-3 border-2 rounded-lg text-sm transition-all
-                ${isCurrent ? 'bg-purple-100 border-purple-400 opacity-70 cursor-default' : 'hover:bg-purple-50 border-slate-200 hover:border-purple-300'}
-                ${isFirstVisit && !isCurrent ? 'hover:scale-[1.01] active:scale-[0.99]' : ''}
+              className={`w-full flex justify-between items-center p-3 border-2 rounded-xl text-sm transition-all active:scale-[0.99]
+                ${isCurrent ? 'bg-purple-100 border-purple-400 cursor-default' : 'hover:bg-purple-50 border-slate-200 hover:border-purple-300'}
               `}
             >
-              <div className="text-left">
-                <div className="font-bold">{h.title} {isCurrent && '✅'}</div>
-                <div className="text-xs text-slate-400">{h.description}</div>
-                {deposit > 0 && <div className="text-[10px] text-orange-600">+${deposit} deposit to move in</div>}
+              <div className="text-left flex items-start gap-2">
+                <span className="text-xl mt-0.5">{tierEmoji}</span>
+                <div>
+                  <div className="font-bold">{h.title} {isCurrent && '✅'}</div>
+                  <div className="text-xs text-slate-400">{h.description}</div>
+                  {deposit > 0 && <div className="text-[10px] text-orange-600">+${deposit} deposit</div>}
+                </div>
               </div>
-              <div className="text-right">
-                <div className="font-mono font-bold">${h.rent}/wk</div>
+              <div className="text-right shrink-0 ml-2">
+                <div className="font-mono font-bold">{h.rent === 0 ? 'Free' : `$${h.rent}/wk`}</div>
                 <div className="text-xs text-slate-400">{h.security} security</div>
               </div>
             </button>
@@ -2054,9 +2148,9 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute } = useGame();
+  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute, rest } = useGame();
 
-  const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, toggleMute };
+  const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, toggleMute, rest };
 
   const [showPanel, setShowPanel] = useState(true);
   const [notification, setNotification] = useState(null);
@@ -2111,7 +2205,7 @@ const Board = () => {
     if (!state.awaitingEndWeek) return;
 
     const from = state.player.currentLocation;
-    const home = 'leasing_office';
+    const home = state.player.hasChosenHousing ? 'home' : 'leasing_office';
 
     if (from === home) {
       endWeek();
@@ -2160,7 +2254,7 @@ const Board = () => {
         }
         case 'e': {
           // End week if at leasing office
-          if (player.currentLocation === 'leasing_office' && player.hasChosenHousing) actions.endWeek();
+          if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) actions.endWeek();
           break;
         }
         default: break;
@@ -2219,6 +2313,7 @@ const Board = () => {
       case 'city_college':   return <CityCollegeContent state={state} actions={actions} />;
       case 'tech_store':     return <TechStoreContent state={state} actions={actions} />;
       case 'neobank':        return <NeoBankContent state={state} actions={actions} />;
+      case 'home':           return <HomeContent state={state} actions={actions} />;
       case 'leasing_office': return <LeasingOfficeContent state={state} actions={actions} />;
       default:               return <div className="text-slate-400 italic text-center p-8">Nothing here yet.</div>;
     }
@@ -2285,24 +2380,27 @@ const Board = () => {
         {(() => {
           const { player } = state;
           const promoJob = getNextPromotion(player);
-          const workLocId = player.job ? (JOB_WORK_LOCATION[player.job.type] || null) : null;
+          const workLocId = player.job ? (player.job.workLocation || JOB_WORK_LOCATION[player.job.type] || null) : null;
           return LOCATION_ORDER.map(id => {
             // Warning badges
             let warningBadge = null;
             if (id === 'quick_eats' && player.hunger >= 60) {
               warningBadge = { icon: '!', color: 'bg-orange-500' };
-            } else if (id === 'leasing_office' && (player.relaxation ?? 50) <= 20) {
+            } else if (id === 'home' && (player.relaxation ?? 50) <= 20) {
               warningBadge = { icon: '!', color: 'bg-amber-500' };
             }
             const isPromoReady = !!(promoJob && id === workLocId);
             const travelHours = player.currentLocation !== id
               ? travelCost(player.currentLocation, id)
               : null;
+            const config = id === 'home'
+              ? { ...LOCATIONS_CONFIG.home, emoji: homeEmoji(player.housing), label: player.housing?.homeType === 'luxury_condo' ? 'Condo' : player.housing?.homeType === 'apartment' ? 'Apartment' : 'Home' }
+              : LOCATIONS_CONFIG[id];
             return (
               <BuildingNode
                 key={id}
                 id={id}
-                config={LOCATIONS_CONFIG[id]}
+                config={config}
                 isCurrent={state.player.currentLocation === id}
                 isTraveling={isMoving}
                 onClick={() => handleTravel(id)}

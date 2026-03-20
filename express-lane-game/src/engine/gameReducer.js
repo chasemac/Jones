@@ -308,6 +308,22 @@ export const gameReducer = (state, action) => {
       return { ...s, lastJobResult: { success: true, message: `Promoted to ${job.title} at $${job.wage}/hr! 🎉` } };
     }
 
+    // ── Rest at home ──────────────────────────────────────────────────────────
+    case 'REST': {
+      const { hours = 2 } = action;
+      const player = activePlayer(state);
+      if (player.timeRemaining < hours) return log(state, "Not enough time to rest.");
+      const relaxGain = hours * 5;
+      const happGain = hours;
+      let s = updateActivePlayer(state, p => ({
+        ...p,
+        timeRemaining: p.timeRemaining - hours,
+        relaxation: Math.min(100, (p.relaxation ?? 50) + relaxGain),
+        happiness: Math.min(100, p.happiness + happGain),
+      }));
+      return log(s, `Rested ${hours}h at home. +${relaxGain} relaxation.`);
+    }
+
     // ── Buy item ──────────────────────────────────────────────────────────────
     case 'BUY_ITEM': {
       const { item } = action;
@@ -743,7 +759,7 @@ export const gameReducer = (state, action) => {
 
         // 7. Reset time, home, done flag
         np.timeRemaining = np.maxTime;
-        np.currentLocation = 'leasing_office';
+        np.currentLocation = np.hasChosenHousing ? 'home' : 'leasing_office';
         np.weekDone = false;
 
         // Apply log entries
