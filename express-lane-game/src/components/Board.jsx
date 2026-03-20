@@ -1370,7 +1370,7 @@ const LibraryContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       {/* Left: Job board by location */}
-      <div className="flex flex-col min-h-0">
+      <div className="flex flex-col">
         {!selectedLocation ? (
           <>
             <div className="flex items-center gap-2 border-b border-slate-300 pb-1 mb-2">
@@ -1385,12 +1385,12 @@ const LibraryContent = ({ state, actions }) => {
               </div>
             </div>
             {viewMode === 'salary' && (
-              <div className="flex-grow overflow-y-auto">
+              <div className="max-h-64 sm:max-h-none sm:flex-grow overflow-y-auto">
                 <SalaryTransparencyView player={player} />
               </div>
             )}
             {viewMode === 'browse' && (
-            <div className="flex-grow overflow-y-auto">
+            <div className="max-h-72 sm:max-h-none sm:flex-grow overflow-y-auto">
             <div className="space-y-1.5">
               {LIBRARY_LOCATION_GROUPS.map(loc => {
                 const jobs = jobsData.filter(j => j.location === loc.id);
@@ -1440,7 +1440,7 @@ const LibraryContent = ({ state, actions }) => {
                 <p className="text-[9px] text-slate-500">{locationJobs.length} position{locationJobs.length !== 1 ? 's' : ''} available</p>
               </div>
             </div>
-            <div className="flex-grow overflow-y-auto space-y-2">
+            <div className="max-h-72 sm:max-h-none sm:flex-grow overflow-y-auto space-y-2">
               {locationJobs.map(job => {
                 const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
                 const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
