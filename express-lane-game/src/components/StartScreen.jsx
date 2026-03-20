@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY_PRESETS } from '../engine/constants';
 
+const EMOJI_OPTIONS = [
+  '😎', '🤠', '🥸', '🤓', '😈', '🤑', '🥳', '😏',
+  '🦊', '🐸', '🐼', '🦄', '🐉', '🦁', '🐺', '🦋',
+  '🤖', '🧙', '🦸', '👾',
+];
+
+const DEFAULT_EMOJIS = ['😎', '🤠', '🥸', '🧑‍🚀'];
+
 const DIFFICULTY_DESCRIPTIONS = {
   easy:   { icon: '🌱', flavor: 'Chill grind. Good for learning the ropes.', color: 'border-green-400 bg-green-50', selectedColor: 'border-green-500 bg-green-100 shadow-green-200' },
   normal: { icon: '⚡', flavor: 'The classic experience. Work hard, study harder.', color: 'border-indigo-300 bg-indigo-50', selectedColor: 'border-indigo-500 bg-indigo-100 shadow-indigo-200' },
@@ -20,13 +28,18 @@ const StartScreen = () => {
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
   const [playerCount, setPlayerCount] = useState(1);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [playerEmojis, setPlayerEmojis] = useState([...DEFAULT_EMOJIS]);
+
+  const setPlayerEmoji = (playerIndex, emoji) => {
+    setPlayerEmojis(prev => prev.map((e, i) => i === playerIndex ? emoji : e));
+  };
 
   if (state.gameStatus !== 'start') return null;
 
   const hasSave = !!localStorage.getItem('jones_v2_state');
 
   const handleStart = () => {
-    initGame(selectedDifficulty, playerCount);
+    initGame(selectedDifficulty, playerCount, playerEmojis);
     setTimeout(() => startGame(), 0);
   };
 
@@ -108,10 +121,10 @@ const StartScreen = () => {
           </div>
         </div>
 
-        {/* Player count */}
+        {/* Player count + emoji picker */}
         <div className="mb-4">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Players</div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-3">
             {[1, 2, 3, 4].map(n => (
               <button
                 key={n}
@@ -121,9 +134,38 @@ const StartScreen = () => {
                   : 'border-slate-200 hover:border-slate-400'
                 }`}
               >
-                <div>{['😎','🤠','🥸','🧑‍🚀'][n-1]}</div>
+                <div>{playerEmojis[n - 1]}</div>
                 <div className="text-[9px] font-bold text-slate-500">{n}P</div>
               </button>
+            ))}
+          </div>
+
+          {/* Emoji pickers per player */}
+          <div className="space-y-2">
+            {Array.from({ length: playerCount }, (_, i) => (
+              <div key={i}>
+                {playerCount > 1 && (
+                  <div className="text-[10px] font-bold text-slate-400 mb-1">Player {i + 1} avatar</div>
+                )}
+                {playerCount === 1 && (
+                  <div className="text-[10px] font-bold text-slate-400 mb-1">Choose your avatar</div>
+                )}
+                <div className="flex flex-wrap gap-1.5">
+                  {EMOJI_OPTIONS.map(emoji => (
+                    <button
+                      key={emoji}
+                      onClick={() => setPlayerEmoji(i, emoji)}
+                      className={`w-9 h-9 rounded-lg text-xl flex items-center justify-center transition-all active:scale-90 ${
+                        playerEmojis[i] === emoji
+                          ? 'bg-indigo-100 border-2 border-indigo-500 shadow-sm scale-110'
+                          : 'bg-slate-100 border-2 border-transparent hover:border-slate-300'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

@@ -60,7 +60,7 @@ export const GameProvider = ({ children }) => {
 
   // ── Action creators (stable refs via useCallback not needed — tiny wrappers) ─
   const actions = {
-    initGame: (difficulty, playerCount) => dispatch({ type: 'INIT_GAME', difficulty, playerCount: playerCount || 1 }),
+    initGame: (difficulty, playerCount, playerEmojis) => dispatch({ type: 'INIT_GAME', difficulty, playerCount: playerCount || 1, playerEmojis }),
     startGame: () => dispatch({ type: 'START_GAME' }),
     resetGame: () => {
       localStorage.removeItem(SAVE_KEY);

@@ -16,10 +16,10 @@ import stocksData from '../data/stocks.json';
 const PLAYER_COLORS = ['#facc15', '#34d399', '#f87171', '#818cf8']; // yellow, green, red, purple
 const PLAYER_EMOJIS = ['😎', '🤠', '🥸', '🧑‍🚀'];
 
-export const buildPlayer = (index, startingMoney) => ({
+export const buildPlayer = (index, startingMoney, emoji) => ({
   name: `Player ${index + 1}`,
   color: PLAYER_COLORS[index],
-  emoji: PLAYER_EMOJIS[index],
+  emoji: emoji || PLAYER_EMOJIS[index],
   money: startingMoney,
   happiness: 50,
   dependability: 50,  // 0-100; career goal metric, decays -3/week, +5 per shift worked
@@ -43,12 +43,12 @@ export const buildPlayer = (index, startingMoney) => ({
 });
 
 // ─── Initial State Builder ────────────────────────────────────────────────────
-export const buildInitialState = (difficulty = 'normal', playerCount = 1) => {
+export const buildInitialState = (difficulty = 'normal', playerCount = 1, playerEmojis = null) => {
   const preset = DIFFICULTY_PRESETS[difficulty];
   const market = {};
   stocksData.forEach(s => { market[s.symbol] = s.basePrice; });
 
-  const players = Array.from({ length: playerCount }, (_, i) => buildPlayer(i, preset.startingMoney));
+  const players = Array.from({ length: playerCount }, (_, i) => buildPlayer(i, preset.startingMoney, playerEmojis?.[i]));
 
   return {
     gameStatus: 'start',
@@ -136,7 +136,7 @@ export const gameReducer = (state, action) => {
 
     // ── Game lifecycle ────────────────────────────────────────────────────────
     case 'INIT_GAME': {
-      const s = buildInitialState(action.difficulty, action.playerCount || 1);
+      const s = buildInitialState(action.difficulty, action.playerCount || 1, action.playerEmojis);
       return { ...s, weekStartSnapshot: s.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt })) };
     }
 
