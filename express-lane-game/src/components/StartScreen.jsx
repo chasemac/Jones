@@ -3,15 +3,23 @@ import { useGame } from '../context/GameContext';
 import { DIFFICULTY_PRESETS } from '../engine/constants';
 
 const DIFFICULTY_DESCRIPTIONS = {
-  easy:   { icon: '🌱', flavor: 'Chill grind. Good for learning the ropes.' },
-  normal: { icon: '⚡', flavor: 'The classic experience. Work hard, study harder.' },
-  hard:   { icon: '🔥', flavor: 'Brutal. You need a Master\'s and a corner office.' },
+  easy:   { icon: '🌱', flavor: 'Chill grind. Good for learning the ropes.', color: 'border-green-400 bg-green-50', selectedColor: 'border-green-500 bg-green-100 shadow-green-200' },
+  normal: { icon: '⚡', flavor: 'The classic experience. Work hard, study harder.', color: 'border-indigo-300 bg-indigo-50', selectedColor: 'border-indigo-500 bg-indigo-100 shadow-indigo-200' },
+  hard:   { icon: '🔥', flavor: "Brutal. You need a Master's and a corner office.", color: 'border-red-300 bg-red-50', selectedColor: 'border-red-500 bg-red-100 shadow-red-200' },
 };
+
+const HOW_TO_WIN = [
+  { icon: '💰', label: 'Wealth',    desc: 'Hit your net worth target' },
+  { icon: '😊', label: 'Happiness', desc: 'Stay happy to the end' },
+  { icon: '🎓', label: 'Education', desc: 'Earn the right degree' },
+  { icon: '🎯', label: 'Career',    desc: 'Build dependability' },
+];
 
 const StartScreen = () => {
   const { state, initGame, startGame, resetGame } = useGame();
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
   const [playerCount, setPlayerCount] = useState(1);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   if (state.gameStatus !== 'start') return null;
 
@@ -28,30 +36,50 @@ const StartScreen = () => {
 
   return (
     <div className="fixed inset-0 bg-slate-900 flex flex-col items-center overflow-y-auto z-50 py-2 sm:py-6 px-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-4 sm:p-8 text-center my-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-7 my-auto">
 
-        <h1 className="text-2xl sm:text-5xl font-black mb-1 text-indigo-700 leading-tight">Life in the Express Lane</h1>
-        <p className="text-slate-500 mb-3 text-xs sm:text-sm">A satirical life-sim. Beat The Joneses.</p>
+        {/* Title */}
+        <div className="text-center mb-4">
+          <div className="text-3xl sm:text-4xl mb-1">🏙️</div>
+          <h1 className="text-2xl sm:text-4xl font-black text-indigo-700 leading-tight">Life in the Express Lane</h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">A satirical life-sim. Beat The Joneses.</p>
+        </div>
 
-        {/* How to win — always 4 columns, compact on mobile */}
-        <div className="grid grid-cols-4 gap-2 mb-3 text-left">
-          {[
-            { icon: '💰', label: 'Wealth',    desc: 'Hit your net worth target' },
-            { icon: '😊', label: 'Happiness', desc: 'Keep your spirits up' },
-            { icon: '🎓', label: 'Education', desc: 'Earn the right degree' },
-            { icon: '🎯', label: 'Career',    desc: 'Build dependability' },
-          ].map(g => (
-            <div key={g.label} className="bg-indigo-50 p-2 sm:p-3 rounded-lg border border-indigo-100">
+        {/* Win conditions */}
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-4">
+          {HOW_TO_WIN.map(g => (
+            <div key={g.label} className="bg-indigo-50 p-2 sm:p-3 rounded-xl border border-indigo-100 text-center">
               <div className="text-xl sm:text-2xl mb-0.5">{g.icon}</div>
-              <div className="font-bold text-indigo-800 text-[11px] sm:text-sm">{g.label}</div>
-              <div className="text-[9px] sm:text-xs text-indigo-600 hidden sm:block">{g.desc}</div>
+              <div className="font-black text-indigo-800 text-[11px] sm:text-xs leading-tight">{g.label}</div>
+              <div className="text-[9px] text-indigo-500 hidden sm:block mt-0.5 leading-tight">{g.desc}</div>
             </div>
           ))}
         </div>
 
+        {/* How to play toggle */}
+        <button
+          onClick={() => setShowHowToPlay(v => !v)}
+          className="w-full text-xs text-slate-500 border border-slate-200 rounded-lg py-1.5 mb-3 hover:bg-slate-50 transition flex items-center justify-center gap-1.5"
+        >
+          <span>{showHowToPlay ? '▼' : '▶'}</span>
+          <span>How to Play</span>
+        </button>
+        {showHowToPlay && (
+          <div className="bg-slate-50 rounded-xl p-3 mb-3 text-xs text-slate-600 border border-slate-200 space-y-1.5">
+            <div className="font-bold text-slate-700 mb-1">📋 Quick Start Guide</div>
+            <div>🏠 <strong>Leasing Office</strong> — choose your first home</div>
+            <div>📚 <strong>Library</strong> — browse job listings and apply</div>
+            <div>🍔 <strong>Quick Eats</strong> — buy weekly meals (or starve!)</div>
+            <div>💼 <strong>Work</strong> at your job location to earn money</div>
+            <div>🎓 <strong>City College</strong> — take courses to advance your career</div>
+            <div>🏦 <strong>NeoBank</strong> — save money, earn interest, trade stocks</div>
+            <div className="mt-1 text-slate-400">⏱ You have 60 hours/week. When time runs out, the week ends automatically.</div>
+          </div>
+        )}
+
         {/* Difficulty selection */}
         <div className="mb-3">
-          <div className="text-xs font-bold text-slate-600 uppercase mb-2">Choose Difficulty</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Choose Difficulty</div>
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(DIFFICULTY_PRESETS).map(([key, preset]) => {
               const meta = DIFFICULTY_DESCRIPTIONS[key];
@@ -60,15 +88,15 @@ const StartScreen = () => {
                 <button
                   key={key}
                   onClick={() => setSelectedDifficulty(key)}
-                  className={`p-2 sm:p-3 rounded-xl border-2 text-left transition-all ${isSelected
-                    ? 'border-indigo-500 bg-indigo-50 shadow-md scale-105'
-                    : 'border-slate-200 hover:border-slate-400'
+                  className={`p-2.5 rounded-xl border-2 text-left transition-all min-h-[44px] active:scale-95 ${isSelected
+                    ? `${meta.selectedColor} shadow-md scale-[1.03]`
+                    : `${meta.color} hover:scale-[1.01]`
                   }`}
                 >
-                  <div className="text-xl sm:text-2xl mb-0.5">{meta.icon}</div>
-                  <div className="font-black text-xs sm:text-sm">{preset.label}</div>
-                  <div className="text-[9px] sm:text-[11px] text-slate-500 mt-0.5 hidden sm:block">{meta.flavor}</div>
-                  <div className="mt-1 sm:mt-2 space-y-0.5 text-[9px] sm:text-[10px] text-slate-600">
+                  <div className="text-xl mb-0.5">{meta.icon}</div>
+                  <div className="font-black text-xs">{preset.label}</div>
+                  <div className="text-[9px] text-slate-500 mt-0.5 hidden sm:block leading-tight">{meta.flavor}</div>
+                  <div className="mt-1.5 space-y-0.5 text-[9px] text-slate-600">
                     <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
                     <div>😊 {preset.goals.happiness}</div>
                     <div>🎓 {preset.goals.education}</div>
@@ -81,55 +109,55 @@ const StartScreen = () => {
         </div>
 
         {/* Player count */}
-        <div className="mb-3">
-          <div className="text-xs font-bold text-slate-600 uppercase mb-2">Players</div>
-          <div className="flex gap-2 justify-center">
+        <div className="mb-4">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Players</div>
+          <div className="flex gap-2">
             {[1, 2, 3, 4].map(n => (
               <button
                 key={n}
                 onClick={() => setPlayerCount(n)}
-                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl border-2 font-black text-base sm:text-lg transition-all ${playerCount === n
-                  ? 'border-indigo-500 bg-indigo-50 scale-110 shadow'
+                className={`flex-1 h-12 sm:h-14 rounded-xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 flex flex-col items-center justify-center ${playerCount === n
+                  ? 'border-indigo-500 bg-indigo-50 shadow-md'
                   : 'border-slate-200 hover:border-slate-400'
                 }`}
               >
-                {['😎','🤠','🥸','🧑‍🚀'][n-1]}
-                <div className="text-[9px] sm:text-[10px] font-bold text-slate-500">{n}P</div>
+                <div>{['😎','🤠','🥸','🧑‍🚀'][n-1]}</div>
+                <div className="text-[9px] font-bold text-slate-500">{n}P</div>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col gap-2 sm:gap-3">
+        {/* Action buttons */}
+        <div className="flex flex-col gap-2">
           <button
             onClick={handleStart}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg sm:text-xl py-3 sm:py-4 px-8 sm:px-12 rounded-full shadow-lg transition-transform hover:scale-105"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base sm:text-lg py-3 sm:py-4 rounded-xl shadow-lg transition active:scale-95 min-h-[48px]"
           >
-            New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label} {playerCount > 1 ? `(${playerCount}P)` : ''}
+            🚀 New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label}{playerCount > 1 ? ` (${playerCount}P)` : ''}
           </button>
 
           {hasSave && (
             <button
               onClick={handleResume}
-              className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-8 rounded-full shadow transition"
+              className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl shadow transition active:scale-95 min-h-[44px]"
             >
-              Resume Saved Game
+              ▶ Resume Saved Game
             </button>
           )}
 
           {hasSave && (
             <button
               onClick={resetGame}
-              className="text-slate-400 hover:text-red-500 text-sm underline"
+              className="text-slate-400 hover:text-red-500 text-xs underline py-1"
             >
               Delete Save Data
             </button>
           )}
         </div>
 
-        <p className="mt-4 text-xs text-slate-400">
-          A modern satire inspired by "Jones in the Fast Lane" (Sierra On-Line, 1990).
+        <p className="mt-4 text-[10px] text-center text-slate-400">
+          Inspired by "Jones in the Fast Lane" (Sierra On-Line, 1990) · Keyboard: I=Inventory, G=Goals, L=Log
         </p>
       </div>
     </div>

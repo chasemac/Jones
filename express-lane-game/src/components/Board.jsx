@@ -89,18 +89,25 @@ const JobsHereCard = ({ locationId, player, actions }) => {
   const jobs = jobsData.filter(j => j.location === locationId);
   if (jobs.length === 0) return null;
   const entryCount = jobs.filter(j => !j.requirements?.education && !j.requirements?.experience && !j.requirements?.dependability && !j.requirements?.item).length;
+  const isUnemployed = !player.job;
+  const hasEntryJob = entryCount > 0;
 
   const diffLabel = (chance) => chance <= 0.15 ? { t: 'Easy', c: 'bg-green-100 text-green-700' }
     : chance <= 0.30 ? { t: 'Moderate', c: 'bg-yellow-100 text-yellow-700' }
     : { t: 'Competitive', c: 'bg-red-100 text-red-600' };
 
   return (
-    <div className="border border-slate-200 rounded-xl overflow-hidden mb-3">
+    <div className={`border rounded-xl overflow-hidden mb-3 ${isUnemployed && hasEntryJob ? 'border-green-300 shadow-sm' : 'border-slate-200'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-600 transition"
+        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold transition ${isUnemployed && hasEntryJob ? 'bg-green-50 hover:bg-green-100 text-green-800' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
       >
-        <span>🧾 {jobs.length} Position{jobs.length !== 1 ? 's' : ''} Available Here {entryCount > 0 ? `· ${entryCount} entry level` : ''}</span>
+        <span>
+          {isUnemployed && hasEntryJob ? '🟢 ' : '🧾 '}
+          {jobs.length} Position{jobs.length !== 1 ? 's' : ''} Available Here
+          {entryCount > 0 ? ` · ${entryCount} entry level` : ''}
+          {isUnemployed && hasEntryJob ? ' · HIRING' : ''}
+        </span>
         <span>{open ? '▼' : '▶'}</span>
       </button>
       {open && (
@@ -158,41 +165,45 @@ const JobsHereCard = ({ locationId, player, actions }) => {
 };
 
 // ─── Map background SVG ───────────────────────────────────────────────────────
-// viewBox="0 0 100 100" maps coordinates 1:1 with % positions so building
-// coords (e.g. x:5, y:8) match exactly. Path data only accepts numeric units,
-// not "5%" strings, so the viewBox is required for % equivalence.
-// Ring road traces all 11 building positions in LOCATION_ORDER (Monopoly-style).
-// megamart sits at (75,74) on the bottom-right diagonal; bottom row buildings spread evenly.
 const RING_PATH = "M 5 8 L 38 8 L 72 8 L 88 20 L 88 50 L 75 74 L 60 85 L 44 85 L 28 85 L 5 85 L 5 66 Z";
 
-const MapBackground = () => (
-  <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 100 100" preserveAspectRatio="none">
-    {/* Green interior park fill — inset from the ring */}
-    <path d="M 12 12 L 38 12 L 72 12 L 83 22 L 83 48 L 71 72 L 57 81 L 42 81 L 26 81 L 12 81 Z"
-      fill="#dcfce7" stroke="none" />
-    <ellipse cx="48" cy="46" rx="14" ry="11" fill="#bbf7d0" opacity="0.6" />
+const MapBackground = ({ economy }) => {
+  // Park color shifts with economy
+  const parkFill = economy === 'Boom' ? '#bbf7d0' : economy === 'Depression' ? '#fef2f2' : '#dcfce7';
+  const parkInner = economy === 'Boom' ? '#86efac' : economy === 'Depression' ? '#fecaca' : '#bbf7d0';
+  return (
+    <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 100 100" preserveAspectRatio="none">
+      {/* Green interior park fill */}
+      <path d="M 12 12 L 38 12 L 72 12 L 83 22 L 83 48 L 71 72 L 57 81 L 42 81 L 26 81 L 12 81 Z"
+        fill={parkFill} stroke="none" />
+      <ellipse cx="48" cy="46" rx="14" ry="11" fill={parkInner} opacity="0.6" />
 
-    {/* Ring road — asphalt base (5 units = 5% of width) */}
-    <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5" strokeLinejoin="round" />
-    {/* Ring road — lighter road surface */}
-    <path d={RING_PATH} fill="none" stroke="#e5e7eb" strokeWidth="3.5" strokeLinejoin="round" />
-    {/* Yellow dashed center line */}
-    <path d={RING_PATH} fill="none" stroke="#fbbf24" strokeWidth="0.6" strokeLinejoin="round"
-      strokeDasharray="3 2" opacity="0.8" />
+      {/* Ring road — asphalt base */}
+      <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5" strokeLinejoin="round" />
+      {/* Ring road — lighter road surface */}
+      <path d={RING_PATH} fill="none" stroke="#e5e7eb" strokeWidth="3.5" strokeLinejoin="round" />
+      {/* Yellow dashed center line */}
+      <path d={RING_PATH} fill="none" stroke="#fbbf24" strokeWidth="0.6" strokeLinejoin="round"
+        strokeDasharray="3 2" opacity="0.8" />
 
-    {/* Decorative trees & houses in park interior */}
-    <text x="38" y="41" fontSize="5" textAnchor="middle">🌳</text>
-    <text x="54" y="50" fontSize="5" textAnchor="middle">🌲</text>
-    <text x="42" y="62" fontSize="4" textAnchor="middle">🌳</text>
-    <text x="60" y="36" fontSize="3.5" textAnchor="middle">🌲</text>
-    <text x="30" y="54" fontSize="3" textAnchor="middle">🏠</text>
-    <text x="62" y="66" fontSize="3" textAnchor="middle">🏠</text>
-  </svg>
-);
+      {/* Decorative park elements */}
+      <text x="38" y="41" fontSize="5" textAnchor="middle">🌳</text>
+      <text x="54" y="50" fontSize="5" textAnchor="middle">🌲</text>
+      <text x="42" y="62" fontSize="4" textAnchor="middle">🌳</text>
+      <text x="60" y="36" fontSize="3.5" textAnchor="middle">🌲</text>
+      <text x="30" y="54" fontSize="3" textAnchor="middle">🏠</text>
+      <text x="62" y="66" fontSize="3" textAnchor="middle">🏠</text>
+      {/* Park bench */}
+      <text x="46" y="36" fontSize="2.5" textAnchor="middle">🪑</text>
+      {/* Fountain */}
+      <text x="50" y="56" fontSize="3" textAnchor="middle">⛲</text>
+    </svg>
+  );
+};
 
 // ─── Building node ────────────────────────────────────────────────────────────
-const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadge, travelHours, isPromoReady }) => (
+const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadge, travelHours, isPromoReady, hasJob }) => (
   <div
     onClick={onClick}
     className={`absolute flex flex-col items-center cursor-pointer transition-all duration-200 hover:scale-110 z-10 group
@@ -205,36 +216,42 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadg
     }}
   >
     <div
-      className={`w-10 h-10 sm:w-16 sm:h-16 bg-white border-2 sm:border-4 rounded-lg sm:rounded-xl shadow-lg flex items-center justify-center text-xl sm:text-3xl relative
-        ${isCurrent ? 'ring-4 ring-yellow-400 scale-110 shadow-2xl' : 'opacity-90 hover:opacity-100'}
+      className={`w-10 h-10 sm:w-14 sm:h-14 bg-white border-2 sm:border-4 rounded-lg sm:rounded-xl shadow-lg flex items-center justify-center text-xl sm:text-3xl relative
+        ${isCurrent ? 'ring-4 ring-yellow-400 scale-110 shadow-2xl' : 'opacity-90 hover:opacity-100 hover:shadow-xl'}
         ${isPromoReady && !isCurrent ? 'ring-2 ring-green-400 animate-pulse' : ''}
+        ${hasJob && !isCurrent ? 'ring-2 ring-emerald-300' : ''}
       `}
       style={{ borderColor: config.color }}
     >
       {config.emoji}
       {isCurrent && (
-        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-yellow-400 text-black text-[9px] sm:text-[10px] font-black px-1 py-0.5 rounded-full animate-bounce">
+        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-yellow-400 text-black text-[9px] sm:text-[10px] font-black px-1 py-0.5 rounded-full animate-bounce shadow">
           YOU
         </div>
       )}
       {warningBadge && !isCurrent && (
-        <div className={`absolute -top-1 -left-1 sm:-top-2 sm:-left-2 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse ${warningBadge.color}`}>
+        <div className={`absolute -top-1 -left-1 sm:-top-2 sm:-left-2 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse shadow ${warningBadge.color}`}>
           {warningBadge.icon}
         </div>
       )}
       {isPromoReady && !isCurrent && (
-        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-green-500 text-white text-[8px] font-black px-1 py-0.5 rounded-full animate-bounce">
+        <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-green-500 text-white text-[8px] font-black px-1 py-0.5 rounded-full animate-bounce shadow">
           🆙
         </div>
       )}
+      {hasJob && !isCurrent && !isPromoReady && (
+        <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-[7px] font-black px-0.5 rounded-full w-3.5 h-3.5 flex items-center justify-center">
+          💼
+        </div>
+      )}
     </div>
-    <div className="mt-0.5 sm:mt-1 bg-slate-800 text-white text-[8px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow whitespace-nowrap">
+    <div className={`mt-0.5 sm:mt-1 text-white text-[7px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow whitespace-nowrap ${isCurrent ? 'bg-yellow-500 text-black' : 'bg-slate-800'}`}>
       {config.label}
     </div>
-    {/* Travel time hint — only show on hover when not current location */}
+    {/* Travel time hint on hover */}
     {!isCurrent && travelHours != null && (
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-5 bg-slate-900/80 text-white text-[8px] px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none">
-        ⏱ {travelHours}h
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-6 bg-slate-900/90 text-white text-[8px] px-1.5 py-0.5 rounded-md whitespace-nowrap pointer-events-none z-20 shadow">
+        ⏱ {travelHours}h away
       </div>
     )}
   </div>
@@ -316,79 +333,167 @@ const FloatingMoney = ({ amount, id, onDone }) => {
 };
 
 // ─── Central location panel ───────────────────────────────────────────────────
-const LocationPanel = ({ locationId, children, onClose }) => {
+const LocationPanel = ({ locationId, player, children, onClose }) => {
   const config = LOCATIONS_CONFIG[locationId];
   if (!config) return null;
+  // Show "you work here" banner
+  const isWorkplace = player?.job?.location === locationId;
   return (
     <div className="absolute inset-x-2 sm:inset-x-4 top-4 bottom-16 sm:bottom-24 bg-white border-4 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden"
       style={{ borderColor: config.color }}>
-      <div className="px-4 py-3 flex justify-between items-center flex-shrink-0"
+      <div className="px-4 py-2.5 flex justify-between items-center flex-shrink-0"
         style={{ background: config.color + '18', borderBottom: `2px solid ${config.color}40` }}>
-        <h2 className="text-xl font-black uppercase tracking-wide flex items-center gap-2" style={{ color: config.color }}>
-          <span className="text-2xl">{config.emoji}</span> {config.label}
-        </h2>
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-lg sm:text-xl font-black uppercase tracking-wide flex items-center gap-2 truncate" style={{ color: config.color }}>
+            <span className="text-xl sm:text-2xl flex-shrink-0">{config.emoji}</span>
+            <span className="truncate">{config.label}</span>
+          </h2>
+          {isWorkplace && (
+            <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full flex-shrink-0">
+              YOUR JOB
+            </span>
+          )}
+        </div>
         <button
           onClick={onClose}
-          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-4 py-1.5 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1"
+          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-3 py-1.5 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1 flex-shrink-0 ml-2 min-h-[36px] min-w-[64px] justify-center"
         >
           MAP 🗺️
         </button>
       </div>
-      <div className="flex-grow p-4 overflow-y-auto bg-white">
+      <div className="flex-grow p-3 sm:p-4 overflow-y-auto bg-white">
         {children}
+      </div>
+      {/* Bottom close button for mobile — easier to reach */}
+      <div className="sm:hidden flex-shrink-0 border-t border-slate-100 px-3 py-2">
+        <button
+          onClick={onClose}
+          className="w-full bg-slate-800 text-white font-bold py-2 rounded-xl text-sm active:scale-95 transition"
+        >
+          ← Back to Map
+        </button>
       </div>
     </div>
   );
 };
 
+// ─── Economy-scaled wage display helpers ─────────────────────────────────────
+const effectiveWage = (baseWage, economy) =>
+  Math.round(baseWage * (ECONOMY_WAGE_MULTIPLIER[economy] || 1));
+
+const EconomyWageBadge = ({ economy }) => {
+  if (economy === 'Normal') return null;
+  const isBoom = economy === 'Boom';
+  return (
+    <span className={`text-[8px] font-black px-1 rounded ml-1 ${isBoom ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-700'}`}>
+      {isBoom ? '📈 Boom wages' : '📉 Low wages'}
+    </span>
+  );
+};
+
+// ─── Experience progress bar helper ──────────────────────────────────────────
+const ExpProgressBar = ({ player }) => {
+  if (!player.job?.promotion) return null;
+  const nextJob = jobsData.find(j => j.id === player.job.promotion);
+  const expNeeded = nextJob?.requirements?.experience || 0;
+  if (!expNeeded) return null;
+  const weeksWorked = player.job.weeksWorked || 0;
+  const expPct = Math.min(100, (weeksWorked / expNeeded) * 100);
+  const ready = weeksWorked >= expNeeded;
+  return (
+    <div className={`mt-1 text-[10px] rounded-lg px-2 py-1.5 border ${ready ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+      <div className="flex justify-between mb-0.5">
+        <span>⏱ Experience</span>
+        <span className={ready ? 'text-green-600 font-bold' : ''}>{weeksWorked}/{expNeeded} wks{ready ? ' ✓' : ''}</span>
+      </div>
+      <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${ready ? 'bg-green-500' : 'bg-blue-400'}`} style={{ width: `${expPct}%` }} />
+      </div>
+    </div>
+  );
+};
+
+// ─── Hunger emoji fill helper ─────────────────────────────────────────────────
+const hungerEmojiFill = (hunger) => {
+  // hunger 0-100: fill 4 slots (empty = ⬜, full = 🍕)
+  const filledSlots = Math.round((hunger / 100) * 4);
+  return Array.from({ length: 4 }, (_, i) => i < filledSlots ? '🍕' : '⬜').join('');
+};
+
 // ─── HUD ─────────────────────────────────────────────────────────────────────
 const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const [muted, setMuted] = useState(false);
-  const { player, week, economy } = state;
+  const { player, week, economy, players } = state;
+  const isMultiplayer = players && players.length > 1;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = calculateNetWorth(player);
+  const timePct = (player.timeRemaining / player.maxTime) * 100;
+  const isLowTime = player.timeRemaining < 8;
 
   const economyColor = economy === 'Boom' ? 'text-green-400' : economy === 'Depression' ? 'text-red-400' : 'text-slate-400';
+  const economyBg = economy === 'Boom' ? 'bg-green-900/40' : economy === 'Depression' ? 'bg-red-900/40' : '';
   const happinessFace = player.happiness >= 80 ? '😁' : player.happiness >= 60 ? '🙂' : player.happiness >= 40 ? '😐' : player.happiness >= 20 ? '😟' : '😫';
+  const happinessBarColor = player.happiness < 20 ? 'bg-red-500' : player.happiness < 50 ? 'bg-orange-400' : player.happiness < 75 ? 'bg-yellow-400' : 'bg-green-500';
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-16 md:h-24 bg-slate-900 border-t-4 border-slate-700 flex items-center justify-between px-2 md:px-3 z-30 shadow-2xl gap-1 md:gap-2">
-
+    <div className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t-2 border-slate-700 z-30 shadow-2xl">
+      {/* Multiplayer player tabs */}
+      {isMultiplayer && (
+        <div className="flex border-b border-slate-700 overflow-x-auto">
+          {players.map((p, i) => {
+            const isActive = i === state.activePlayerIndex;
+            const pNetWorth = calculateNetWorth(p);
+            return (
+              <div key={p.name} className={`flex items-center gap-1 px-2 py-1 text-[9px] font-bold shrink-0 border-r border-slate-700 ${isActive ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>
+                <span>{p.emoji}</span>
+                <span>{p.name}</span>
+                {isActive && <span className="text-yellow-400">◀</span>}
+                <span className={`font-mono ${pNetWorth >= 0 ? 'text-green-400' : 'text-red-400'}`}>${Math.round(pNetWorth).toLocaleString()}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className={`flex items-center justify-between px-2 md:px-3 gap-1 md:gap-2 ${isMultiplayer ? 'h-14 md:h-20' : 'h-16 md:h-24'}`}>
       {/* Week + Economy */}
-      <div className="flex flex-col items-center min-w-[52px]">
-        <div className="text-xl md:text-3xl">🕒</div>
-        <div className="text-slate-400 text-[10px] font-bold uppercase">Wk {week}</div>
-        <div className={`text-[9px] font-bold ${economyColor}`}>{economy}</div>
+      <div className={`flex flex-col items-center min-w-[44px] md:min-w-[52px] rounded-lg px-1 py-0.5 ${economyBg}`}>
+        <div className="text-base md:text-2xl leading-none">📅</div>
+        <div className="text-white text-[11px] md:text-xs font-black leading-none">Wk {week}</div>
+        <div className={`text-[8px] font-bold ${economyColor} leading-none mt-0.5`}>{economy}</div>
       </div>
 
       {/* Happiness */}
       <div className="flex flex-col items-center" title={`Happiness: ${player.happiness}/100 (Goal: ${goals.happiness})`}>
-        <div className="text-xl md:text-3xl">{happinessFace}</div>
-        <div className="w-10 md:w-14 h-1.5 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
+        <div className="text-base md:text-2xl leading-none">{happinessFace}</div>
+        <div className="w-10 md:w-14 h-2 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
           <div
-            className={`h-full transition-all duration-500 ${player.happiness < 30 ? 'bg-red-500' : 'bg-yellow-400'}`}
+            className={`h-full transition-all duration-500 ${happinessBarColor}`}
             style={{ width: `${player.happiness}%` }}
           />
         </div>
-        <div className="text-[9px] text-slate-500">{player.happiness}%</div>
+        <div className={`text-[8px] font-bold ${player.happiness < 25 ? 'text-red-400 animate-pulse' : 'text-slate-400'}`}>{player.happiness}</div>
       </div>
 
       {/* Time bar + stats */}
       <div className="flex-grow flex flex-col gap-0.5 min-w-0">
-        <div className="flex justify-between text-[9px] text-slate-400 uppercase font-bold">
-          <span className="hidden sm:inline">Time</span>
-          <span>{player.timeRemaining}h / {player.maxTime}h</span>
+        <div className="flex justify-between text-[8px] text-slate-400 uppercase font-bold leading-none">
+          <span className={isLowTime ? 'text-red-400 animate-pulse font-black' : ''}>
+            {isLowTime ? '⚡ LOW TIME' : '⏱ Time'}
+          </span>
+          <span className={isLowTime ? 'text-red-400 font-black' : ''}>{player.timeRemaining}h / {player.maxTime}h</span>
         </div>
-        <div className="h-3 bg-slate-800 rounded-full border border-slate-600 overflow-hidden">
+        <div className="h-2.5 md:h-3 bg-slate-800 rounded-full border border-slate-700 overflow-hidden">
           <div
-            className={`h-full transition-all duration-500 ${player.timeRemaining < 15 ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}
-            style={{ width: `${(player.timeRemaining / player.maxTime) * 100}%` }}
+            className={`h-full transition-all duration-500 ${timePct < 20 ? 'bg-red-500 animate-pulse' : timePct < 40 ? 'bg-orange-400' : 'bg-blue-500'}`}
+            style={{ width: `${timePct}%` }}
           />
         </div>
         {/* Emergency stat pills — always visible on mobile when critical */}
         <div className="flex gap-1 md:hidden flex-wrap">
           {player.hunger >= 60 && (
-            <span className="bg-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse">🍽️ {player.hunger}</span>
+            <span className={`text-white text-[8px] font-black px-1.5 py-0.5 rounded-full ${player.hunger >= 80 ? 'bg-red-600 animate-pulse' : 'bg-orange-500'}`}>
+              🍕{player.hunger >= 80 ? 'STARVING' : player.hunger}
+            </span>
           )}
           {(player.relaxation ?? 50) <= 20 && (
             <span className="bg-amber-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse">🛁 {player.relaxation ?? 50}</span>
@@ -396,8 +501,11 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           {player.happiness < 25 && (
             <span className="bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full animate-pulse">💔 {player.happiness}</span>
           )}
+          {!player.job && (
+            <span className="bg-slate-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">No Job</span>
+          )}
         </div>
-        {/* Secondary stats — hidden on mobile to save space */}
+        {/* Secondary stats — desktop only */}
         <div className="hidden md:contents">
           {/* Dependability */}
           <div className="flex items-center gap-1">
@@ -410,20 +518,24 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           <div className="flex items-center gap-1">
             <span className="text-[8px] text-slate-400 w-16 shrink-0">🛁 Relax {player.relaxation ?? 50}</span>
             <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
-              <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
+              <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500 animate-pulse' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
             </div>
           </div>
-          {/* Hunger — always shown */}
+          {/* Hunger with emoji fill */}
           <div className="flex items-center gap-1">
-            <span className={`text-[8px] w-16 shrink-0 ${player.hunger >= 80 ? 'text-red-400 font-bold animate-pulse' : player.hunger >= 60 ? 'text-orange-400' : 'text-slate-400'}`}>🍽️ {player.hunger >= 80 ? 'STARVING' : player.hunger >= 60 ? 'Hungry' : 'Hunger'} {player.hunger}</span>
+            <span className={`text-[8px] w-16 shrink-0 ${player.hunger >= 80 ? 'text-red-400 font-bold animate-pulse' : player.hunger >= 60 ? 'text-orange-400' : 'text-slate-400'}`}>
+              {hungerEmojiFill(player.hunger)} {player.hunger >= 80 ? 'STARVING' : player.hunger >= 60 ? 'Hungry' : ''}
+            </span>
             <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : player.hunger >= 30 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${player.hunger}%` }} />
             </div>
           </div>
-          {/* Education + Job + clothing durability warning */}
+          {/* Education + Job + vehicle + clothing warning */}
           <div className="flex gap-2 text-[8px] flex-wrap items-center">
             <span className="text-slate-400">🎓 {player.education}</span>
-            <span className="text-slate-400">💼 {player.job ? player.job.title : 'Unemployed'}</span>
+            <span className={`${player.job ? 'text-slate-400' : 'text-red-400 animate-pulse'}`}>
+              💼 {player.job ? player.job.title : '⚠️ Unemployed'}
+            </span>
             {(() => {
               const v = player.inventory?.find(i => i.type === 'vehicle');
               const reqId = player.job?.requirements?.item;
@@ -443,48 +555,49 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         </div>
       </div>
 
-      {/* Money */}
-      <div className="flex flex-col items-end gap-1">
-        <div className="bg-black/50 px-2 py-1 rounded border border-slate-700 font-mono text-green-400 text-sm sm:text-lg min-w-[72px] sm:min-w-[100px] text-right">
-          ${player.money.toFixed(0)}
+      {/* Money display */}
+      <div className="flex flex-col items-end gap-0.5">
+        <div className={`bg-black/60 px-2 py-1 rounded-lg border font-mono text-sm sm:text-base min-w-[64px] sm:min-w-[88px] text-right leading-none ${player.money < 0 ? 'text-red-400 border-red-800' : 'text-green-400 border-slate-700'}`}>
+          ${Math.round(player.money).toLocaleString()}
         </div>
         {player.savings > 0 && (
-          <div className="text-[9px] text-blue-400 text-right">
-            Savings: ${player.savings.toFixed(0)}
+          <div className="text-[9px] text-blue-400 text-right leading-none">
+            💾 ${Math.round(player.savings).toLocaleString()}
           </div>
         )}
         {player.debt > 0 && (
-          <div className="text-[9px] text-red-400 text-right">
-            Debt: ${player.debt.toFixed(0)}
+          <div className="text-[9px] text-red-400 text-right leading-none animate-pulse font-bold">
+            ⚠️ -${Math.round(player.debt).toLocaleString()}
           </div>
         )}
-        <div className="text-[9px] text-slate-500 text-right">
-          Net: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${netWorth.toFixed(0)}</span>
+        <div className="text-[8px] text-slate-500 text-right hidden sm:block leading-none">
+          Net: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${Math.round(netWorth).toLocaleString()}</span>
         </div>
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 flex-shrink-0">
         <div className="flex gap-1">
           <button
             onClick={onOpenInventory}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
-            title="Inventory"
+            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white w-9 h-9 rounded-lg text-base border border-slate-600 transition flex items-center justify-center"
+            title="Inventory (I)"
           >🎒</button>
           <button
             onClick={onOpenGoals}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
-            title="Goals"
+            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white w-9 h-9 rounded-lg text-base border border-slate-600 transition flex items-center justify-center"
+            title="Goals (G)"
           >🎯</button>
           <button
             onClick={() => { onToggleMute(); setMuted(m => !m); }}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-sm border border-slate-500 transition"
-            title={muted ? 'Unmute' : 'Mute'}
+            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white w-9 h-9 rounded-lg text-base border border-slate-600 transition flex items-center justify-center"
+            title={muted ? 'Unmute (M)' : 'Mute (M)'}
           >{muted ? '🔇' : '🔊'}</button>
         </div>
-        <div className="hidden md:block text-[9px] text-slate-500 text-center mt-0.5">
-          Time runs out → new week
+        <div className="hidden md:block text-[8px] text-slate-600 text-center">
+          I · G · L · M · Esc
         </div>
+      </div>
       </div>
     </div>
   );
@@ -492,9 +605,11 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
 
 // ─── Goals modal ──────────────────────────────────────────────────────────────
 const GoalsModal = ({ state, onClose }) => {
-  const { player, difficulty } = state;
+  const { player, difficulty, week, jones } = state;
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
   const netWorth = calculateNetWorth(player);
+  const jonesNetWorth = jones?.netWorth ?? 0;
+  const beatingJones = netWorth >= jonesNetWorth;
 
   const items = [
     {
@@ -528,46 +643,63 @@ const GoalsModal = ({ state, onClose }) => {
   ];
 
   const allMet = items.every(i => i.met);
+  const metCount = items.filter(i => i.met).length;
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">{DIFFICULTY_PRESETS[difficulty].label}</span>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">✕</button>
+          <div>
+            <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals</h3>
+            <div className="text-[10px] text-slate-400">{DIFFICULTY_PRESETS[difficulty].label} · Week {week} · {metCount}/4 complete</div>
           </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
         </div>
         {allMet ? (
-          <div className="bg-green-50 border border-green-300 rounded-xl p-3 text-center text-sm font-bold text-green-700 mb-3 animate-pulse">
-            🏆 All goals achieved! Head to Leasing and end the week to win!
+          <div className="bg-green-50 border-2 border-green-400 rounded-xl p-3 text-center text-sm font-bold text-green-700 mb-3 animate-pulse">
+            🏆 All goals achieved! Head home and end the week to win!
           </div>
         ) : (
-          <p className="text-xs text-slate-400 mb-3">Achieve ALL four goals simultaneously to win.</p>
+          <div className="flex items-center gap-2 mb-3 text-xs text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200">
+            <div className="flex gap-1">
+              {items.map((item, i) => (
+                <span key={i} className={`text-base ${item.met ? 'opacity-100' : 'opacity-30'}`}>
+                  {['💰','😊','🎓','🎯'][i]}
+                </span>
+              ))}
+            </div>
+            <span>Achieve all 4 simultaneously to win.</span>
+          </div>
         )}
-        <div className="space-y-3">
+        <div className="space-y-2.5 overflow-y-auto flex-grow">
           {items.map((item) => (
-            <div key={item.label} className={`rounded-xl p-3 border ${item.met ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+            <div key={item.label} className={`rounded-xl p-3 border-2 transition-all ${item.met ? 'bg-green-50 border-green-300 shadow-sm' : item.pct > 75 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
               <div className="flex justify-between items-baseline mb-1.5">
                 <span className={`text-sm font-bold ${item.met ? 'text-green-700' : 'text-slate-700'}`}>
-                  {item.met ? '✅' : '⬜'} {item.label}
+                  {item.met ? '✅' : item.pct > 75 ? '🔵' : '⬜'} {item.label}
                 </span>
-                <span className={`text-xs font-mono font-bold ${item.met ? 'text-green-600' : 'text-slate-500'}`}>{item.current} / {item.goal}</span>
+                <span className={`text-xs font-mono font-bold ${item.met ? 'text-green-600' : item.pct > 75 ? 'text-blue-600' : 'text-slate-500'}`}>{item.current} / {item.goal}</span>
               </div>
               <div className="h-2.5 bg-white rounded-full overflow-hidden border border-slate-200">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${item.met ? 'bg-green-500' : item.pct > 75 ? 'bg-blue-500' : item.pct > 40 ? 'bg-blue-400' : 'bg-slate-400'}`}
+                  className={`h-full rounded-full transition-all duration-700 ${item.met ? 'bg-green-500' : item.pct > 75 ? 'bg-blue-500' : item.pct > 40 ? 'bg-blue-400' : 'bg-slate-300'}`}
                   style={{ width: `${item.pct}%` }}
                 />
               </div>
-              <div className="text-[9px] text-right mt-0.5 font-bold" style={{ color: item.met ? '#16a34a' : '#64748b' }}>
-                {item.met ? 'COMPLETE' : `${Math.round(item.pct)}%`}
+              <div className="text-[9px] text-right mt-0.5 font-bold" style={{ color: item.met ? '#16a34a' : item.pct > 75 ? '#3b82f6' : '#94a3b8' }}>
+                {item.met ? '✓ COMPLETE' : `${Math.round(item.pct)}% there`}
               </div>
             </div>
           ))}
         </div>
-        <button onClick={onClose} className="mt-4 w-full bg-slate-800 text-white font-bold py-2 rounded-xl hover:bg-slate-700 transition text-sm">
+        {/* Jones comparison */}
+        <div className={`mt-3 p-2.5 rounded-xl border text-xs flex justify-between items-center ${beatingJones ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className="font-bold text-slate-700">🤑 vs The Joneses (Net Worth)</div>
+          <div className={`font-mono font-black ${beatingJones ? 'text-green-600' : 'text-red-600'}`}>
+            {beatingJones ? `+$${(netWorth - jonesNetWorth).toLocaleString()} ahead` : `-$${(jonesNetWorth - netWorth).toLocaleString()} behind`}
+          </div>
+        </div>
+        <button onClick={onClose} className="mt-3 w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl hover:bg-slate-700 transition text-sm active:scale-95 min-h-[44px]">
           Got it
         </button>
       </div>
@@ -577,12 +709,14 @@ const GoalsModal = ({ state, onClose }) => {
 
 // ─── Notification modal ───────────────────────────────────────────────────────
 const NotificationModal = ({ title, message, type, onClose }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-    <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4">
+  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="bg-white border-4 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4" style={{ borderColor: type === 'success' ? '#22c55e' : '#ef4444' }} onClick={e => e.stopPropagation()}>
       <div className="text-center text-4xl mb-3">{type === 'success' ? '🎉' : '🚫'}</div>
       <h3 className={`text-xl font-black text-center mb-2 uppercase ${type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{title}</h3>
       <p className="text-slate-600 text-center text-sm mb-4">{message}</p>
-      <button onClick={onClose} className="w-full bg-slate-800 text-white font-bold py-2 rounded-xl hover:bg-slate-700 transition">OKAY</button>
+      <button onClick={onClose} className={`w-full text-white font-bold py-2.5 rounded-xl transition active:scale-95 min-h-[44px] ${type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-800 hover:bg-slate-700'}`}>
+        {type === 'success' ? '🎉 Nice!' : 'Got it'}
+      </button>
     </div>
   </div>
 );
@@ -638,12 +772,21 @@ const InventoryModal = ({ inventory, onClose }) => {
     i.id !== 'groceries'
   );
 
+  // Total resale value of pawnable items
+  const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
+  const totalResaleValue = inventory
+    .filter(i => !UNSELLABLE_TYPES.has(i.type))
+    .reduce((sum, i) => sum + Math.floor((i.cost || 0) * 0.5), 0);
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3 border-b-2 border-slate-200 pb-2">
-          <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl">✕</button>
+          <div>
+            <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
+            <div className="text-[10px] text-slate-400">{inventory.length} item{inventory.length !== 1 ? 's' : ''}{totalResaleValue > 0 ? ` · $${totalResaleValue} resale` : ''}</div>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
         <div className="flex-grow overflow-y-auto pr-1">
           {inventory.length === 0 ? (
@@ -667,8 +810,9 @@ const InventoryModal = ({ inventory, onClose }) => {
             </>
           )}
         </div>
-        <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-400 text-center">
-          Sell items at Black's Market (50% value)
+        <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between text-[10px] text-slate-400">
+          <span>Sell items at Black's Market</span>
+          {totalResaleValue > 0 && <span className="text-green-600 font-bold">~${totalResaleValue} pawn value</span>}
         </div>
       </div>
     </div>
@@ -713,26 +857,41 @@ const HungerWarningModal = ({ warning, onClose }) => {
 };
 
 // ─── Event modal ──────────────────────────────────────────────────────────────
-const EventModal = ({ event, onClose }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-    <div className="bg-white border-4 border-yellow-400 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4">
-      <div className="text-center text-4xl mb-2">📰</div>
-      <h3 className="text-lg font-black text-center text-slate-800 mb-2">{event.title}</h3>
-      <p className="text-slate-600 text-center text-sm mb-2">{event.description}</p>
-      {event.playerName && event.playerName !== 'Player 1' && (
-        <div className="text-xs text-slate-500 text-center mb-2">Affects: {event.playerName}</div>
-      )}
-      {event.effectDesc && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-center text-sm font-bold text-yellow-800 mb-4">
-          {event.effectDesc}
+const EventModal = ({ event, onClose }) => {
+  // Detect positive/negative events by effectDesc keywords
+  const desc = (event.effectDesc || '').toLowerCase();
+  const isPositive = desc.includes('+') && !desc.includes('−') && !desc.includes('-');
+  const isNegative = desc.includes('−') || (desc.includes('-') && !isPositive);
+  const borderColor = isPositive ? '#22c55e' : isNegative ? '#ef4444' : '#f59e0b';
+  const headerBg = isPositive ? 'from-green-400 to-emerald-500' : isNegative ? 'from-red-400 to-rose-500' : 'from-yellow-400 to-amber-500';
+  const icon = isPositive ? '🎉' : isNegative ? '⚠️' : '📰';
+  const effectBg = isPositive ? 'bg-green-50 border-green-200 text-green-800' : isNegative ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-800';
+
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-xs w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
+        <div className={`bg-gradient-to-br ${headerBg} p-4 text-center`}>
+          <div className="text-4xl mb-1">{icon}</div>
+          <h3 className="text-lg font-black text-white">{event.title}</h3>
         </div>
-      )}
-      <button onClick={onClose} className="w-full bg-slate-800 text-white font-bold py-2 rounded-xl hover:bg-slate-700 transition">
-        Got it
-      </button>
+        <div className="p-5">
+          <p className="text-slate-600 text-center text-sm mb-3">{event.description}</p>
+          {event.playerName && event.playerName !== 'Player 1' && (
+            <div className="text-[10px] text-slate-500 text-center mb-2 bg-slate-50 rounded px-2 py-1">Affects: {event.playerName}</div>
+          )}
+          {event.effectDesc && (
+            <div className={`border rounded-xl px-3 py-2.5 text-center text-sm font-bold mb-4 ${effectBg}`}>
+              {event.effectDesc}
+            </div>
+          )}
+          <button onClick={onClose} className="w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl hover:bg-slate-700 transition active:scale-95 min-h-[44px]">
+            Got it
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ─── Ring Tips ────────────────────────────────────────────────────────────────
 const RingTips = ({ player, week }) => {
@@ -945,20 +1104,26 @@ const FullLogModal = ({ history, onClose }) => {
 
 // ─── Week summary modal ───────────────────────────────────────────────────────
 const WeekSummaryModal = ({ summary, onClose }) => {
-  // Capture onClose in a ref so the timeout doesn't reset when the parent re-renders
+  const [countdown, setCountdown] = React.useState(5);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
   useEffect(() => {
-    const t = setTimeout(() => onCloseRef.current(), 4000);
-    return () => clearTimeout(t);
-  }, []); // intentionally empty — fires once per mount
+    const interval = setInterval(() => setCountdown(c => c - 1), 1000);
+    const t = setTimeout(() => onCloseRef.current(), 5000);
+    return () => { clearTimeout(t); clearInterval(interval); };
+  }, []); // intentionally empty
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white border-4 border-indigo-500 rounded-2xl shadow-2xl p-5 max-w-xs w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="text-center text-3xl mb-1">🌙</div>
-        <h3 className="text-lg font-black text-center text-indigo-800 mb-1">Week {summary.week} Complete!</h3>
-        <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in 4s · tap to dismiss</p>
+        <h3 className="text-lg font-black text-center text-indigo-800 mb-0.5">Week {summary.week} Complete!</h3>
+        <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in {Math.max(0, countdown)}s · tap to dismiss</p>
+        {/* Progress bar for auto-close */}
+        <div className="h-1 bg-slate-200 rounded-full overflow-hidden mb-3">
+          <div className="h-full bg-indigo-400 transition-all duration-1000" style={{ width: `${(countdown / 5) * 100}%` }} />
+        </div>
         <div className="space-y-2 mb-4">
           {summary.lines.map((p, i) => (
             <div key={i} className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
@@ -969,15 +1134,15 @@ const WeekSummaryModal = ({ summary, onClose }) => {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] font-mono">
-                <span className="text-slate-500">💰 Cash: <span className="text-slate-700 font-bold">${p.money.toFixed(0)}</span></span>
-                <span className="text-slate-500">😊 Happy: <span className={`font-bold ${p.happiness < 30 ? 'text-red-500' : 'text-slate-700'}`}>{p.happiness}</span></span>
-                <span className="text-slate-500">🎯 Dep: <span className="text-slate-700 font-bold">{p.dependability}</span></span>
+                <span className="text-slate-500">💰 <span className="text-slate-700 font-bold">${Math.round(p.money).toLocaleString()}</span></span>
+                <span className="text-slate-500">😊 <span className={`font-bold ${p.happiness < 30 ? 'text-red-500' : p.happiness >= 75 ? 'text-green-600' : 'text-slate-700'}`}>{p.happiness}/100</span></span>
+                <span className="text-slate-500">🎯 Dep <span className="text-slate-700 font-bold">{p.dependability}</span></span>
                 <span className="text-slate-400 truncate">💼 {p.job}</span>
               </div>
             </div>
           ))}
         </div>
-        <button onClick={onClose} className="w-full bg-indigo-600 text-white font-bold py-2 rounded-xl hover:bg-indigo-700 transition text-sm">
+        <button onClick={onClose} className="w-full bg-indigo-600 text-white font-bold py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm active:scale-95 min-h-[44px]">
           Start Week {summary.week + 1} →
         </button>
       </div>
@@ -1035,35 +1200,67 @@ const QuickEatsContent = ({ state, actions }) => {
             </button>
           );
         })}
-        {/* Hunger meter */}
-        <div className="mt-3 p-2 rounded-lg border" style={{ background: player.hunger >= 80 ? '#fef2f2' : player.hunger >= 60 ? '#fff7ed' : '#f0fdf4', borderColor: player.hunger >= 80 ? '#fca5a5' : player.hunger >= 60 ? '#fdba74' : '#86efac' }}>
+        {/* Hunger meter with emoji fill */}
+        <div className="mt-3 p-2.5 rounded-xl border-2" style={{ background: player.hunger >= 80 ? '#fef2f2' : player.hunger >= 60 ? '#fff7ed' : '#f0fdf4', borderColor: player.hunger >= 80 ? '#fca5a5' : player.hunger >= 60 ? '#fdba74' : '#86efac' }}>
           <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: player.hunger >= 80 ? '#dc2626' : player.hunger >= 60 ? '#ea580c' : '#16a34a' }}>
-            <span>🍽️ Hunger</span>
-            <span>{player.hunger}/100 {player.hunger >= 80 ? '— STARVING!' : player.hunger >= 60 ? '— Getting bad' : player.hunger >= 30 ? '— OK' : '— Well fed'}</span>
+            <span>🍽️ Hunger Level</span>
+            <span>{player.hunger >= 80 ? '🚨 STARVING!' : player.hunger >= 60 ? '😟 Getting bad' : player.hunger >= 30 ? '😐 OK' : '😊 Well fed'}</span>
+          </div>
+          {/* Emoji fill display */}
+          <div className="text-center text-base mb-1 tracking-wide">
+            {hungerEmojiFill(player.hunger)} <span className="text-[10px] text-slate-500">{player.hunger}/100</span>
           </div>
           <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : player.hunger >= 30 ? 'bg-yellow-400' : 'bg-green-500'}`}
               style={{ width: `${player.hunger}%` }} />
           </div>
         </div>
+        {/* Hunger penalty preview */}
+        {player.hunger >= 50 && (
+          <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-lg text-[10px] text-red-700">
+            ⏱ Projected penalty next week: <strong>-{player.hunger >= 80 ? 20 : player.hunger >= 60 ? 12 : 6}hrs</strong> if unfed
+          </div>
+        )}
         <div className="mt-1 text-[10px] text-slate-400 italic">💡 Fresh Mart groceries save money — need a fridge from MegaMart</div>
       </div>
       <div className="space-y-3">
         {/* Work shift for Quick Eats employees */}
         {player.job?.location === 'quick_eats' && (
           <div>
-            <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">💼 Your Shift</h3>
+            <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">
+              💼 Your Shift <EconomyWageBadge economy={economy} />
+            </h3>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button
+                onClick={actions.partTimeWork}
+                disabled={player.timeRemaining < 4}
+                className="p-2 bg-orange-50 border-2 border-orange-200 rounded-xl hover:bg-orange-100 disabled:opacity-50 text-xs transition active:scale-95"
+              >
+                <div className="font-bold">⏱ Part-Time (4h)</div>
+                <div className="font-mono font-black text-green-600 text-sm">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
+              </button>
+              <button
+                onClick={actions.work}
+                disabled={player.timeRemaining < 8}
+                className="p-2 bg-orange-100 border-2 border-orange-300 rounded-xl hover:bg-orange-200 disabled:opacity-50 text-xs transition active:scale-95"
+              >
+                <div className="font-bold">🍔 Full Shift (8h)</div>
+                <div className="font-mono font-black text-green-600 text-sm">+${effectiveWage(player.job.wage, economy) * 8}</div>
+              </button>
+            </div>
             <button
-              onClick={actions.work}
-              disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-orange-50 border-2 border-orange-300 rounded-xl hover:bg-orange-100 disabled:opacity-50 text-sm transition active:scale-95"
+              onClick={actions.workOvertime}
+              disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5"
             >
               <div className="flex justify-between items-center">
-                <div className="font-bold">🍔 Work Shift (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+                <div className="font-bold">⚡ Overtime (12h · 1.5x pay)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 12 * 1.5)}</div>
               </div>
-              <div className="text-xs text-orange-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="text-amber-700 mt-0.5">-10 happiness · great for fast cash</div>
             </button>
+            <div className="text-[9px] text-orange-600 text-center">{player.job.title} · ${effectiveWage(player.job.wage, economy)}/hr (economy-adjusted)</div>
+            <ExpProgressBar player={player} />
             {(() => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
@@ -1120,11 +1317,45 @@ const LIBRARY_LOCATION_GROUPS = [
   { id: 'home',           emoji: '🏠', label: 'Remote / WFH' },
 ];
 
+// ─── Salary transparency helper — all jobs sorted by wage ────────────────────
+const SalaryTransparencyView = ({ player }) => {
+  const sorted = [...jobsData].sort((a, b) => b.wage - a.wage);
+  return (
+    <div className="space-y-1">
+      <div className="text-[9px] text-slate-400 mb-1.5">All jobs sorted by pay — visit the location to apply.</div>
+      {sorted.map(job => {
+        const isCurrent = player.job?.id === job.id;
+        const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
+        const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
+        const meetsDep = !job.requirements?.dependability || player.dependability >= job.requirements.dependability;
+        const meetsItm = !job.requirements?.item || player.inventory.some(i => i.id === job.requirements.item);
+        const qualified = meetsExp && meetsEdu && meetsDep && meetsItm;
+        return (
+          <div key={job.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs ${isCurrent ? 'bg-emerald-50 border-emerald-300' : qualified ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[9px] opacity-60">{LOCATIONS_CONFIG[job.location]?.emoji}</span>
+              <div className="min-w-0">
+                <div className="font-bold truncate">{job.title} {isCurrent && <span className="text-[8px] text-emerald-700">← you</span>}</div>
+                <div className="text-[9px] text-slate-400">{job.location.replace(/_/g, ' ')} {job.remote ? '· WFH' : ''}</div>
+              </div>
+            </div>
+            <div className="text-right shrink-0 ml-2">
+              <div className="font-mono font-black text-green-700">${job.wage}/hr</div>
+              <div className="text-[8px] text-slate-400">${job.wage * 8}/shift</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 
 const LibraryContent = ({ state, actions }) => {
   const { player } = state;
   const isTradeEmployee = player.job?.type === 'trade';
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [viewMode, setViewMode] = useState('browse'); // 'browse' | 'salary'
 
   const diffLabel = (chance) => {
     if (chance <= 0.15) return { t: 'Easy', c: 'bg-green-100 text-green-700' };
@@ -1142,8 +1373,25 @@ const LibraryContent = ({ state, actions }) => {
       <div className="flex flex-col min-h-0">
         {!selectedLocation ? (
           <>
-            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📋 Job Board — Browse by Location</h3>
-            <div className="flex-grow overflow-y-auto space-y-1.5">
+            <div className="flex items-center gap-2 border-b border-slate-300 pb-1 mb-2">
+              <h3 className="font-bold text-sm flex-1">📋 Job Board</h3>
+              <div className="flex text-[9px] gap-1">
+                <button onClick={() => setViewMode('browse')} className={`px-2 py-0.5 rounded font-bold transition ${viewMode === 'browse' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  By Location
+                </button>
+                <button onClick={() => setViewMode('salary')} className={`px-2 py-0.5 rounded font-bold transition ${viewMode === 'salary' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  💰 By Pay
+                </button>
+              </div>
+            </div>
+            {viewMode === 'salary' && (
+              <div className="flex-grow overflow-y-auto">
+                <SalaryTransparencyView player={player} />
+              </div>
+            )}
+            {viewMode === 'browse' && (
+            <div className="flex-grow overflow-y-auto">
+            <div className="space-y-1.5">
               {LIBRARY_LOCATION_GROUPS.map(loc => {
                 const jobs = jobsData.filter(j => j.location === loc.id);
                 if (jobs.length === 0) return null;
@@ -1179,6 +1427,8 @@ const LibraryContent = ({ state, actions }) => {
               })}
             </div>
             <div className="mt-2 text-[9px] text-slate-400 italic text-center">Browse listings here, then visit the location to apply in person (or apply remotely for WFH jobs).</div>
+            </div>
+            )}
           </>
         ) : (
           <>
@@ -1249,15 +1499,33 @@ const LibraryContent = ({ state, actions }) => {
       {/* Right: Trade Dispatch */}
       <div className="flex flex-col gap-3">
         <div>
-          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🔧 Trade Dispatch</h3>
+          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">
+            🔧 Trade Dispatch <EconomyWageBadge economy={state.economy} />
+          </h3>
           {isTradeEmployee ? (
-            <button onClick={actions.work} disabled={player.timeRemaining < 8} className="w-full p-3 bg-yellow-50 border-2 border-yellow-300 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-sm transition active:scale-95">
-              <div className="flex justify-between items-center">
-                <div className="font-bold">🔧 Go to Site (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+            <>
+              <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+                <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
+                  className="p-2 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-xs transition active:scale-95">
+                  <div className="font-bold">⏱ Half (4h)</div>
+                  <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
+                </button>
+                <button onClick={actions.work} disabled={player.timeRemaining < 8}
+                  className="p-2 bg-yellow-100 border-2 border-yellow-300 rounded-xl hover:bg-yellow-200 disabled:opacity-50 text-xs transition active:scale-95">
+                  <div className="font-bold">🔧 Site (8h)</div>
+                  <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+                </button>
               </div>
-              <div className="text-xs text-yellow-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
-            </button>
+              <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
+                className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
+                  <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
+                </div>
+                <div className="text-amber-700">-10 happiness</div>
+              </button>
+              <ExpProgressBar player={player} />
+            </>
           ) : (
             <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers (electricians, plumbers, laborers) pick up dispatch jobs here.</div>
           )}
@@ -1271,6 +1539,34 @@ const LibraryContent = ({ state, actions }) => {
             );
           })()}
         </div>
+        {/* Career track overview */}
+        {!isTradeEmployee && (
+          <div className="mb-3">
+            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🗺️ Career Tracks</h3>
+            <div className="space-y-2">
+              {CAREER_TRACKS.slice(0, 2).map((track, ti) => (
+                <div key={ti} className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                  <div className="text-[10px] font-bold text-slate-600 mb-1">{track.label}</div>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {track.jobs.map((jobId, i) => {
+                      const job = jobsData.find(j => j.id === jobId);
+                      if (!job) return null;
+                      const isCurrent = player.job?.id === jobId;
+                      return (
+                        <React.Fragment key={jobId}>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${isCurrent ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-300 text-slate-600'}`}>
+                            {job.title} <span className="opacity-60">${job.wage}</span>
+                          </span>
+                          {i < track.jobs.length - 1 && <span className="text-slate-300 text-[9px]">→</span>}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {/* Books section */}
         <div>
           <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📖 Read a Book (2h)</h3>
@@ -1319,6 +1615,22 @@ const TrendSettersContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="sm:col-span-2"><JobsHereCard locationId="trendsetters" player={player} actions={actions} /></div>
+      {/* Clothing wear alert */}
+      {hasWornClothing && (
+        <div className="sm:col-span-2 bg-amber-50 border-2 border-amber-300 rounded-xl p-2.5 flex items-start gap-2 text-xs">
+          <span className="text-lg shrink-0">⚠️</span>
+          <div>
+            <div className="font-bold text-amber-800">Clothing wearing out!</div>
+            <div className="text-amber-700">
+              {wornItems.filter(c => c.clothingWear !== undefined && c.clothingWear < 60).map(c => (
+                <span key={c.id} className={`inline-block mr-2 ${c.clothingWear < 30 ? 'text-red-600 font-bold' : 'text-amber-600'}`}>
+                  {c.name}: {c.clothingWear}%{c.clothingWear < 30 ? ' 🚨' : ''}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Left: current wardrobe status */}
       <div>
         <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">👗 Clothing</h3>
@@ -1510,18 +1822,28 @@ const MegaMartContent = ({ state, actions }) => {
       <div>
         {isRetailEmployee && (
           <div className="mb-3">
-            <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏪 Staff Only</h3>
-            <button
-              onClick={actions.work}
-              disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-red-50 border-2 border-red-300 rounded-xl hover:bg-red-100 disabled:opacity-50 text-sm transition active:scale-95 mb-2"
-            >
+            <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏪 Staff Only <EconomyWageBadge economy={economy} /></h3>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
+                className="p-2 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">⏱ Part (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
+              </button>
+              <button onClick={actions.work} disabled={player.timeRemaining < 8}
+                className="p-2 bg-red-100 border-2 border-red-300 rounded-xl hover:bg-red-200 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">🛒 Full (8h)</div>
+                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, economy) * 8}</div>
+              </button>
+            </div>
+            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
               <div className="flex justify-between items-center">
-                <div className="font-bold">🛒 Work Shift (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
+                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 12 * 1.5)}</span>
               </div>
-              <div className="text-xs text-red-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="text-amber-700">-10 happiness</div>
             </button>
+            <ExpProgressBar player={player} />
             {(() => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
@@ -1623,41 +1945,41 @@ const CoffeeShopContent = ({ state, actions }) => {
           </button>
         </div>
       </div>
-      {/* Right: Work / Staff */}
+      {/* Right: Work / Staff + Networking */}
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only</h3>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only <EconomyWageBadge economy={economy} /></h3>
         {isServiceEmployee ? (
           <>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button
+                onClick={actions.partTimeWork}
+                disabled={player.timeRemaining < 4}
+                className="p-2 bg-amber-50 border-2 border-amber-200 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95"
+              >
+                <div className="font-bold">⏱ Part (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
+              </button>
+              <button
+                onClick={actions.work}
+                disabled={player.timeRemaining < 8}
+                className="p-2 bg-amber-100 border-2 border-amber-300 rounded-xl hover:bg-amber-200 disabled:opacity-50 text-xs transition active:scale-95"
+              >
+                <div className="font-bold">☕ Full (8h)</div>
+                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, economy) * 8}</div>
+              </button>
+            </div>
             <button
-              onClick={actions.work}
-              disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-amber-50 border-2 border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-sm transition active:scale-95"
+              onClick={actions.workOvertime}
+              disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5"
             >
               <div className="flex justify-between items-center">
-                <div className="font-bold">☕ Work Shift (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
+                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 12 * 1.5)}</span>
               </div>
-              <div className="text-xs text-amber-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="text-amber-700">-10 happiness</div>
             </button>
-            {/* Experience progress */}
-            {player.job.promotion && (() => {
-              const nextJob = jobsData.find(j => j.id === player.job.promotion);
-              const expNeeded = nextJob?.requirements?.experience || 0;
-              const weeksWorked = player.job.weeksWorked || 0;
-              if (expNeeded === 0) return null;
-              const expPct = Math.min(100, (weeksWorked / expNeeded) * 100);
-              return (
-                <div className="mt-1 text-[10px] text-amber-700">
-                  <div className="flex justify-between mb-0.5">
-                    <span>Experience</span>
-                    <span>{weeksWorked}/{expNeeded} wks</span>
-                  </div>
-                  <div className="h-1.5 bg-amber-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full transition-all duration-500" style={{ width: `${expPct}%` }} />
-                  </div>
-                </div>
-              );
-            })()}
+            <ExpProgressBar player={player} />
             {(() => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
@@ -1677,6 +1999,21 @@ const CoffeeShopContent = ({ state, actions }) => {
             Apply for a service job at the Library to work here.
           </div>
         )}
+        {/* Networking — available to all */}
+        <div className="mt-3 border-t border-slate-200 pt-2">
+          <h3 className="font-bold text-xs text-slate-600 mb-1.5">🤝 Networking</h3>
+          <button
+            onClick={actions.network}
+            disabled={player.timeRemaining < 1}
+            className="w-full p-2.5 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 text-xs transition active:scale-95"
+          >
+            <div className="flex justify-between items-center">
+              <div className="font-bold">🤝 Meet & Greet (1h)</div>
+              <div className="text-blue-700 font-bold text-xs">+3 dep, +2 😊</div>
+            </div>
+            <div className="text-slate-500 mt-0.5">Build connections — boosts job prospects</div>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1687,46 +2024,73 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
   const [confirmIdx, setConfirmIdx] = React.useState(null);
+
+  // Pawn prices scale with economy
+  const pawnMultiplier = economy === 'Boom' ? 0.60 : economy === 'Depression' ? 0.40 : 0.50;
+  const pawnLabel = economy === 'Boom' ? '🟢 Boom prices!' : economy === 'Depression' ? '🔴 Low market' : '⚪ Normal rates';
+
   // Consumables (food, weekly plans, coffee plans) can't be pawned — they have no resale value
   const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
   const pawnable = player.inventory.filter(item => !UNSELLABLE_TYPES.has(item.type));
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Pawn Shop</h3>
-        <p className="text-xs italic text-slate-500 mb-2">"50¢ on the dollar, take it or leave it."</p>
+        <div className="flex items-center justify-between border-b border-slate-300 pb-1 mb-2">
+          <h3 className="font-bold text-sm">🕶️ Pawn Shop</h3>
+          <span className="text-[9px] font-bold text-slate-500">{pawnLabel} ({Math.round(pawnMultiplier * 100)}¢/$)</span>
+        </div>
         {pawnable.length === 0 ? (
-          <div className="text-xs text-slate-400 italic">Nothing to sell.{player.inventory.length > 0 ? ' (Food & consumables can\'t be pawned.)' : ''}</div>
-        ) : pawnable.map((item, i) => (
-          <div key={i} className="flex justify-between items-center p-2 bg-white border rounded mb-1 text-xs">
-            <span className="truncate mr-1">{item.name}</span>
-            {confirmIdx === i ? (
-              <div className="flex gap-1 shrink-0">
-                <button
-                  onClick={() => { actions.sellItem(item); setConfirmIdx(null); }}
-                  className="bg-red-600 text-white px-2 py-0.5 rounded font-bold hover:bg-red-700"
-                >Sell!</button>
-                <button
-                  onClick={() => setConfirmIdx(null)}
-                  className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded hover:bg-slate-300"
-                >✕</button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmIdx(i)}
-                className="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold hover:bg-red-200 shrink-0"
-              >
-                ${Math.floor(item.cost * 0.5)}
-              </button>
-            )}
+          <div className="text-center py-6">
+            <div className="text-3xl mb-2">📦</div>
+            <div className="text-xs text-slate-400 italic font-bold">Nothing to pawn</div>
+            <div className="text-[10px] text-slate-400 mt-1">{player.inventory.length > 0 ? 'Food & consumables can\'t be pawned.' : 'Buy things first, then sell them here.'}</div>
           </div>
-        ))}
-        <div className="mt-3 text-[10px] text-slate-400 bg-slate-100 p-2 rounded italic">
-          ⚠️ Watch out for Wild Willy leaving this area!
+        ) : pawnable.map((item, i) => {
+          const pawnValue = Math.floor(item.cost * pawnMultiplier);
+          return (
+            <div key={i} className="flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-lg mb-1.5 text-xs shadow-sm">
+              <div className="min-w-0 mr-2">
+                <div className="font-bold truncate">{item.name}</div>
+                {item.clothingWear !== undefined && (
+                  <div className={`text-[9px] ${item.clothingWear <= 30 ? 'text-red-500' : 'text-slate-400'}`}>{item.clothingWear}% durability</div>
+                )}
+              </div>
+              {confirmIdx === i ? (
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    onClick={() => { actions.sellItem(item); setConfirmIdx(null); }}
+                    className="bg-red-600 text-white px-2.5 py-1.5 rounded-lg font-bold hover:bg-red-700 active:scale-95 text-xs min-h-[36px]"
+                  >✓ Sell!</button>
+                  <button
+                    onClick={() => setConfirmIdx(null)}
+                    className="bg-slate-200 text-slate-600 px-2.5 py-1.5 rounded-lg hover:bg-slate-300 active:scale-95 min-h-[36px]"
+                  >✕</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmIdx(i)}
+                  className="bg-slate-800 text-white px-2.5 py-1.5 rounded-lg font-bold hover:bg-slate-700 active:scale-95 shrink-0 text-xs min-h-[36px]"
+                >
+                  ${pawnValue}
+                </button>
+              )}
+            </div>
+          );
+        })}
+        <div className="mt-2 text-[9px] text-slate-400 bg-slate-50 p-2 rounded border border-slate-200 italic space-y-0.5">
+          <div>⚠️ Watch out for Wild Willy leaving this area! A suit deters him.</div>
+          {economy !== 'Boom' && pawnable.length > 0 && (
+            <div className={`font-bold not-italic ${economy === 'Depression' ? 'text-red-500' : 'text-amber-600'}`}>
+              {economy === 'Depression' ? '📉 Bad time to sell — wait for Boom!' : '⏳ Boom economy gives 60¢/$ — worth waiting?'}
+            </div>
+          )}
+          {economy === 'Boom' && pawnable.length > 0 && (
+            <div className="font-bold not-italic text-green-600">📈 Great time to sell! Boom prices are active.</div>
+          )}
         </div>
       </div>
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Ticket Booth</h3>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🎟️ Entertainment</h3>
         <button
           onClick={() => {
             if (player.money >= 10) {
@@ -1736,19 +2100,33 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
             }
           }}
           disabled={player.money < 10}
-          className="w-full p-3 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 disabled:opacity-50 mb-2 text-sm"
+          className="w-full p-3 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 disabled:opacity-50 mb-2 text-sm active:scale-95 transition"
         >
-          <div className="font-bold">🎰 Lottery ($10)</div>
-          <div className="text-xs text-yellow-700">5% to win big (+50 😊)</div>
+          <div className="flex justify-between items-center">
+            <span className="font-bold">🎰 Lottery Ticket</span>
+            <span className="font-mono font-black">$10</span>
+          </div>
+          <div className="text-xs text-yellow-700 mt-0.5">5% jackpot chance: +50 😊 · otherwise -2 😊</div>
         </button>
         <button
           onClick={() => actions.buyItem({ ...concertTicket, cost: concertPrice })}
           disabled={player.money < concertPrice}
-          className="w-full p-3 bg-purple-50 border border-purple-200 rounded hover:bg-purple-100 disabled:opacity-50 text-sm"
+          className="w-full p-3 bg-purple-50 border-2 border-purple-200 rounded-xl hover:bg-purple-100 disabled:opacity-50 text-sm active:scale-95 transition"
         >
-          <div className="font-bold">🎸 Concert Ticket (${concertPrice})</div>
-          <div className="text-xs text-purple-700">+{concertTicket.happinessBoost} Happiness, +{concertTicket.relaxationBoost} Relaxation</div>
+          <div className="flex justify-between items-center">
+            <span className="font-bold">🎸 Concert Ticket</span>
+            <span className="font-mono font-black">${concertPrice}</span>
+          </div>
+          <div className="text-xs text-purple-700 mt-0.5">+{concertTicket.happinessBoost} Happiness · +{concertTicket.relaxationBoost} Relaxation (immediate)</div>
         </button>
+        <div className="mt-3 bg-slate-800 rounded-xl p-3 text-xs">
+          <div className="text-slate-300 font-bold mb-1">💡 Black's Market Tips</div>
+          <div className="text-slate-400 space-y-1">
+            <div>• Sell during Boom economy for best prices</div>
+            <div>• Concerts instantly boost mood & relaxation</div>
+            <div>• Lottery: 5% odds — not a retirement plan</div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1815,7 +2193,10 @@ const CityCollegeContent = ({ state, actions }) => {
       )}
 
       <div className="flex-grow overflow-y-auto space-y-1.5">
-        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Available Courses</div>
+        <div className="flex justify-between items-center mb-1">
+          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Available Courses</div>
+          {studyBonus > 0 && <div className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">📚 +{studyBonus}h/session</div>}
+        </div>
         {educationData.map(course => {
           const eduReq = course.requirements?.education;
           const itemReq = course.requirements?.item;
@@ -1824,31 +2205,44 @@ const CityCollegeContent = ({ state, actions }) => {
           const canEnroll = eduOk && itemOk;
           const alreadyDone = meetsEducation(player.education, course.degree);
           const isActive = player.currentCourse?.id === course.id;
+          const studyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
+          const hrsPerSession = 10 + studyBonus;
+          const sessionsNeeded = Math.ceil(course.totalHours / hrsPerSession);
+          const canAfford = player.money >= course.cost;
           return (
             <button
               key={course.id}
-              onClick={() => canEnroll && !alreadyDone && !player.currentCourse && actions.enroll(course)}
-              disabled={!canEnroll || alreadyDone || !!player.currentCourse}
-              className={`w-full flex justify-between items-start p-2.5 border rounded-lg text-xs transition
-                ${alreadyDone ? 'bg-green-50 border-green-200 opacity-70' :
+              onClick={() => canEnroll && !alreadyDone && !player.currentCourse && canAfford && actions.enroll(course)}
+              disabled={!canEnroll || alreadyDone || !!player.currentCourse || !canAfford}
+              className={`w-full flex justify-between items-start p-2.5 border-2 rounded-xl text-xs transition active:scale-[0.99]
+                ${alreadyDone ? 'bg-green-50 border-green-200' :
                   isActive ? 'bg-blue-50 border-blue-400' :
-                  canEnroll && !player.currentCourse ? 'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer' :
+                  canEnroll && !player.currentCourse && canAfford ? 'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer' :
                   'bg-slate-50 border-slate-100 opacity-50'}`}
             >
-              <div className="text-left">
-                <div className="font-bold flex items-center gap-1">
-                  {alreadyDone ? '✅' : isActive ? '📖' : !canEnroll ? '🔒' : '🎓'}
-                  <span>{course.title}</span>
-                  <span className="text-slate-400 font-normal">→ {course.degree}</span>
+              <div className="text-left flex-1 min-w-0">
+                <div className="font-bold flex items-center gap-1 flex-wrap">
+                  <span>{alreadyDone ? '✅' : isActive ? '📖' : !canEnroll ? '🔒' : '🎓'}</span>
+                  <span className="truncate">{course.title}</span>
+                  <span className="text-blue-600 font-normal text-[9px] bg-blue-100 px-1 rounded">→ {course.degree}</span>
                 </div>
-                <div className="text-slate-500 mt-0.5">
-                  {course.totalHours}h total
-                  {eduReq && !eduOk ? <span className="text-red-500 ml-1">· Need {eduReq}</span> : ''}
-                  {itemReq && !itemOk ? <span className="text-red-500 ml-1">· Need {itemReq.replace(/_/g, ' ')}</span> : ''}
-                  {canEnroll && !alreadyDone && !isActive ? <span className="text-slate-400 ml-1">· {course.description}</span> : ''}
+                <div className="text-slate-500 mt-0.5 flex gap-2 flex-wrap">
+                  <span>{course.totalHours}h total</span>
+                  {!alreadyDone && !isActive && <span className="text-blue-600">~{sessionsNeeded} sessions</span>}
+                  {eduReq && !eduOk ? <span className="text-red-500">Need {eduReq}</span> : ''}
+                  {itemReq && !itemOk ? <span className="text-red-500">Need {itemReq.replace(/_/g, ' ')}</span> : ''}
+                  {!canAfford && !alreadyDone ? <span className="text-red-500">Need ${(course.cost - player.money).toFixed(0)} more</span> : ''}
                 </div>
               </div>
-              <span className="font-mono font-bold ml-2 shrink-0 text-slate-700">${course.cost}</span>
+              <div className="ml-2 shrink-0 text-right">
+                <div className="font-mono font-bold text-slate-700">${course.cost}</div>
+                {!alreadyDone && course.totalHours > 0 && (
+                  <div className="text-[8px] text-slate-400">${(course.cost / course.totalHours).toFixed(0)}/hr</div>
+                )}
+                {!alreadyDone && !isActive && canEnroll && canAfford && (
+                  <div className="text-[9px] text-green-600 font-bold mt-0.5">Enroll →</div>
+                )}
+              </div>
             </button>
           );
         })}
@@ -1905,21 +2299,30 @@ const TechStoreContent = ({ state, actions }) => {
         })}
       </div>
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Tech Work</h3>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Tech Work <EconomyWageBadge economy={economy} /></h3>
         {isTechEmployee ? (
           <>
-            <button
-              onClick={actions.work}
-              disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-blue-50 border-2 border-blue-300 rounded-xl hover:bg-blue-100 disabled:opacity-50 text-sm transition active:scale-95"
-            >
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
+                className="p-2 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">⏱ Part (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
+              </button>
+              <button onClick={actions.work} disabled={player.timeRemaining < 8}
+                className="p-2 bg-blue-100 border-2 border-blue-300 rounded-xl hover:bg-blue-200 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">💻 Sprint (8h)</div>
+                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, economy) * 8}</div>
+              </button>
+            </div>
+            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
               <div className="flex justify-between items-center">
-                <div className="font-bold">💻 Code Sprint (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+                <span className="font-bold">⚡ Crunch (12h · 1.5x)</span>
+                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 12 * 1.5)}</span>
               </div>
-              <div className="text-xs text-blue-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="text-amber-700">-10 happiness</div>
             </button>
-            {/* Promotion check */}
+            <ExpProgressBar player={player} />
             {(() => {
               const nextJob = getNextPromotion(player);
               if (!nextJob) return null;
@@ -1965,9 +2368,12 @@ const NeoBankContent = ({ state, actions }) => {
           <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1%/wk)</div>
           <div className="text-2xl font-mono">${player.savings.toLocaleString()}</div>
           {player.savings > 0 ? (
-            <div className="text-[10px] text-green-600 font-semibold mb-2">+${Math.round(player.savings * 0.01).toLocaleString()} interest next week</div>
+            <div>
+              <div className="text-[10px] text-green-600 font-semibold">+${Math.round(player.savings * 0.01).toLocaleString()} next week</div>
+              <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * 0.52).toLocaleString()} in 52 wks (compounding)</div>
+            </div>
           ) : (
-            <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1%/wk interest</div>
+            <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1%/wk interest — compounds weekly!</div>
           )}
           <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Deposit</div>
           <div className="grid grid-cols-4 gap-1 mb-1">
@@ -2030,6 +2436,11 @@ const NeoBankContent = ({ state, actions }) => {
             ))}
           </div>
           <div className="text-[9px] text-red-400 mt-1">⚠️ Max $5,000 debt. 5%/wk interest!</div>
+          {player.debt > 0 && (
+            <div className="text-[9px] text-red-500 mt-0.5 font-bold">
+              Costing you: ${Math.round(player.debt * 0.05).toLocaleString()}/wk in interest
+            </div>
+          )}
         </div>
         <div className="mt-3 pt-2 border-t border-slate-200">
           <h3 className="font-bold text-xs mb-2 text-slate-600">🛡️ Insurance</h3>
@@ -2055,15 +2466,28 @@ const NeoBankContent = ({ state, actions }) => {
       <div>
         {isBankEmployee && (
           <div className="mb-3">
-            <h3 className="font-bold text-sm border-b border-indigo-200 pb-1 mb-2">🏦 Staff Only</h3>
-            <button onClick={actions.work} disabled={player.timeRemaining < 8}
-              className="w-full p-3 bg-indigo-50 border-2 border-indigo-300 rounded-xl hover:bg-indigo-100 disabled:opacity-50 text-sm transition active:scale-95 mb-2">
+            <h3 className="font-bold text-sm border-b border-indigo-200 pb-1 mb-2">🏦 Staff Only <EconomyWageBadge economy={state.economy} /></h3>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
+                className="p-2 bg-indigo-50 border-2 border-indigo-200 rounded-xl hover:bg-indigo-100 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">⏱ Part (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
+              </button>
+              <button onClick={actions.work} disabled={player.timeRemaining < 8}
+                className="p-2 bg-indigo-100 border-2 border-indigo-300 rounded-xl hover:bg-indigo-200 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">💼 Full (8h)</div>
+                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+              </button>
+            </div>
+            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
               <div className="flex justify-between items-center">
-                <div className="font-bold">💼 Work Shift (8h)</div>
-                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
+                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
               </div>
-              <div className="text-xs text-indigo-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+              <div className="text-amber-700">-10 happiness</div>
             </button>
+            <ExpProgressBar player={player} />
             {(() => { const nj = getNextPromotion(player); return nj ? <button onClick={() => actions.applyForJob(nj, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded text-xs font-bold text-green-800 hover:bg-green-200">🆙 Promote → {nj.title}</button> : null; })()}
           </div>
         )}
@@ -2087,24 +2511,35 @@ const NeoBankContent = ({ state, actions }) => {
             const owned = player.portfolio?.[stock.symbol] || 0;
             const isUp = currentPrice >= stock.basePrice;
             const pctChange = Math.round(((currentPrice - stock.basePrice) / stock.basePrice) * 100);
+            const ownedValue = owned * currentPrice;
+            // Mini sparkline: compare to base price visually
+            const barPct = Math.min(150, Math.max(50, (currentPrice / stock.basePrice) * 100));
             return (
-              <div key={stock.symbol} className="bg-white p-2 rounded border text-xs">
+              <div key={stock.symbol} className={`bg-white p-2 rounded border text-xs ${isUp ? 'border-green-200' : 'border-red-200'}`}>
                 <div className="flex justify-between mb-1">
-                  <span className="font-bold">{stock.symbol}</span>
+                  <div>
+                    <span className="font-bold">{stock.symbol}</span>
+                    <span className="text-slate-400 ml-1 text-[9px]">{stock.name}</span>
+                  </div>
                   <div className="flex items-center gap-1">
-                    <span className={`text-[9px] font-bold ${isUp ? 'text-green-500' : 'text-red-500'}`}>{isUp ? '+' : ''}{pctChange}%</span>
-                    <span className={`font-mono ${isUp ? 'text-green-600' : 'text-red-600'}`}>${currentPrice}</span>
+                    <span className={`text-[9px] font-bold ${isUp ? 'text-green-500' : 'text-red-500'}`}>{isUp ? '▲' : '▼'}{Math.abs(pctChange)}%</span>
+                    <span className={`font-mono font-bold ${isUp ? 'text-green-600' : 'text-red-600'}`}>${currentPrice}</span>
                   </div>
                 </div>
-                <div className="text-slate-400 mb-1">{stock.name}</div>
+                {/* Mini price bar relative to base */}
+                <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-1">
+                  <div className={`h-full rounded-full transition-all duration-500 ${isUp ? 'bg-green-400' : 'bg-red-400'}`}
+                    style={{ width: `${Math.min(100, barPct - 50) * 2}%`, minWidth: isUp ? '1px' : '0' }} />
+                </div>
                 <div className="flex justify-between text-slate-500 mb-1">
-                  <span>Owned: {owned}</span>
-                  <span>Value: ${owned * currentPrice}</span>
+                  <span>×{owned} shares</span>
+                  <span className={ownedValue > 0 ? 'font-bold text-indigo-600' : ''}>{ownedValue > 0 ? `$${ownedValue}` : 'none held'}</span>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => actions.buyStock(stock.symbol, 1)} className="flex-1 bg-green-100 text-green-800 py-0.5 rounded hover:bg-green-200">Buy</button>
-                  <button onClick={() => actions.buyStock(stock.symbol, 10)} className="flex-1 bg-green-100 text-green-800 py-0.5 rounded hover:bg-green-200">Buy10</button>
-                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-0.5 rounded hover:bg-red-200 disabled:opacity-40">Sell</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 1)} disabled={player.money < currentPrice} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">Buy</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 10)} disabled={player.money < currentPrice * 10} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">×10</button>
+                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-1 rounded hover:bg-red-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">Sell</button>
+                  <button onClick={() => actions.sellStockAll(stock.symbol)} disabled={owned < 1} className="flex-1 bg-red-200 text-red-900 py-1 rounded hover:bg-red-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title="Sell all shares at once">All</button>
                 </div>
               </div>
             );
@@ -2133,15 +2568,31 @@ const HomeContent = ({ state, actions }) => {
       <div className="sm:col-span-2"><JobsHereCard locationId="home" player={player} actions={actions} /></div>
       {/* Left: sleep + rest */}
       <div className="space-y-3">
+        {/* All goals met banner */}
+        {(() => {
+          const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
+          const netWorth = calculateNetWorth(player);
+          const allGoalsMet = netWorth >= goals.wealth && player.happiness >= goals.happiness &&
+            meetsEducation(player.education, goals.education) && player.dependability >= goals.careerDependability;
+          if (!allGoalsMet) return null;
+          return (
+            <div className="bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-black text-sm p-3 rounded-xl text-center animate-pulse shadow-lg mb-1">
+              🏆 ALL GOALS MET! Sleep to win! 🏆
+            </div>
+          );
+        })()}
+
         {/* Sleep / End Week */}
         <button
           onClick={actions.endWeek}
-          className={`w-full text-white font-black py-3 rounded-xl shadow-lg text-base flex items-center justify-center gap-2 transition-all active:scale-95
+          className={`w-full text-white font-black py-3.5 rounded-xl shadow-lg text-base flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 min-h-[52px]
             ${player.timeRemaining <= 10 ? 'bg-indigo-500 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500'}
           `}
         >
-          😴 Sleep — End Week
-          <span className="text-xs font-normal opacity-75">({player.timeRemaining}h left)</span>
+          <div className="flex items-center gap-2">😴 Sleep — End Week
+            <span className="text-xs font-normal opacity-75">({player.timeRemaining}h left)</span>
+          </div>
+          <div className="text-[9px] font-normal opacity-70">Rent, interest, hunger & happiness resolve at week end</div>
         </button>
 
         {/* Current home card */}
@@ -2156,6 +2607,20 @@ const HomeContent = ({ state, actions }) => {
           <div className="flex items-center gap-2 text-[10px] text-slate-500">
             <span>🔒 {player.housing?.security ?? 'High'} security</span>
             {hasHotTub && <span>🛁 Hot tub</span>}
+          </div>
+        </div>
+
+        {/* Weekly stats snapshot */}
+        <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-[10px]">
+          <div className="font-bold text-slate-600 mb-1.5 text-xs">📊 This Week at a Glance</div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono">
+            <span className="text-slate-500">💰 Cash:</span>
+            <span className={`font-bold ${player.money >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(player.money).toLocaleString()}</span>
+            <span className="text-slate-500">💾 Saved:</span>
+            <span className="font-bold text-indigo-600">${Math.round(player.savings).toLocaleString()}</span>
+            {player.debt > 0 && <><span className="text-slate-500">⚠️ Debt:</span><span className="font-bold text-red-500">-${Math.round(player.debt).toLocaleString()}</span></>}
+            <span className="text-slate-500">⏱ Time left:</span>
+            <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
           </div>
         </div>
 
@@ -2178,42 +2643,71 @@ const HomeContent = ({ state, actions }) => {
               </button>
             ))}
           </div>
-          <div className="mt-1 text-[9px] text-slate-400 text-center">Relaxation: {relax}/100 {isLowRelax ? '⚠️ Burnout risk!' : ''}</div>
+          <div className="mt-1 text-[9px] text-slate-400 text-center">
+            Relaxation: {relax}/100 {isLowRelax ? '⚠️ Burnout risk!' : ''}
+            <span className="ml-1 opacity-60">(-5/wk baseline)</span>
+          </div>
         </div>
       </div>
 
       {/* Right: WFH work */}
       <div className="space-y-3">
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Work from Home</h3>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">
+          💻 Work from Home {player.job && <EconomyWageBadge economy={state.economy} />}
+        </h3>
 
         {/* Data Entry — WFH, no laptop needed */}
         {isWFH && (
-          <button
-            onClick={actions.work}
-            disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-violet-50 border-2 border-violet-300 rounded-xl hover:bg-violet-100 disabled:opacity-50 text-sm transition active:scale-95"
-          >
-            <div className="flex justify-between items-center">
-              <div className="font-bold">🖥️ Work Shift (8h)</div>
-              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+          <>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
+                className="p-2 bg-violet-50 border-2 border-violet-200 rounded-xl hover:bg-violet-100 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">⏱ Part (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
+              </button>
+              <button onClick={actions.work} disabled={player.timeRemaining < 8}
+                className="p-2 bg-violet-100 border-2 border-violet-300 rounded-xl hover:bg-violet-200 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">🖥️ Full (8h)</div>
+                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+              </button>
             </div>
-            <div className="text-xs text-violet-700 mt-0.5">{player.job.title} · WFH — no commute!</div>
-          </button>
+            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
+              <div className="flex justify-between items-center">
+                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
+                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
+              </div>
+              <div className="text-amber-700">-10 happiness · WFH — no commute!</div>
+            </button>
+            <ExpProgressBar player={player} />
+          </>
         )}
 
         {/* Corporate remote — needs laptop */}
         {isCorpRemote && hasLaptop && (
-          <button
-            onClick={actions.work}
-            disabled={player.timeRemaining < 8}
-            className="w-full p-3 bg-emerald-50 border-2 border-emerald-300 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-sm transition active:scale-95"
-          >
-            <div className="flex justify-between items-center">
-              <div className="font-bold">🏢 Work Remotely (8h)</div>
-              <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+          <>
+            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
+                className="p-2 bg-emerald-50 border-2 border-emerald-200 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">⏱ Part (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
+              </button>
+              <button onClick={actions.work} disabled={player.timeRemaining < 8}
+                className="p-2 bg-emerald-100 border-2 border-emerald-300 rounded-xl hover:bg-emerald-200 disabled:opacity-50 text-xs transition active:scale-95">
+                <div className="font-bold">🏢 Remote (8h)</div>
+                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+              </button>
             </div>
-            <div className="text-xs text-emerald-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
-          </button>
+            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
+              <div className="flex justify-between items-center">
+                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
+                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
+              </div>
+              <div className="text-amber-700">-10 happiness · ${player.job.title}</div>
+            </button>
+            <ExpProgressBar player={player} />
+          </>
         )}
         {isCorpRemote && !hasLaptop && (
           <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">Need a 💻 Laptop to work remotely from home.</div>
@@ -2268,27 +2762,45 @@ const LeasingOfficeContent = ({ state, actions }) => {
         {housingData.map(h => {
           const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
           const isCurrent = player.housing?.id === h.id;
+          const canAfford = deposit === 0 || player.money >= deposit;
           const tierEmoji = h.homeType === 'luxury_condo' ? '🌇' : h.homeType === 'apartment' ? '🏘️' : '🏠';
+          const securityColor = h.security === 'High' ? 'text-green-600' : h.security === 'Medium' ? 'text-amber-600' : 'text-red-500';
           return (
             <button
               key={h.id}
-              onClick={() => actions.rentApartment(h)}
-              disabled={isCurrent}
-              className={`w-full flex justify-between items-center p-3 border-2 rounded-xl text-sm transition-all active:scale-[0.99]
-                ${isCurrent ? 'bg-purple-100 border-purple-400 cursor-default' : 'hover:bg-purple-50 border-slate-200 hover:border-purple-300'}
+              onClick={() => !isCurrent && canAfford && actions.rentApartment(h)}
+              disabled={isCurrent || !canAfford}
+              className={`w-full p-3 border-2 rounded-xl text-sm transition-all active:scale-[0.99]
+                ${isCurrent ? 'bg-purple-100 border-purple-400 cursor-default' :
+                  !canAfford ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed' :
+                  'hover:bg-purple-50 border-slate-200 hover:border-purple-400 hover:shadow-md'}
               `}
             >
-              <div className="text-left flex items-start gap-2">
-                <span className="text-xl mt-0.5">{tierEmoji}</span>
-                <div>
-                  <div className="font-bold">{h.title} {isCurrent && '✅'}</div>
-                  <div className="text-xs text-slate-400">{h.description}</div>
-                  {deposit > 0 && <div className="text-[10px] text-orange-600">+${deposit} deposit</div>}
+              <div className="flex items-center gap-3">
+                <span className="text-2xl flex-shrink-0">{tierEmoji}</span>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="font-bold flex items-center gap-1.5 flex-wrap">
+                    {h.title}
+                    {isCurrent && <span className="text-[9px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-black">CURRENT</span>}
+                    {h.happiness > 0 && <span className="text-[9px] bg-yellow-100 text-yellow-700 px-1 rounded">+{h.happiness} 😊/wk</span>}
+                    {!isCurrent && (() => {
+                      const currentHappy = player.housing?.happiness ?? 0;
+                      const delta = h.happiness - currentHappy;
+                      if (delta === 0) return null;
+                      return <span className={`text-[9px] px-1 rounded ${delta > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>{delta > 0 ? '▲' : '▼'} {Math.abs(delta)} vs now</span>;
+                    })()}
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{h.description}</div>
+                  {deposit > 0 && !isCurrent && (
+                    <div className={`text-[10px] mt-0.5 font-bold ${canAfford ? 'text-orange-600' : 'text-red-600'}`}>
+                      {canAfford ? `Deposit: $${deposit}` : `Need $${(deposit - player.money).toFixed(0)} more for deposit`}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="text-right shrink-0 ml-2">
-                <div className="font-mono font-bold">{h.rent === 0 ? 'Free' : `$${h.rent}/wk`}</div>
-                <div className="text-xs text-slate-400">{h.security} security</div>
+                <div className="text-right shrink-0">
+                  <div className="font-mono font-bold text-sm">{h.rent === 0 ? '🆓 Free' : `$${h.rent}/wk`}</div>
+                  <div className={`text-[10px] font-bold ${securityColor}`}>{h.security} security</div>
+                </div>
               </div>
             </button>
           );
@@ -2300,9 +2812,9 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute, rest } = useGame();
+  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute, rest } = useGame();
 
-  const actions = { travel, applyForJob, work, gigWork, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, endWeek, toggleMute, rest };
+  const actions = { travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, toggleMute, rest };
 
   const [showPanel, setShowPanel] = useState(true);
   const [notification, setNotification] = useState(null);
@@ -2396,6 +2908,15 @@ const Board = () => {
         case 'i': setShowInventory(v => !v); break;
         case 'g': setShowGoals(v => !v); break;
         case 'l': setShowLog(v => !v); break;
+        case 'm': { toggleMute(); break; }
+        case 'escape': {
+          // Close any open modal/panel
+          if (showInventory) setShowInventory(false);
+          else if (showGoals) setShowGoals(false);
+          else if (showLog) setShowLog(false);
+          else if (showPanel) setShowPanel(false);
+          break;
+        }
         case 'w': {
           // Work if at work location and has time
           if (player.job && player.timeRemaining >= 8) {
@@ -2405,7 +2926,7 @@ const Board = () => {
           break;
         }
         case 'e': {
-          // End week if at leasing office
+          // End week if at home
           if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) actions.endWeek();
           break;
         }
@@ -2498,6 +3019,12 @@ const Board = () => {
         />
       )}
 
+      {/* Low time warning border pulse */}
+      {state.player.timeRemaining > 0 && state.player.timeRemaining <= 8 && !isMoving && (
+        <div className="absolute inset-0 pointer-events-none z-30 border-4 border-red-500 rounded-lg"
+          style={{ animation: 'weekFlash 1s ease-in-out infinite alternate' }} />
+      )}
+
       {/* Lottery result splash */}
       {lotteryResult && (
         <div className={`absolute inset-0 z-50 flex items-center justify-center pointer-events-none ${lotteryResult.win ? 'bg-yellow-400/80' : 'bg-slate-800/70'}`}
@@ -2514,16 +3041,21 @@ const Board = () => {
       {/* Padded map area — keeps buildings away from container edges */}
       <div className="absolute inset-x-2 sm:inset-x-5 top-1 bottom-16 sm:bottom-24">
         {/* Map background */}
-        <MapBackground />
+        <MapBackground economy={state.economy} />
 
-        {/* Economy pill — top-center, tucked just below top edge */}
+        {/* Economy pill — top-center */}
         {(() => {
-          const { economy, week } = state;
-          const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-500';
-          const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '➡️';
+          const { economy, week, economyTimer } = state;
+          const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-600';
+          const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '📊';
           return (
-            <div className={`absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 pointer-events-none opacity-80`}>
-              <span>{icon}</span><span>{economy}</span><span className="opacity-60">·</span><span>Wk {week}</span>
+            <div className={`absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 pointer-events-none`}>
+              <span>{icon}</span><span>{economy}</span><span className="opacity-50">·</span><span>Wk {week}</span>
+              {economyTimer <= 2 ? (
+                <span className="opacity-90 animate-pulse bg-white/20 px-1 rounded">→shift in {economyTimer}wk</span>
+              ) : economyTimer <= 4 ? (
+                <span className="opacity-60">{economyTimer}wk left</span>
+              ) : null}
             </div>
           );
         })()}
@@ -2559,6 +3091,7 @@ const Board = () => {
                 warningBadge={warningBadge}
                 travelHours={travelHours}
                 isPromoReady={isPromoReady}
+                hasJob={player.job?.location === id}
               />
             );
           });
@@ -2611,7 +3144,7 @@ const Board = () => {
 
       {/* Location panel */}
       {showPanel && !isMoving && (
-        <LocationPanel locationId={state.player.currentLocation} onClose={() => setShowPanel(false)}>
+        <LocationPanel locationId={state.player.currentLocation} player={state.player} onClose={() => setShowPanel(false)}>
           {renderPanelContent(state.player.currentLocation)}
         </LocationPanel>
       )}

@@ -126,6 +126,10 @@ const checkEndConditions = (state) => {
 const autoEndIfNeeded = (s) =>
   activePlayer(s).timeRemaining <= 0 ? { ...s, awaitingEndWeek: true } : s;
 
+// ─── Part-time shift earnings helper ──────────────────────────────────────────
+const calcShiftEarnings = (wage, hours, economy) =>
+  Math.floor(wage * hours * (ECONOMY_WAGE_MULTIPLIER[economy] || 1));
+
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 export const gameReducer = (state, action) => {
   switch (action.type) {
@@ -194,21 +198,46 @@ export const gameReducer = (state, action) => {
 
     // ── Work current job ──────────────────────────────────────────────────────
     case 'WORK': {
+      const { hours: shiftHours = 8, overtime = false } = action;
       const player = activePlayer(state);
       if (!player.job) return log(state, "You don't have a job!");
-      if (player.timeRemaining < 8) return log(state, "Not enough time to work a full shift.");
+      const effectiveHours = overtime ? 12 : shiftHours;
+      if (player.timeRemaining < effectiveHours) return log(state, `Not enough time for a ${effectiveHours}h shift.`);
 
-      const multiplier = ECONOMY_WAGE_MULTIPLIER[state.economy];
-      const earnings = Math.floor(player.job.wage * 8 * multiplier);
+      const wageMultiplier = overtime ? 1.5 : 1.0;
+      const earnings = calcShiftEarnings(player.job.wage * wageMultiplier, effectiveHours, state.economy);
       const newWeeksWorked = (player.job.weeksWorked || 0) + 1;
+      const depBonus = overtime ? 7 : 5;
+      const happinessEffect = overtime ? -10 : 0;
 
-      let s = log(state, `${player.name} worked as ${player.job.title}. Earned $${earnings}.`);
+      const logMsg = overtime
+        ? `${player.name} worked overtime (12h) as ${player.job.title}. Earned $${earnings} (1.5x). -10 happiness.`
+        : `${player.name} worked as ${player.job.title}. Earned $${earnings}.`;
+      let s = log(state, logMsg);
       s = updateActivePlayer(s, p => ({
         ...p,
         money: p.money + earnings,
-        timeRemaining: p.timeRemaining - 8,
+        timeRemaining: p.timeRemaining - effectiveHours,
         job: { ...p.job, weeksWorked: newWeeksWorked },
-        dependability: Math.min(100, p.dependability + 5),
+        dependability: Math.min(100, p.dependability + depBonus),
+        happiness: Math.max(0, Math.min(100, p.happiness + happinessEffect)),
+      }));
+      return autoEndIfNeeded(s);
+    }
+
+    // ── Part-time work (4h) ───────────────────────────────────────────────────
+    case 'PART_TIME_WORK': {
+      const player = activePlayer(state);
+      if (!player.job) return log(state, "You don't have a job!");
+      if (player.timeRemaining < 4) return log(state, "Not enough time for a 4h shift.");
+
+      const earnings = calcShiftEarnings(player.job.wage, 4, state.economy);
+      let s = log(state, `${player.name} worked a 4h shift as ${player.job.title}. Earned $${earnings}.`);
+      s = updateActivePlayer(s, p => ({
+        ...p,
+        money: p.money + earnings,
+        timeRemaining: p.timeRemaining - 4,
+        dependability: Math.min(100, p.dependability + 2),
       }));
       return autoEndIfNeeded(s);
     }
@@ -306,6 +335,20 @@ export const gameReducer = (state, action) => {
       let s = log(state, `${player.name} promoted to ${job.title}!`);
       s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: prevWeeksWorked } }));
       return { ...s, lastJobResult: { success: true, message: `Promoted to ${job.title} at $${job.wage}/hr! 🎉` } };
+    }
+
+    // ── Network at coffee shop (spend 1h, gain +3 dependability) ─────────────
+    case 'NETWORK': {
+      const player = activePlayer(state);
+      if (player.timeRemaining < 1) return log(state, "Not enough time to network.");
+      let s = log(state, `${player.name} networked at the Coffee Shop. +3 dependability, +2 happiness.`);
+      s = updateActivePlayer(s, p => ({
+        ...p,
+        timeRemaining: p.timeRemaining - 1,
+        dependability: Math.min(100, p.dependability + 3),
+        happiness: Math.min(100, p.happiness + 2),
+      }));
+      return autoEndIfNeeded(s);
     }
 
     // ── Rest at home ──────────────────────────────────────────────────────────
@@ -448,16 +491,30 @@ export const gameReducer = (state, action) => {
     case 'SELL_ITEM': {
       const { item } = action;
       const player = activePlayer(state);
-      const sellPrice = Math.floor(item.cost * 0.5);
+      // Pawn shop prices scale with economy: Boom = 60%, Normal = 50%, Depression = 40%
+      const economyPawnMultiplier = state.economy === 'Boom' ? 0.60 : state.economy === 'Depression' ? 0.40 : 0.50;
+      const sellPrice = Math.floor(item.cost * economyPawnMultiplier);
       const idx = player.inventory.findIndex(i => i.id === item.id);
       if (idx === -1) return state;
 
-      let s = log(state, `Sold ${item.name} for $${sellPrice}.`);
+      let s = log(state, `Sold ${item.name} for $${sellPrice} (${state.economy} market).`);
       s = updateActivePlayer(s, p => {
         const inv = [...p.inventory];
         inv.splice(idx, 1);
         return { ...p, money: p.money + sellPrice, inventory: inv };
       });
+      return s;
+    }
+
+    // ── Sell all shares of a stock ────────────────────────────────────────────
+    case 'SELL_STOCK_ALL': {
+      const { symbol } = action;
+      const player = activePlayer(state);
+      const qty = player.portfolio?.[symbol] || 0;
+      if (qty < 1) return log(state, "No shares to sell.");
+      const earnings = state.market[symbol] * qty;
+      let s = log(state, `Sold all ${qty} shares of ${symbol} for $${earnings}.`);
+      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: 0 } }));
       return s;
     }
 
