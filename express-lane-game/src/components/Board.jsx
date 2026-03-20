@@ -248,10 +248,10 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadg
     <div className={`mt-0.5 sm:mt-1 text-white text-[7px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow whitespace-nowrap ${isCurrent ? 'bg-yellow-500 text-black' : 'bg-slate-800'}`}>
       {config.label}
     </div>
-    {/* Travel time hint on hover */}
+    {/* Travel time — always visible */}
     {!isCurrent && travelHours != null && (
-      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-6 bg-slate-900/90 text-white text-[8px] px-1.5 py-0.5 rounded-md whitespace-nowrap pointer-events-none z-20 shadow">
-        ⏱ {travelHours}h away
+      <div className="mt-0.5 text-slate-300 text-[7px] sm:text-[8px] font-semibold whitespace-nowrap">
+        ⏱ {travelHours}h
       </div>
     )}
   </div>
@@ -336,11 +336,18 @@ const FloatingMoney = ({ amount, id, onDone }) => {
 const LocationPanel = ({ locationId, player, children, onClose }) => {
   const config = LOCATIONS_CONFIG[locationId];
   if (!config) return null;
-  // Show "you work here" banner
   const isWorkplace = player?.job?.location === locationId;
+  const isLowTime = (player?.timeRemaining ?? 99) < 6;
+  const isAtHome = locationId === 'home' || locationId === 'leasing_office';
   return (
     <div className="absolute inset-x-2 sm:inset-x-4 top-4 bottom-16 sm:bottom-24 bg-white border-4 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden"
       style={{ borderColor: config.color }}>
+      {isLowTime && !isAtHome && (
+        <div className="bg-red-600 text-white text-[10px] font-black text-center py-1 px-2 animate-pulse flex items-center justify-center gap-2 flex-shrink-0">
+          ⚡ Only {player.timeRemaining}h left — go home and sleep!
+          <button onClick={onClose} className="underline font-black ml-1">Back to map →</button>
+        </div>
+      )}
       <div className="px-4 py-2.5 flex justify-between items-center flex-shrink-0"
         style={{ background: config.color + '18', borderBottom: `2px solid ${config.color}40` }}>
         <div className="flex items-center gap-2 min-w-0">
@@ -466,13 +473,26 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
       <div className="flex flex-col items-center" title={`Happiness: ${player.happiness}/100 (Goal: ${goals.happiness})`}>
         <div className="text-base md:text-2xl leading-none">{happinessFace}</div>
         <div className="w-10 md:w-14 h-2 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
-          <div
-            className={`h-full transition-all duration-500 ${happinessBarColor}`}
-            style={{ width: `${player.happiness}%` }}
-          />
+          <div className={`h-full transition-all duration-500 ${happinessBarColor}`} style={{ width: `${player.happiness}%` }} />
         </div>
         <div className={`text-[8px] font-bold ${player.happiness < 25 ? 'text-red-400 animate-pulse' : 'text-slate-400'}`}>{player.happiness}</div>
       </div>
+
+      {/* Hunger */}
+      {(() => {
+        const hunger = player.hunger ?? 0;
+        const hungerFace = hunger >= 80 ? '🤤' : hunger >= 60 ? '😮' : hunger >= 40 ? '🍽️' : '😋';
+        const hungerBarColor = hunger >= 80 ? 'bg-red-500' : hunger >= 60 ? 'bg-orange-400' : hunger >= 40 ? 'bg-yellow-400' : 'bg-green-500';
+        return (
+          <div className="flex flex-col items-center" title={`Hunger: ${hunger}/100 (hit 80 → lose 20h next week)`}>
+            <div className={`text-base md:text-2xl leading-none ${hunger >= 80 ? 'animate-bounce' : ''}`}>{hungerFace}</div>
+            <div className="w-10 md:w-14 h-2 bg-slate-700 rounded-full mt-0.5 overflow-hidden">
+              <div className={`h-full transition-all duration-500 ${hungerBarColor}`} style={{ width: `${hunger}%` }} />
+            </div>
+            <div className={`text-[8px] font-bold ${hunger >= 80 ? 'text-red-400 animate-pulse' : hunger >= 60 ? 'text-orange-400' : 'text-slate-400'}`}>{hunger}</div>
+          </div>
+        );
+      })()}
 
       {/* Time bar + stats */}
       <div className="flex-grow flex flex-col gap-0.5 min-w-0">
@@ -573,6 +593,11 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         <div className="text-[8px] text-slate-500 text-right hidden sm:block leading-none">
           Net: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${Math.round(netWorth).toLocaleString()}</span>
         </div>
+        {player.job && (
+          <div className="text-[8px] text-slate-400 text-right hidden sm:block leading-none">
+            ≈<span className="text-green-400 font-mono">${player.job.wage * 8}/wk</span>
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -1160,6 +1185,24 @@ const QuickEatsContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       <div className="sm:col-span-2"><JobsHereCard locationId="quick_eats" player={player} actions={actions} /></div>
+      {/* Hunger status bar — always visible at top */}
+      <div className="sm:col-span-2">
+        <div className="flex items-center gap-2 p-2 rounded-xl border bg-orange-50 border-orange-200">
+          <span className={`text-lg ${player.hunger >= 80 ? 'animate-bounce' : ''}`}>{player.hunger >= 80 ? '🤤' : player.hunger >= 60 ? '😮' : player.hunger >= 40 ? '🍽️' : '😋'}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between text-[9px] font-bold text-slate-600 mb-0.5">
+              <span>Hunger</span>
+              <span className={player.hunger >= 80 ? 'text-red-600 animate-pulse' : player.hunger >= 60 ? 'text-orange-600' : 'text-green-600'}>
+                {player.hunger >= 80 ? '⚠️ STARVING — −20h penalty next week!' : player.hunger >= 60 ? 'Getting hungry' : 'Good'}
+              </span>
+            </div>
+            <div className="h-2 bg-orange-100 rounded-full overflow-hidden border border-orange-200">
+              <div className={`h-full rounded-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : 'bg-green-400'}`} style={{ width: `${player.hunger}%` }} />
+            </div>
+          </div>
+          <span className="text-[9px] font-mono font-bold text-slate-500">{player.hunger}/100</span>
+        </div>
+      </div>
       <div>
         <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">🍔 Weekly Meal Plans</h3>
         {storedMeal ? (
@@ -1336,7 +1379,7 @@ const SalaryTransparencyView = ({ player }) => {
               <span className="text-[9px] opacity-60">{LOCATIONS_CONFIG[job.location]?.emoji}</span>
               <div className="min-w-0">
                 <div className="font-bold truncate">{job.title} {isCurrent && <span className="text-[8px] text-emerald-700">← you</span>}</div>
-                <div className="text-[9px] text-slate-400">{job.location.replace(/_/g, ' ')} {job.remote ? '· WFH' : ''}</div>
+                <div className="text-[9px] text-slate-400">{LIBRARY_LOCATION_GROUPS.find(g => g.id === job.location)?.label ?? job.location.replace(/_/g, ' ')} {job.remote ? '· 🏠 WFH' : ''}</div>
               </div>
             </div>
             <div className="text-right shrink-0 ml-2">
@@ -2001,7 +2044,15 @@ const CoffeeShopContent = ({ state, actions }) => {
         )}
         {/* Networking — available to all */}
         <div className="mt-3 border-t border-slate-200 pt-2">
-          <h3 className="font-bold text-xs text-slate-600 mb-1.5">🤝 Networking</h3>
+          <div className="flex items-center justify-between mb-1.5">
+            <h3 className="font-bold text-xs text-slate-600">🤝 Networking</h3>
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] text-slate-400">Dep: {player.dependability ?? 50}</span>
+              <div className="w-14 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-400 rounded-full" style={{ width: `${player.dependability ?? 50}%` }} />
+              </div>
+            </div>
+          </div>
           <button
             onClick={actions.network}
             disabled={player.timeRemaining < 1}
@@ -2011,7 +2062,10 @@ const CoffeeShopContent = ({ state, actions }) => {
               <div className="font-bold">🤝 Meet & Greet (1h)</div>
               <div className="text-blue-700 font-bold text-xs">+3 dep, +2 😊</div>
             </div>
-            <div className="text-slate-500 mt-0.5">Build connections — boosts job prospects</div>
+            <div className="text-slate-500 mt-0.5">
+              Higher dep = lower job rejection rate
+              {(player.dependability ?? 50) >= 70 ? ' ✓ Strong network!' : (player.dependability ?? 50) >= 40 ? ' — keep going' : ' — start building!'}
+            </div>
           </button>
         </div>
       </div>
@@ -2621,6 +2675,10 @@ const HomeContent = ({ state, actions }) => {
             {player.debt > 0 && <><span className="text-slate-500">⚠️ Debt:</span><span className="font-bold text-red-500">-${Math.round(player.debt).toLocaleString()}</span></>}
             <span className="text-slate-500">⏱ Time left:</span>
             <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
+            <span className="text-slate-500">🍕 Hunger:</span>
+            <span className={`font-bold ${(player.hunger ?? 0) >= 80 ? 'text-red-500 animate-pulse' : (player.hunger ?? 0) >= 60 ? 'text-orange-500' : 'text-green-600'}`}>
+              {player.hunger ?? 0} {(player.hunger ?? 0) >= 55 ? `→ ${Math.min(100, (player.hunger ?? 0) + 25)} next wk ⚠️` : `→ ${Math.min(100, (player.hunger ?? 0) + 25)} next wk`}
+            </span>
           </div>
         </div>
 
@@ -2812,9 +2870,9 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute, rest } = useGame();
+  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute, rest, readBook } = useGame();
 
-  const actions = { travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, toggleMute, rest };
+  const actions = { travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, toggleMute, rest, readBook };
 
   const [showPanel, setShowPanel] = useState(true);
   const [notification, setNotification] = useState(null);
