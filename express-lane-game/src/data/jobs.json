@@ -1,216 +1,34 @@
 [
-  {
-    "id": "gig_driver",
-    "company": "QuickDash",
-    "title": "Dash Driver",
-    "type": "gig",
-    "wage": 15,
-    "rejectionChance": 0.2,
-    "requirements": { "item": "smartphone" },
-    "description": "Deliver food. No benefits. Wear and tear on your soul.",
-    "promotion": null
-  },
-  {
-    "id": "cashier",
-    "company": "Corner Mart",
-    "title": "Cashier",
-    "type": "service",
-    "workLocation": "megamart",
-    "wage": 11,
-    "rejectionChance": 0.35,
-    "requirements": {},
-    "description": "Scan items. Count change. Try to smile.",
-    "promotion": "assistant_manager"
-  },
-  {
-    "id": "assistant_manager",
-    "company": "Corner Mart",
-    "title": "Assistant Manager",
-    "type": "service",
-    "workLocation": "megamart",
-    "wage": 18,
-    "rejectionChance": 0.25,
-    "requirements": { "experience": 6, "dependability": 40, "item": "business_casual" },
-    "description": "Keys to the back room. Still dealing with the same customers.",
-    "promotion": null
-  },
-  {
-    "id": "barista",
-    "company": "Brew & Co",
-    "title": "Barista",
-    "type": "service",
-    "wage": 12,
-    "rejectionChance": 0.35,
-    "requirements": {},
-    "description": "Make coffee. Deal with caffeine-deprived customers.",
-    "promotion": "shift_lead"
-  },
-  {
-    "id": "shift_lead",
-    "company": "Brew & Co",
-    "title": "Shift Lead",
-    "type": "service",
-    "wage": 16,
-    "rejectionChance": 0.2,
-    "requirements": { "experience": 4, "dependability": 40, "item": "business_casual" },
-    "description": "Herding cats, but the cats are teenagers.",
-    "promotion": "store_manager"
-  },
-  {
-    "id": "store_manager",
-    "company": "Brew & Co",
-    "title": "Store Manager",
-    "type": "service",
-    "wage": 22,
-    "rejectionChance": 0.15,
-    "requirements": { "experience": 8, "dependability": 50, "education": "Associate's", "item": "business_casual" },
-    "description": "You're the adult in the room now.",
-    "promotion": null
-  },
-  {
-    "id": "stock_clerk",
-    "company": "FreshMart Warehouse",
-    "title": "Stock Clerk",
-    "type": "service",
-    "workLocation": "megamart",
-    "wage": 10,
-    "rejectionChance": 0.3,
-    "requirements": {},
-    "description": "Lift boxes. Stack shelves. Repeat.",
-    "promotion": "department_lead"
-  },
-  {
-    "id": "department_lead",
-    "company": "FreshMart Warehouse",
-    "title": "Department Lead",
-    "type": "service",
-    "workLocation": "megamart",
-    "wage": 16,
-    "rejectionChance": 0.2,
-    "requirements": { "experience": 5, "dependability": 35 },
-    "description": "You're in charge of the cereal aisle now.",
-    "promotion": null
-  },
-  {
-    "id": "data_entry",
-    "company": "Meridian Corp",
-    "title": "Data Entry Clerk",
-    "type": "corporate",
-    "workLocation": "home",
-    "wage": 14,
-    "rejectionChance": 0.35,
-    "requirements": {},
-    "description": "Type numbers. Think about your life choices.",
-    "promotion": "admin_assistant"
-  },
-  {
-    "id": "admin_assistant",
-    "company": "Meridian Corp",
-    "title": "Admin Assistant",
-    "type": "corporate",
-    "wage": 18,
-    "rejectionChance": 0.25,
-    "requirements": { "dependability": 40, "education": "Associate's", "item": "business_casual" },
-    "description": "The glue holding the office together.",
-    "promotion": "office_manager"
-  },
-  {
-    "id": "office_manager",
-    "company": "Meridian Corp",
-    "title": "Office Manager",
-    "type": "corporate",
-    "wage": 28,
-    "rejectionChance": 0.15,
-    "requirements": { "experience": 6, "dependability": 60, "education": "Bachelor's", "item": "business_casual" },
-    "description": "You manage the people who manage the coffee.",
-    "promotion": "director"
-  },
-  {
-    "id": "director",
-    "company": "Meridian Corp",
-    "title": "Director",
-    "type": "corporate",
-    "wage": 50,
-    "rejectionChance": 0.1,
-    "requirements": { "experience": 10, "dependability": 75, "education": "Master's", "item": "suit" },
-    "description": "Corner office. Existential dread included.",
-    "promotion": null
-  },
-  {
-    "id": "junior_dev",
-    "company": "ByteForge",
-    "title": "Junior Developer",
-    "type": "tech",
-    "wage": 25,
-    "rejectionChance": 0.3,
-    "requirements": { "dependability": 35, "education": "Bootcamp Certificate", "item": "laptop" },
-    "description": "Fix bugs. Create new bugs. Repeat.",
-    "promotion": "senior_dev"
-  },
-  {
-    "id": "senior_dev",
-    "company": "ByteForge",
-    "title": "Senior Developer",
-    "type": "tech",
-    "wage": 40,
-    "rejectionChance": 0.15,
-    "requirements": { "experience": 6, "dependability": 60, "education": "Bachelor's", "item": "laptop" },
-    "description": "Now you fix other people's bugs too.",
-    "promotion": "tech_lead"
-  },
-  {
-    "id": "tech_lead",
-    "company": "ByteForge",
-    "title": "Tech Lead",
-    "type": "tech",
-    "wage": 60,
-    "rejectionChance": 0.1,
-    "requirements": { "experience": 10, "dependability": 75, "education": "Master's", "item": "laptop" },
-    "description": "Half coding, half explaining why it takes so long.",
-    "promotion": null
-  },
-  {
-    "id": "general_laborer",
-    "company": "ProTrade",
-    "title": "General Laborer",
-    "type": "trade",
-    "wage": 13,
-    "rejectionChance": 0.3,
-    "requirements": {},
-    "description": "Lift things. Move things. Carry things.",
-    "promotion": "electrician"
-  },
-  {
-    "id": "electrician",
-    "company": "ProTrade",
-    "title": "Electrician",
-    "type": "trade",
-    "wage": 28,
-    "rejectionChance": 0.2,
-    "requirements": { "dependability": 40, "education": "Electrician License" },
-    "description": "Wire homes. Charge by the hour.",
-    "promotion": "master_electrician"
-  },
-  {
-    "id": "plumber",
-    "company": "ProTrade",
-    "title": "Plumber",
-    "type": "trade",
-    "wage": 30,
-    "rejectionChance": 0.2,
-    "requirements": { "dependability": 40, "education": "Plumbing License" },
-    "description": "Dirty work, clean money.",
-    "promotion": null
-  },
-  {
-    "id": "master_electrician",
-    "company": "ProTrade",
-    "title": "Master Electrician",
-    "type": "trade",
-    "wage": 45,
-    "rejectionChance": 0.1,
-    "requirements": { "experience": 8, "dependability": 60, "education": "Engineering Certificate" },
-    "description": "High voltage. Higher pay.",
-    "promotion": null
-  }
+  { "id": "crew_member",      "location": "quick_eats",    "title": "Crew Member",        "type": "service", "wage": 11, "rejectionChance": 0.30, "requirements": {},                                                                        "description": "Flip burgers. Wear the hat.",                         "promotion": "shift_supervisor" },
+  { "id": "shift_supervisor", "location": "quick_eats",    "title": "Shift Supervisor",   "type": "service", "wage": 17, "rejectionChance": 0.20, "requirements": { "experience": 4, "dependability": 35 },                                  "description": "You're responsible now. Somehow.",                    "promotion": null },
+  { "id": "gig_driver",       "location": "quick_eats",    "title": "Dash Driver",        "type": "gig",     "wage": 15, "rejectionChance": 0.20, "requirements": { "item": "smartphone" },                                                 "description": "Deliver food. No benefits. Wear and tear on your soul.", "promotion": null },
+
+  { "id": "barista",          "location": "coffee_shop",   "title": "Barista",            "type": "service", "wage": 12, "rejectionChance": 0.35, "requirements": {},                                                                        "description": "Make coffee. Deal with caffeine-deprived customers.",  "promotion": "shift_lead" },
+  { "id": "shift_lead",       "location": "coffee_shop",   "title": "Shift Lead",         "type": "service", "wage": 16, "rejectionChance": 0.20, "requirements": { "experience": 4, "dependability": 40, "item": "business_casual" },       "description": "Herding cats, but the cats are teenagers.",           "promotion": "store_manager" },
+  { "id": "store_manager",    "location": "coffee_shop",   "title": "Store Manager",      "type": "service", "wage": 22, "rejectionChance": 0.15, "requirements": { "experience": 8, "dependability": 50, "education": "Associate's", "item": "business_casual" }, "description": "You're the adult in the room now.", "promotion": null },
+
+  { "id": "cashier",          "location": "megamart",      "title": "Cashier",            "type": "service", "wage": 11, "rejectionChance": 0.30, "requirements": {},                                                                        "description": "Scan items. Count change. Try to smile.",             "promotion": "dept_lead" },
+  { "id": "dept_lead",        "location": "megamart",      "title": "Department Lead",    "type": "service", "wage": 17, "rejectionChance": 0.20, "requirements": { "experience": 5, "dependability": 35 },                                  "description": "You're in charge of the cereal aisle now.",           "promotion": "store_director" },
+  { "id": "store_director",   "location": "megamart",      "title": "Store Director",     "type": "service", "wage": 28, "rejectionChance": 0.15, "requirements": { "experience": 8, "dependability": 55, "education": "Associate's", "item": "business_casual" }, "description": "You run the whole floor. It's a lot.", "promotion": null },
+
+  { "id": "sales_associate",  "location": "trendsetters",  "title": "Sales Associate",    "type": "service", "wage": 11, "rejectionChance": 0.30, "requirements": {},                                                                        "description": "Help people spend money they don't have.",            "promotion": "floor_manager" },
+  { "id": "floor_manager",    "location": "trendsetters",  "title": "Floor Manager",      "type": "service", "wage": 20, "rejectionChance": 0.20, "requirements": { "experience": 4, "dependability": 40, "item": "business_casual" },       "description": "The clothes make the manager.",                       "promotion": null },
+
+  { "id": "it_support",       "location": "tech_store",    "title": "IT Support",         "type": "tech",    "wage": 18, "rejectionChance": 0.30, "requirements": { "item": "laptop" },                                                      "description": "Have you tried turning it off and on again?",         "promotion": "junior_dev" },
+  { "id": "junior_dev",       "location": "tech_store",    "title": "Junior Developer",   "type": "tech",    "wage": 25, "rejectionChance": 0.30, "requirements": { "dependability": 35, "education": "Bootcamp Certificate", "item": "laptop" }, "description": "Fix bugs. Create new bugs. Repeat.",            "promotion": "senior_dev" },
+  { "id": "senior_dev",       "location": "tech_store",    "title": "Senior Developer",   "type": "tech",    "wage": 40, "rejectionChance": 0.15, "requirements": { "experience": 6, "dependability": 60, "education": "Bachelor's", "item": "laptop" }, "description": "Now you fix other people's bugs too.",          "promotion": "tech_lead" },
+  { "id": "tech_lead",        "location": "tech_store",    "title": "Tech Lead",          "type": "tech",    "wage": 60, "rejectionChance": 0.10, "requirements": { "experience": 10, "dependability": 75, "education": "Master's", "item": "laptop" }, "description": "Half coding, half explaining why it takes so long.", "promotion": null },
+
+  { "id": "bank_teller",      "location": "neobank",       "title": "Bank Teller",        "type": "corporate", "wage": 16, "rejectionChance": 0.30, "requirements": { "dependability": 40, "item": "business_casual" },                   "description": "Count money all day. Dream of having more.",          "promotion": "loan_officer" },
+  { "id": "loan_officer",     "location": "neobank",       "title": "Loan Officer",       "type": "corporate", "wage": 30, "rejectionChance": 0.20, "requirements": { "experience": 6, "dependability": 60, "education": "Bachelor's", "item": "business_casual" }, "description": "Decide who gets the money. Mostly say no.", "promotion": "branch_manager" },
+  { "id": "branch_manager",   "location": "neobank",       "title": "Branch Manager",     "type": "corporate", "wage": 50, "rejectionChance": 0.10, "requirements": { "experience": 10, "dependability": 75, "education": "Master's", "item": "suit" }, "description": "You run the branch. Try not to run it into the ground.", "promotion": null },
+
+  { "id": "general_laborer",  "location": "public_library", "title": "General Laborer",  "type": "trade",   "wage": 13, "rejectionChance": 0.30, "requirements": {},                                                                        "description": "Lift things. Move things. Carry things.",             "promotion": "electrician" },
+  { "id": "electrician",      "location": "public_library", "title": "Electrician",       "type": "trade",   "wage": 28, "rejectionChance": 0.20, "requirements": { "dependability": 40, "education": "Electrician License" },               "description": "Wire homes. Charge by the hour.",                     "promotion": "master_electrician" },
+  { "id": "plumber",          "location": "public_library", "title": "Plumber",           "type": "trade",   "wage": 30, "rejectionChance": 0.20, "requirements": { "dependability": 40, "education": "Plumbing License" },                  "description": "Dirty work, clean money.",                            "promotion": null },
+  { "id": "master_electrician","location": "public_library","title": "Master Electrician","type": "trade",   "wage": 45, "rejectionChance": 0.10, "requirements": { "experience": 8, "dependability": 60, "education": "Engineering Certificate" }, "description": "High voltage. Higher pay.",                     "promotion": null },
+
+  { "id": "data_entry",       "location": "home",          "title": "Data Entry Clerk",   "type": "corporate", "remote": true, "wage": 12, "rejectionChance": 0.50, "requirements": {},                                                   "description": "Type numbers from your couch. Pays less. No commute though.", "promotion": "virtual_asst" },
+  { "id": "virtual_asst",     "location": "home",          "title": "Virtual Assistant",  "type": "corporate", "remote": true, "wage": 18, "rejectionChance": 0.45, "requirements": { "experience": 4, "dependability": 40, "item": "laptop" }, "description": "Do everything. Get credit for nothing. Wear pajamas.", "promotion": null },
+  { "id": "freelance_dev",    "location": "home",          "title": "Freelance Developer","type": "tech",    "remote": true, "wage": 20, "rejectionChance": 0.55, "requirements": { "education": "Bootcamp Certificate", "item": "laptop" }, "description": "Your own boss. Getting clients is the hard part.", "promotion": null }
 ]

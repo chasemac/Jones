@@ -109,11 +109,11 @@ export const travelCost = (fromId, toId) => {
   return Math.min(cw, ccw);
 };
 
-// Job types → where you work
+// Job types → fallback work location (job.location takes priority in practice)
 export const JOB_WORK_LOCATION = {
   service: 'coffee_shop',
   tech: 'tech_store',
-  corporate: 'public_library',
+  corporate: 'neobank',
   gig: 'quick_eats',
   trade: 'public_library',
 };

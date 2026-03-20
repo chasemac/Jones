@@ -83,6 +83,80 @@ const homeEmoji = (housing) => {
   return '🏘️'; // apartment
 };
 
+// ─── Shared "Jobs Here" card used by every location panel ────────────────────
+const JobsHereCard = ({ locationId, player, actions }) => {
+  const [open, setOpen] = useState(false);
+  const jobs = jobsData.filter(j => j.location === locationId);
+  if (jobs.length === 0) return null;
+  const entryCount = jobs.filter(j => !j.requirements?.education && !j.requirements?.experience && !j.requirements?.dependability && !j.requirements?.item).length;
+
+  const diffLabel = (chance) => chance <= 0.15 ? { t: 'Easy', c: 'bg-green-100 text-green-700' }
+    : chance <= 0.30 ? { t: 'Moderate', c: 'bg-yellow-100 text-yellow-700' }
+    : { t: 'Competitive', c: 'bg-red-100 text-red-600' };
+
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden mb-3">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-600 transition"
+      >
+        <span>🧾 {jobs.length} Position{jobs.length !== 1 ? 's' : ''} Available Here {entryCount > 0 ? `· ${entryCount} entry level` : ''}</span>
+        <span>{open ? '▼' : '▶'}</span>
+      </button>
+      {open && (
+        <div className="p-2 space-y-2 bg-white">
+          {jobs.map(job => {
+            const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
+            const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
+            const meetsDep = !job.requirements?.dependability || player.dependability >= job.requirements.dependability;
+            const meetsItm = !job.requirements?.item || player.inventory.some(i => i.id === job.requirements.item);
+            const canApply = meetsExp && meetsEdu && meetsDep && meetsItm;
+            const isCurrent = player.job?.id === job.id;
+            const diff = diffLabel(job.rejectionChance || 0.25);
+            const isEntry = !job.requirements?.education && !job.requirements?.experience && !job.requirements?.dependability && !job.requirements?.item;
+            return (
+              <div key={job.id} className={`border rounded-lg p-2 text-xs ${isCurrent ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex justify-between items-start mb-1">
+                  <div>
+                    <span className="font-bold">{job.title}</span>
+                    {isCurrent && <span className="ml-1 text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">current</span>}
+                    {job.remote && <span className="ml-1 text-[9px] bg-violet-100 text-violet-700 px-1 rounded">remote</span>}
+                    <div className="text-slate-400 text-[9px] mt-0.5">{job.description}</div>
+                  </div>
+                  <div className="text-right shrink-0 ml-2">
+                    <div className="font-mono font-black text-green-700">${job.wage}/hr</div>
+                    <span className={`text-[9px] px-1 rounded ${diff.c}`}>{diff.t}</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {isEntry
+                    ? <span className="text-[9px] text-green-600">✓ Open to everyone</span>
+                    : <>
+                      {job.requirements?.education && <span className={`text-[9px] px-1 rounded ${meetsEdu ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎓 {job.requirements.education}</span>}
+                      {job.requirements?.experience && <span className={`text-[9px] px-1 rounded ${meetsExp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>⏱ {job.requirements.experience}wks</span>}
+                      {job.requirements?.dependability && <span className={`text-[9px] px-1 rounded ${meetsDep ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎯 {job.requirements.dependability} dep</span>}
+                      {job.requirements?.item && <span className={`text-[9px] px-1 rounded ${meetsItm ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>📦 {job.requirements.item.replace(/_/g, ' ')}</span>}
+                    </>
+                  }
+                </div>
+                {!isCurrent && (
+                  <button
+                    onClick={() => actions.applyForJob(job)}
+                    disabled={player.timeRemaining < 2}
+                    className={`w-full py-1 rounded text-[10px] font-bold text-white transition active:scale-95 disabled:opacity-40 ${canApply ? 'bg-slate-700 hover:bg-slate-800' : 'bg-slate-400 hover:bg-slate-500'}`}
+                  >
+                    {canApply ? '📋 Apply (2 hrs)' : '🚫 Apply anyway'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── Map background SVG ───────────────────────────────────────────────────────
 // viewBox="0 0 100 100" maps coordinates 1:1 with % positions so building
 // coords (e.g. x:5, y:8) match exactly. Path data only accepts numeric units,
@@ -973,153 +1047,179 @@ const QuickEatsContent = ({ state, actions }) => {
         </div>
         <div className="mt-1 text-[10px] text-slate-400 italic">💡 Fresh Mart groceries save money — need a fridge from MegaMart</div>
       </div>
-      <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Gig Work (4hrs)</h3>
-        {hasPhone ? (
-          <button
-            onClick={actions.gigWork}
-            disabled={player.timeRemaining < 4}
-            className="w-full p-3 bg-green-50 border-2 border-green-300 rounded-xl hover:bg-green-100 disabled:opacity-50 text-sm transition active:scale-95"
-          >
-            <div className="flex justify-between items-center">
-              <div className="font-bold">🚗 Delivery Run (4h)</div>
-              <div className="font-mono font-black text-green-600">+${Math.floor(60 * (state.economy === 'Boom' ? 1.3 : state.economy === 'Depression' ? 0.8 : 1.0))}</div>
-            </div>
-            <div className="text-xs text-green-700 mt-0.5">Economy: {state.economy} · flexible hours</div>
-          </button>
-        ) : (
-          <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl">
-            <div className="font-bold text-slate-600 mb-1">🚗 Gig Delivery (locked)</div>
-            <div className="text-slate-400 mb-2">Earn extra cash between jobs — any time, any week.</div>
-            <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5">
-              <span>📱</span>
-              <span className="text-blue-700 text-[10px] font-bold">Buy a Smartphone at Tech Store to unlock</span>
-            </div>
+      <div className="space-y-3">
+        {/* Work shift for Quick Eats employees */}
+        {player.job?.location === 'quick_eats' && (
+          <div>
+            <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">💼 Your Shift</h3>
+            <button
+              onClick={actions.work}
+              disabled={player.timeRemaining < 8}
+              className="w-full p-3 bg-orange-50 border-2 border-orange-300 rounded-xl hover:bg-orange-100 disabled:opacity-50 text-sm transition active:scale-95"
+            >
+              <div className="flex justify-between items-center">
+                <div className="font-bold">🍔 Work Shift (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-orange-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+            </button>
+            {(() => {
+              const nextJob = getNextPromotion(player);
+              if (!nextJob) return null;
+              return (
+                <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
+                  🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
+                </button>
+              );
+            })()}
           </div>
         )}
+
+        {/* Gig work section */}
+        <div>
+          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🚗 Gig Work (4hrs)</h3>
+          {hasPhone ? (
+            <button
+              onClick={actions.gigWork}
+              disabled={player.timeRemaining < 4}
+              className="w-full p-3 bg-green-50 border-2 border-green-300 rounded-xl hover:bg-green-100 disabled:opacity-50 text-sm transition active:scale-95"
+            >
+              <div className="flex justify-between items-center">
+                <div className="font-bold">🚗 Delivery Run (4h)</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(60 * (state.economy === 'Boom' ? 1.3 : state.economy === 'Depression' ? 0.8 : 1.0))}</div>
+              </div>
+              <div className="text-xs text-green-700 mt-0.5">Economy: {state.economy} · flexible hours</div>
+            </button>
+          ) : (
+            <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="font-bold text-slate-600 mb-1">🚗 Gig Delivery (locked)</div>
+              <div className="text-slate-400 mb-2">Earn extra cash between jobs — any time, any week.</div>
+              <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-lg px-2 py-1.5">
+                <span>📱</span>
+                <span className="text-blue-700 text-[10px] font-bold">Buy a Smartphone at Tech Store to unlock</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Jobs available here */}
+        <JobsHereCard locationId="quick_eats" player={player} actions={actions} />
       </div>
     </div>
   );
 };
 
-// Company directory data for the job board
-const COMPANIES = [
-  { id: 'Corner Mart',        emoji: '🏪', industry: 'Retail',      color: 'blue',   desc: 'Local convenience store chain.' },
-  { id: 'Brew & Co',          emoji: '☕', industry: 'Food Service', color: 'amber',  desc: 'Specialty coffee & café.' },
-  { id: 'FreshMart Warehouse',emoji: '📦', industry: 'Logistics',   color: 'green',  desc: 'Grocery distribution & stocking.' },
-  { id: 'Meridian Corp',      emoji: '🏢', industry: 'Corporate',   color: 'indigo', desc: 'Mid-size business services firm.' },
-  { id: 'ByteForge',          emoji: '💻', industry: 'Tech',        color: 'violet', desc: 'Software startup, fast growth.' },
-  { id: 'ProTrade',           emoji: '🔧', industry: 'Trades',      color: 'yellow', desc: 'Electrical, plumbing & labor.' },
-  { id: 'QuickDash',          emoji: '🚗', industry: 'Gig',         color: 'orange', desc: 'Food & package delivery platform.' },
+// Location groupings for the Library job board
+const LIBRARY_LOCATION_GROUPS = [
+  { id: 'quick_eats',     emoji: '🍔', label: 'Quick Eats' },
+  { id: 'coffee_shop',    emoji: '☕', label: 'Coffee Shop' },
+  { id: 'megamart',       emoji: '🏪', label: 'MegaMart' },
+  { id: 'trendsetters',   emoji: '👕', label: 'TrendSetters' },
+  { id: 'tech_store',     emoji: '📱', label: 'Tech Store' },
+  { id: 'neobank',        emoji: '🏦', label: 'NeoBank' },
+  { id: 'public_library', emoji: '📚', label: 'Library (Trade)' },
+  { id: 'home',           emoji: '🏠', label: 'Remote / WFH' },
 ];
 
-const COMPANY_COLOR_MAP = {
-  blue:   { bg: 'bg-blue-50',   border: 'border-blue-300',   badge: 'bg-blue-100 text-blue-700',   btn: 'bg-blue-500 hover:bg-blue-600' },
-  amber:  { bg: 'bg-amber-50',  border: 'border-amber-300',  badge: 'bg-amber-100 text-amber-700', btn: 'bg-amber-500 hover:bg-amber-600' },
-  green:  { bg: 'bg-green-50',  border: 'border-green-300',  badge: 'bg-green-100 text-green-700', btn: 'bg-green-500 hover:bg-green-600' },
-  indigo: { bg: 'bg-indigo-50', border: 'border-indigo-300', badge: 'bg-indigo-100 text-indigo-700',btn: 'bg-indigo-500 hover:bg-indigo-600' },
-  violet: { bg: 'bg-violet-50', border: 'border-violet-300', badge: 'bg-violet-100 text-violet-700',btn: 'bg-violet-500 hover:bg-violet-600' },
-  yellow: { bg: 'bg-yellow-50', border: 'border-yellow-300', badge: 'bg-yellow-100 text-yellow-700',btn: 'bg-yellow-500 hover:bg-yellow-600' },
-  orange: { bg: 'bg-orange-50', border: 'border-orange-300', badge: 'bg-orange-100 text-orange-700',btn: 'bg-orange-500 hover:bg-orange-600' },
-};
 
-const LibraryContent = ({ state, actions, setNotification }) => {
+const LibraryContent = ({ state, actions }) => {
   const { player } = state;
   const isTradeEmployee = player.job?.type === 'trade';
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
-  const companyJobs = selectedCompany
-    ? jobsData.filter(j => j.company === selectedCompany.id)
-    : [];
-
-  const co = selectedCompany ? COMPANY_COLOR_MAP[selectedCompany.color] : null;
-
-  // Rejection difficulty label based on chance
-  const difficultyLabel = (chance) => {
-    if (chance <= 0.1) return { label: 'Easy', cls: 'bg-green-100 text-green-700' };
-    if (chance <= 0.2) return { label: 'Moderate', cls: 'bg-yellow-100 text-yellow-700' };
-    return { label: 'Competitive', cls: 'bg-red-100 text-red-600' };
+  const diffLabel = (chance) => {
+    if (chance <= 0.15) return { t: 'Easy', c: 'bg-green-100 text-green-700' };
+    if (chance <= 0.30) return { t: 'Moderate', c: 'bg-yellow-100 text-yellow-700' };
+    return { t: 'Competitive', c: 'bg-red-100 text-red-600' };
   };
+
+  const locationJobs = selectedLocation
+    ? jobsData.filter(j => j.location === selectedLocation.id)
+    : [];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
-      {/* Left: Company Directory or Job Listings */}
+      {/* Left: Job board by location */}
       <div className="flex flex-col min-h-0">
-        {!selectedCompany ? (
+        {!selectedLocation ? (
           <>
-            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🏢 Companies Hiring</h3>
+            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📋 Job Board — Browse by Location</h3>
             <div className="flex-grow overflow-y-auto space-y-1.5">
-              {COMPANIES.map(company => {
-                const jobs = jobsData.filter(j => j.company === company.id);
-                const entryJobs = jobs.filter(j => !j.requirements?.education && !j.requirements?.experience && !j.requirements?.dependability && !j.requirements?.item);
-                const colors = COMPANY_COLOR_MAP[company.color];
-                const isCurrentEmployer = player.job?.company === company.id;
+              {LIBRARY_LOCATION_GROUPS.map(loc => {
+                const jobs = jobsData.filter(j => j.location === loc.id);
+                if (jobs.length === 0) return null;
+                const entryCount = jobs.filter(j => !j.requirements?.education && !j.requirements?.experience && !j.requirements?.dependability && !j.requirements?.item).length;
+                const isCurrentWorkplace = player.job?.location === loc.id;
+                const isRemote = loc.id === 'home';
                 return (
                   <button
-                    key={company.id}
-                    onClick={() => setSelectedCompany(company)}
-                    className={`w-full text-left p-2.5 border-2 rounded-xl transition active:scale-95 group ${colors.bg} ${colors.border} ${isCurrentEmployer ? 'ring-2 ring-emerald-400' : 'hover:brightness-95'}`}
+                    key={loc.id}
+                    onClick={() => setSelectedLocation(loc)}
+                    className={`w-full text-left p-2.5 border-2 rounded-xl transition active:scale-95
+                      ${isCurrentWorkplace ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400' : 'bg-white border-slate-200 hover:border-slate-400 hover:bg-slate-50'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{company.emoji}</span>
+                        <span className="text-lg">{loc.emoji}</span>
                         <div>
-                          <div className="font-bold text-xs flex items-center gap-1">
-                            {company.id}
-                            {isCurrentEmployer && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">current</span>}
+                          <div className="font-bold text-xs flex items-center gap-1.5">
+                            {loc.label}
+                            {isCurrentWorkplace && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">your employer</span>}
+                            {isRemote && <span className="text-[9px] bg-violet-100 text-violet-700 px-1 rounded">WFH</span>}
                           </div>
-                          <div className={`text-[9px] px-1 rounded inline-block ${colors.badge}`}>{company.industry}</div>
+                          {entryCount > 0 && <div className="text-[9px] text-green-600 font-semibold">✓ {entryCount} entry-level opening{entryCount !== 1 ? 's' : ''}</div>}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-[9px] text-slate-500">{jobs.length} position{jobs.length !== 1 ? 's' : ''}</div>
-                        {entryJobs.length > 0 && <div className="text-[9px] text-green-600 font-semibold">✓ entry level</div>}
+                        <div className="text-slate-400 text-sm">›</div>
                       </div>
                     </div>
                   </button>
                 );
               })}
             </div>
+            <div className="mt-2 text-[9px] text-slate-400 italic text-center">Browse listings here, then visit the location to apply in person (or apply remotely for WFH jobs).</div>
           </>
         ) : (
           <>
             <div className="flex items-center gap-2 mb-2 border-b border-slate-300 pb-1">
-              <button onClick={() => setSelectedCompany(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">‹</button>
-              <span className="text-lg">{selectedCompany.emoji}</span>
+              <button onClick={() => setSelectedLocation(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none font-bold">‹</button>
+              <span className="text-lg">{selectedLocation.emoji}</span>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-sm leading-tight">{selectedCompany.id}</h3>
-                <p className="text-[9px] text-slate-500 truncate">{selectedCompany.desc}</p>
+                <h3 className="font-bold text-sm leading-tight">{selectedLocation.label}</h3>
+                <p className="text-[9px] text-slate-500">{locationJobs.length} position{locationJobs.length !== 1 ? 's' : ''} available</p>
               </div>
             </div>
             <div className="flex-grow overflow-y-auto space-y-2">
-              {companyJobs.map(job => {
+              {locationJobs.map(job => {
                 const meetsExp = !job.requirements?.experience || (player.job?.weeksWorked || 0) >= job.requirements.experience;
                 const meetsEdu = !job.requirements?.education || meetsEducation(player.education, job.requirements.education);
                 const meetsDep = !job.requirements?.dependability || player.dependability >= job.requirements.dependability;
                 const meetsItm = !job.requirements?.item || player.inventory.some(i => i.id === job.requirements.item);
                 const canApply = meetsExp && meetsEdu && meetsDep && meetsItm;
-                const isCurrentJob = player.job?.id === job.id;
-                const diff = difficultyLabel(job.rejectionChance || 0.25);
-                const isEntryLevel = !job.requirements?.education && !job.requirements?.experience && !job.requirements?.dependability && !job.requirements?.item;
+                const isCurrent = player.job?.id === job.id;
+                const isEntry = !job.requirements?.education && !job.requirements?.experience && !job.requirements?.dependability && !job.requirements?.item;
+                const diff = diffLabel(job.rejectionChance || 0.25);
                 return (
-                  <div key={job.id} className={`border-2 rounded-xl p-2.5 ${co.bg} ${co.border} ${isCurrentJob ? 'ring-2 ring-emerald-400' : ''}`}>
+                  <div key={job.id} className={`border-2 rounded-xl p-2.5 ${isCurrent ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-300' : canApply ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex justify-between items-start mb-1">
                       <div>
                         <div className="font-bold text-xs flex items-center gap-1">
                           {job.title}
-                          {isCurrentJob && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">you're here</span>}
+                          {isCurrent && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">current</span>}
+                          {job.remote && <span className="text-[9px] bg-violet-100 text-violet-700 px-1 rounded">remote</span>}
                         </div>
                         <div className="text-[9px] text-slate-500 mt-0.5">{job.description}</div>
                       </div>
                       <div className="text-right shrink-0 ml-2">
                         <div className="font-mono font-black text-sm text-green-700">${job.wage}/hr</div>
-                        <div className={`text-[9px] px-1 rounded ${diff.cls}`}>{diff.label}</div>
+                        <span className={`text-[9px] px-1 rounded ${diff.c}`}>{diff.t}</span>
                       </div>
                     </div>
-                    {/* Requirements */}
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {isEntryLevel
-                        ? <span className="text-[9px] text-green-600 font-semibold">✓ No requirements — open to all</span>
+                      {isEntry
+                        ? <span className="text-[9px] text-green-600 font-semibold">✓ Open to everyone</span>
                         : <>
                           {job.requirements?.education && <span className={`text-[9px] px-1 rounded ${meetsEdu ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎓 {job.requirements.education}</span>}
                           {job.requirements?.experience && <span className={`text-[9px] px-1 rounded ${meetsExp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>⏱ {job.requirements.experience}wks exp</span>}
@@ -1128,16 +1228,15 @@ const LibraryContent = ({ state, actions, setNotification }) => {
                         </>
                       }
                     </div>
-                    {/* Apply button */}
-                    {isCurrentJob ? (
+                    {isCurrent ? (
                       <div className="text-[10px] text-center text-emerald-700 font-semibold py-1">✓ Currently employed here</div>
                     ) : (
                       <button
                         onClick={() => actions.applyForJob(job)}
                         disabled={player.timeRemaining < 2}
-                        className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${co.btn}`}
+                        className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition active:scale-95 disabled:opacity-40 ${canApply ? 'bg-slate-700 hover:bg-slate-900' : 'bg-slate-400 hover:bg-slate-500'}`}
                       >
-                        {canApply ? '📋 Apply (costs 2 hrs)' : '🚫 Apply anyway (likely rejected)'}
+                        {canApply ? '📋 Apply (2 hrs)' : '🚫 Apply anyway (likely rejected)'}
                       </button>
                     )}
                   </div>
@@ -1161,17 +1260,23 @@ const LibraryContent = ({ state, actions, setNotification }) => {
               <div className="text-xs text-yellow-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
           ) : (
-            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers pick up dispatch jobs here. Corporate &amp; remote workers go home.</div>
+            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers (electricians, plumbers, laborers) pick up dispatch jobs here.</div>
           )}
           {isTradeEmployee && (() => {
             const nextJob = getNextPromotion(player);
             if (!nextJob) return null;
             return (
-              <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded hover:bg-green-200 text-xs font-bold text-green-800">
+              <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
                 🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
               </button>
             );
           })()}
+        </div>
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] text-slate-500 space-y-1">
+          <div className="font-bold text-slate-600 text-xs mb-1">📚 Library Resources</div>
+          <div>• Browse all job listings above by location</div>
+          <div>• Apply from here (costs 2hrs) or visit each location</div>
+          <div>• Trade workers report here for dispatch jobs</div>
         </div>
       </div>
     </div>
@@ -1187,6 +1292,7 @@ const TrendSettersContent = ({ state, actions }) => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="sm:col-span-2"><JobsHereCard locationId="trendsetters" player={player} actions={actions} /></div>
       {/* Left: current wardrobe status */}
       <div>
         <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">👗 Clothing</h3>
@@ -1341,7 +1447,7 @@ const MegaMartContent = ({ state, actions }) => {
   const hasFreezer = player.inventory.some(i => i.id === 'freezer');
   const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
   const hasStorage = hasFridge || hasFreezer;
-  const isRetailEmployee = player.job?.workLocation === 'megamart';
+  const isRetailEmployee = player.job?.location === 'megamart';
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
@@ -1375,6 +1481,7 @@ const MegaMartContent = ({ state, actions }) => {
       </div>
       {/* Right: Work shift + Buy appliances */}
       <div>
+        <JobsHereCard locationId="megamart" player={player} actions={actions} />
         {isRetailEmployee && (
           <div className="mb-3">
             <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏪 Staff Only</h3>
@@ -1387,7 +1494,7 @@ const MegaMartContent = ({ state, actions }) => {
                 <div className="font-bold">🛒 Work Shift (8h)</div>
                 <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
               </div>
-              <div className="text-xs text-red-700 mt-0.5">{player.job.title} · {player.job.company}</div>
+              <div className="text-xs text-red-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
             </button>
             {(() => {
               const nextJob = getNextPromotion(player);
@@ -1435,8 +1542,8 @@ const MegaMartContent = ({ state, actions }) => {
 
 const CoffeeShopContent = ({ state, actions }) => {
   const { player, economy } = state;
-  // Only Brew & Co service jobs work here (cashier/stock_clerk work at MegaMart)
-  const isServiceEmployee = player.job?.type === 'service' && (player.job?.workLocation || 'coffee_shop') === 'coffee_shop';
+  // Only coffee_shop location jobs work here
+  const isServiceEmployee = player.job?.location === 'coffee_shop';
   const espressoPrice = adjustedPrice(5, economy);
   const pastryPrice = adjustedPrice(8, economy);
   const coffeeWeeklyPlans = itemsData.filter(i => i.type === 'weekly_coffee');
@@ -1491,6 +1598,7 @@ const CoffeeShopContent = ({ state, actions }) => {
       </div>
       {/* Right: Work / Staff */}
       <div>
+        <JobsHereCard locationId="coffee_shop" player={player} actions={actions} />
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only</h3>
         {isServiceEmployee ? (
           <>
@@ -1725,11 +1833,12 @@ const CityCollegeContent = ({ state, actions }) => {
 
 const TechStoreContent = ({ state, actions }) => {
   const { player, economy } = state;
-  const isTechEmployee = player.job?.type === 'tech';
+  const isTechEmployee = player.job?.location === 'tech_store';
   const electronics = itemsData.filter(i => i.type === 'electronics');
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div>
+        <JobsHereCard locationId="tech_store" player={player} actions={actions} />
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Products</h3>
         {electronics.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
@@ -1796,7 +1905,7 @@ const TechStoreContent = ({ state, actions }) => {
             })()}
           </>
         ) : (
-          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Tech employees work here. Apply at the Library.</div>
+          <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Tech employees work here. See job openings above ↑</div>
         )}
       </div>
     </div>
@@ -1809,8 +1918,10 @@ const NeoBankContent = ({ state, actions }) => {
   const netWorth = calculateNetWorth(player);
   const wealthPct = Math.min(100, Math.max(0, (netWorth / goals.wealth) * 100));
   const AMOUNTS = [50, 100, 250, 500];
+  const isBankEmployee = player.job?.location === 'neobank';
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="sm:col-span-2"><JobsHereCard locationId="neobank" player={player} actions={actions} /></div>
       <div className="space-y-3">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1">Banking</h3>
         {/* Wealth goal progress */}
@@ -1916,6 +2027,20 @@ const NeoBankContent = ({ state, actions }) => {
         </div>
       </div>
       <div>
+        {isBankEmployee && (
+          <div className="mb-3">
+            <h3 className="font-bold text-sm border-b border-indigo-200 pb-1 mb-2">🏦 Staff Only</h3>
+            <button onClick={actions.work} disabled={player.timeRemaining < 8}
+              className="w-full p-3 bg-indigo-50 border-2 border-indigo-300 rounded-xl hover:bg-indigo-100 disabled:opacity-50 text-sm transition active:scale-95 mb-2">
+              <div className="flex justify-between items-center">
+                <div className="font-bold">💼 Work Shift (8h)</div>
+                <div className="font-mono font-black text-green-600">+${player.job.wage * 8}</div>
+              </div>
+              <div className="text-xs text-indigo-700 mt-0.5">{player.job.title} · ${player.job.wage}/hr</div>
+            </button>
+            {(() => { const nj = getNextPromotion(player); return nj ? <button onClick={() => actions.applyForJob(nj, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded text-xs font-bold text-green-800 hover:bg-green-200">🆙 Promote → {nj.title}</button> : null; })()}
+          </div>
+        )}
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📈 Stocks</h3>
         {(() => {
           const total = stocksData.reduce((sum, stock) => {
@@ -2033,6 +2158,7 @@ const HomeContent = ({ state, actions }) => {
       {/* Right: WFH work */}
       <div className="space-y-3">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Work from Home</h3>
+        <JobsHereCard locationId="home" player={player} actions={actions} />
 
         {/* Data Entry — WFH, no laptop needed */}
         {isWFH && (
@@ -2069,7 +2195,7 @@ const HomeContent = ({ state, actions }) => {
 
         {!isWFH && !isCorpRemote && (
           <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">
-            {player.job ? `${player.job.title}s report to ${player.job.company} — head to your work location.` : 'Get a job to work from home or remotely.'}
+            {player.job ? `${player.job.title}s report in-person — head to your work location.` : 'Get a remote job to work from home.'}
           </div>
         )}
 
@@ -2380,7 +2506,7 @@ const Board = () => {
         {(() => {
           const { player } = state;
           const promoJob = getNextPromotion(player);
-          const workLocId = player.job ? (player.job.workLocation || JOB_WORK_LOCATION[player.job.type] || null) : null;
+          const workLocId = player.job ? (player.job.workLocation || player.job.location || JOB_WORK_LOCATION[player.job.type] || null) : null;
           return LOCATION_ORDER.map(id => {
             // Warning badges
             let warningBadge = null;
