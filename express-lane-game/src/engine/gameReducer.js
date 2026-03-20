@@ -324,6 +324,21 @@ export const gameReducer = (state, action) => {
       return log(s, `Rested ${hours}h at home. +${relaxGain} relaxation.`);
     }
 
+    // ── Read a book at the library ────────────────────────────────────────────
+    case 'READ_BOOK': {
+      const { book } = action; // { title, hours, happinessGain, relaxGain, depGain }
+      const player = activePlayer(state);
+      if (player.timeRemaining < book.hours) return log(state, `Not enough time to read ${book.title}.`);
+      let s = updateActivePlayer(state, p => ({
+        ...p,
+        timeRemaining: p.timeRemaining - book.hours,
+        happiness: Math.min(100, p.happiness + (book.happinessGain ?? 0)),
+        relaxation: Math.min(100, (p.relaxation ?? 50) + (book.relaxGain ?? 0)),
+        dependability: Math.min(100, (p.dependability ?? 0) + (book.depGain ?? 0)),
+      }));
+      return log(s, `Read "${book.title}". +${book.happinessGain ?? 0} happiness.`);
+    }
+
     // ── Buy item ──────────────────────────────────────────────────────────────
     case 'BUY_ITEM': {
       const { item } = action;

@@ -994,6 +994,7 @@ const QuickEatsContent = ({ state, actions }) => {
   const storedMeal = player.inventory.find(i => i.type === 'weekly_meal');
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
+      <div className="sm:col-span-2"><JobsHereCard locationId="quick_eats" player={player} actions={actions} /></div>
       <div>
         <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">🍔 Weekly Meal Plans</h3>
         {storedMeal ? (
@@ -1102,8 +1103,6 @@ const QuickEatsContent = ({ state, actions }) => {
           )}
         </div>
 
-        {/* Jobs available here */}
-        <JobsHereCard locationId="quick_eats" player={player} actions={actions} />
       </div>
     </div>
   );
@@ -1272,11 +1271,38 @@ const LibraryContent = ({ state, actions }) => {
             );
           })()}
         </div>
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[10px] text-slate-500 space-y-1">
-          <div className="font-bold text-slate-600 text-xs mb-1">📚 Library Resources</div>
-          <div>• Browse all job listings above by location</div>
-          <div>• Apply from here (costs 2hrs) or visit each location</div>
-          <div>• Trade workers report here for dispatch jobs</div>
+        {/* Books section */}
+        <div>
+          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📖 Read a Book (2h)</h3>
+          <div className="space-y-2">
+            {[
+              { title: 'The Great Novel',      emoji: '📕', genre: 'Fiction',    hours: 2, happinessGain: 8, relaxGain: 5,  depGain: 0, desc: 'Escape into a story. Pure bliss.' },
+              { title: 'Think & Grow Rich',    emoji: '📗', genre: 'Self-Help',  hours: 2, happinessGain: 4, relaxGain: 0,  depGain: 3, desc: '+happiness, +dependability' },
+              { title: 'How Things Work',      emoji: '📘', genre: 'Technical',  hours: 2, happinessGain: 3, relaxGain: 0,  depGain: 2, desc: 'Dry but useful. You feel smarter.' },
+              { title: 'Travel & Adventures',  emoji: '📙', genre: 'Travel',     hours: 2, happinessGain: 10, relaxGain: 8, depGain: 0, desc: 'Best happiness boost, pure joy.' },
+            ].map(book => (
+              <button
+                key={book.title}
+                onClick={() => actions.readBook(book)}
+                disabled={player.timeRemaining < book.hours}
+                className="w-full text-left p-2.5 border rounded-xl bg-white hover:bg-emerald-50 hover:border-emerald-300 disabled:opacity-40 transition active:scale-95 border-slate-200"
+              >
+                <div className="flex items-start gap-2">
+                  <span className="text-xl">{book.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-xs">{book.title}</div>
+                    <div className="text-[9px] text-slate-400 mt-0.5">{book.desc}</div>
+                    <div className="flex gap-2 mt-1">
+                      {book.happinessGain > 0 && <span className="text-[9px] bg-yellow-100 text-yellow-700 px-1 rounded">+{book.happinessGain} 😊</span>}
+                      {book.relaxGain > 0 && <span className="text-[9px] bg-teal-100 text-teal-700 px-1 rounded">+{book.relaxGain} relax</span>}
+                      {book.depGain > 0 && <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded">+{book.depGain} dep</span>}
+                    </div>
+                  </div>
+                  <span className="text-[9px] text-slate-400 shrink-0">{book.hours}h</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -1451,6 +1477,7 @@ const MegaMartContent = ({ state, actions }) => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
+      <div className="sm:col-span-2"><JobsHereCard locationId="megamart" player={player} actions={actions} /></div>
       {/* Left: Home status dashboard */}
       <div className="space-y-2">
         <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏠 Your Home Setup</h3>
@@ -1481,7 +1508,6 @@ const MegaMartContent = ({ state, actions }) => {
       </div>
       {/* Right: Work shift + Buy appliances */}
       <div>
-        <JobsHereCard locationId="megamart" player={player} actions={actions} />
         {isRetailEmployee && (
           <div className="mb-3">
             <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏪 Staff Only</h3>
@@ -1550,6 +1576,7 @@ const CoffeeShopContent = ({ state, actions }) => {
   const storedCoffee = player.inventory.find(i => i.type === 'weekly_coffee');
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="sm:col-span-2"><JobsHereCard locationId="coffee_shop" player={player} actions={actions} /></div>
       {/* Left: Weekly Plans + Quick Bites */}
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">☕ Weekly Plans</h3>
@@ -1598,7 +1625,6 @@ const CoffeeShopContent = ({ state, actions }) => {
       </div>
       {/* Right: Work / Staff */}
       <div>
-        <JobsHereCard locationId="coffee_shop" player={player} actions={actions} />
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Staff Only</h3>
         {isServiceEmployee ? (
           <>
@@ -1837,8 +1863,8 @@ const TechStoreContent = ({ state, actions }) => {
   const electronics = itemsData.filter(i => i.type === 'electronics');
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="sm:col-span-2"><JobsHereCard locationId="tech_store" player={player} actions={actions} /></div>
       <div>
-        <JobsHereCard locationId="tech_store" player={player} actions={actions} />
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Products</h3>
         {electronics.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
@@ -2104,6 +2130,7 @@ const HomeContent = ({ state, actions }) => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="sm:col-span-2"><JobsHereCard locationId="home" player={player} actions={actions} /></div>
       {/* Left: sleep + rest */}
       <div className="space-y-3">
         {/* Sleep / End Week */}
@@ -2158,7 +2185,6 @@ const HomeContent = ({ state, actions }) => {
       {/* Right: WFH work */}
       <div className="space-y-3">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">💻 Work from Home</h3>
-        <JobsHereCard locationId="home" player={player} actions={actions} />
 
         {/* Data Entry — WFH, no laptop needed */}
         {isWFH && (
@@ -2430,7 +2456,7 @@ const Board = () => {
   const renderPanelContent = (id) => {
     switch (id) {
       case 'quick_eats':     return <QuickEatsContent state={state} actions={actions} />;
-      case 'public_library': return <LibraryContent state={state} actions={actions} setNotification={setNotification} />;
+      case 'public_library': return <LibraryContent state={state} actions={actions} />;
       case 'trendsetters':   return <TrendSettersContent state={state} actions={actions} />;
       case 'megamart':       return <MegaMartContent state={state} actions={actions} />;
       case 'coffee_shop':    return <CoffeeShopContent state={state} actions={actions} />;

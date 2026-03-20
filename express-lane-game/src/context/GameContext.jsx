@@ -71,6 +71,7 @@ export const GameProvider = ({ children }) => {
     gigWork: () => { playSound('coin'); dispatch({ type: 'GIG_WORK' }); },
     applyForJob: (job, isPromotion = false) => dispatch({ type: 'APPLY_FOR_JOB', job, isPromotion }),
     rest: (hours = 2) => dispatch({ type: 'REST', hours }),
+    readBook: (book) => dispatch({ type: 'READ_BOOK', book }),
     buyItem: (item) => { playSound('coin'); dispatch({ type: 'BUY_ITEM', item }); },
     sellItem: (item) => dispatch({ type: 'SELL_ITEM', item }),
     enroll: (course) => { playSound('success'); dispatch({ type: 'ENROLL', course }); },
