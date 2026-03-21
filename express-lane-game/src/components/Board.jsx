@@ -366,8 +366,8 @@ const LocationPanel = ({ locationId, player, children, onClose }) => {
             <span className="truncate">{config.label}</span>
           </h2>
           {isWorkplace && (
-            <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full flex-shrink-0">
-              YOUR JOB
+            <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.5 rounded-full flex-shrink-0" title="Press W to work">
+              YOUR JOB · W
             </span>
           )}
         </div>
@@ -417,15 +417,25 @@ const ExpProgressBar = ({ player }) => {
   const weeksWorked = player.job.weeksWorked || 0;
   const expPct = Math.min(100, (weeksWorked / expNeeded) * 100);
   const ready = weeksWorked >= expNeeded;
+  const weeksLeft = Math.max(0, expNeeded - weeksWorked);
+  // Check other requirements too
+  const meetsEdu = !nextJob?.requirements?.education || meetsEducation(player.education, nextJob.requirements.education);
+  const meetsDep = !nextJob?.requirements?.dependability || player.dependability >= nextJob.requirements.dependability;
+  const meetsItem = !nextJob?.requirements?.item || player.inventory.some(i => i.id === nextJob.requirements.item);
   return (
-    <div className={`mt-1 text-[10px] rounded-lg px-2 py-1.5 border ${ready ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+    <div className={`mt-1 text-[10px] rounded-lg px-2 py-1.5 border ${ready && meetsEdu && meetsDep && meetsItem ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
       <div className="flex justify-between mb-0.5">
-        <span>⏱ Experience</span>
-        <span className={ready ? 'text-green-600 font-bold' : ''}>{weeksWorked}/{expNeeded} wks{ready ? ' ✓' : ''}</span>
+        <span>⏱ → {nextJob.title}</span>
+        <span className={ready ? 'text-green-600 font-bold' : ''}>{weeksWorked}/{expNeeded} wks{ready ? ' ✓' : ` (${weeksLeft} more)`}</span>
       </div>
       <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${ready ? 'bg-green-500' : 'bg-blue-400'}`} style={{ width: `${expPct}%` }} />
       </div>
+      {ready && (!meetsEdu || !meetsDep || !meetsItem) && (
+        <div className="text-[9px] text-amber-600 mt-0.5 font-bold">
+          Also need: {!meetsEdu && `🎓 ${nextJob.requirements.education} `}{!meetsDep && `🎯 ${nextJob.requirements.dependability} dep `}{!meetsItem && `📦 ${nextJob.requirements.item?.replace(/_/g, ' ')}`}
+        </div>
+      )}
     </div>
   );
 };
@@ -483,7 +493,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
       <div className={`flex flex-col items-center min-w-[44px] md:min-w-[52px] rounded-lg px-1 py-0.5 ${economyBg}`}>
         <div className="text-base md:text-2xl leading-none">📅</div>
         <div className="text-white text-[11px] md:text-xs font-black leading-none">Wk {week}</div>
-        <div className={`text-[8px] font-bold ${economyColor} leading-none mt-0.5`}>{economy}</div>
+        <div className={`text-[8px] font-bold ${economyColor} leading-none mt-0.5`}>{economy}{state.economyTimer <= 2 ? ' ⚡' : ''}</div>
       </div>
 
       {/* Happiness */}
@@ -541,6 +551,9 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           {!player.job && (
             <span className="bg-slate-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">No Job</span>
           )}
+          {player.debt > 0 && (
+            <span className="bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">💳 ${player.debt}</span>
+          )}
         </div>
         {/* Secondary stats — desktop only */}
         <div className="hidden md:contents">
@@ -570,8 +583,8 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           {/* Education + Job + vehicle + clothing warning */}
           <div className="flex gap-2 text-[8px] flex-wrap items-center">
             <span className="text-slate-400">🎓 {player.education}</span>
-            <span className={`${player.job ? 'text-slate-400' : 'text-red-400 animate-pulse'}`}>
-              💼 {player.job ? player.job.title : '⚠️ Unemployed'}
+            <span className={`${player.job ? 'text-slate-400' : 'text-red-400 animate-pulse font-bold'}`}>
+              💼 {player.job ? `${player.job.title} (${player.job.weeksWorked || 0}wk)` : '⚠️ Unemployed — visit Library!'}
             </span>
             {(() => {
               const v = player.inventory?.find(i => i.type === 'vehicle');
@@ -609,12 +622,29 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         )}
         <div className="text-[8px] text-slate-500 text-right hidden sm:block leading-none">
           Net: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${Math.round(netWorth).toLocaleString()}</span>
+          {(() => {
+            const snap = state.weekStartSnapshot?.find(s => s.name === player.name);
+            if (!snap) return null;
+            const oldNW = (snap.money ?? 0) + (snap.savings ?? 0) - (snap.debt ?? 0);
+            const delta = netWorth - oldNW;
+            if (Math.abs(delta) < 1) return null;
+            return <span className={delta > 0 ? 'text-green-400' : 'text-red-400'}> {delta > 0 ? '▲' : '▼'}</span>;
+          })()}
         </div>
         {player.job && (
           <div className="text-[8px] text-slate-400 text-right hidden sm:block leading-none">
-            ≈<span className="text-green-400 font-mono">${Math.floor(effectiveWage(player.job.wage, economy) * 8)}/wk</span>
+            ≈<span className="text-green-400 font-mono">${Math.floor(effectiveWage(player.job.wage, economy) * 8)}/shift</span>
+            <span className="text-slate-500 ml-1">· ${Math.floor(effectiveWage(player.job.wage, economy) * 40)}/wk</span>
           </div>
         )}
+        {(() => {
+          const portfolioVal = stocksData.reduce((sum, s) => sum + (player.portfolio?.[s.symbol] || 0) * (state.market[s.symbol] || 0), 0);
+          return portfolioVal > 0 ? (
+            <div className="text-[8px] text-indigo-400 text-right hidden sm:block leading-none">
+              📈 ${portfolioVal.toLocaleString()}
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {/* Action buttons */}
@@ -636,8 +666,8 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             title={muted ? 'Unmute (M)' : 'Mute (M)'}
           ><span>{muted ? '🔇' : '🔊'}</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">{muted ? 'Mute' : 'Sound'}</span></button>
         </div>
-        <div className="hidden md:block text-[8px] text-slate-600 text-center">
-          I · G · L · M · Esc
+        <div className="hidden md:block text-[8px] text-slate-600 text-center" title="I=Inventory, G=Goals, L=Log, M=Mute, W=Work, E=End Week, R=Rest, S=Study, N=Network, Esc=Close">
+          I·G·L·M·W·E·R·S·N · Esc
         </div>
       </div>
       </div>
@@ -732,6 +762,14 @@ const GoalsModal = ({ state, onClose }) => {
               <div className="text-[9px] text-right mt-0.5 font-bold" style={{ color: item.met ? '#16a34a' : item.pct > 75 ? '#3b82f6' : '#94a3b8' }}>
                 {item.met ? '✓ COMPLETE' : `${Math.round(item.pct)}% there`}
               </div>
+              {!item.met && (
+                <div className="text-[9px] text-slate-400 mt-0.5 italic">
+                  {item.label.includes('Wealth') && '💡 Work shifts, save at NeoBank, invest in stocks'}
+                  {item.label.includes('Happiness') && '💡 Buy entertainment, rest at home, upgrade housing'}
+                  {item.label.includes('Education') && '💡 Enroll at City College and study each week'}
+                  {item.label.includes('Dependability') && '💡 Work shifts and network at Coffee Shop'}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -794,6 +832,10 @@ const InventorySection = ({ title, items }) => {
           <div className="text-xs text-slate-500 text-right">
             <div>${item.cost}</div>
             <div className="text-slate-400">resell ${Math.floor(item.cost * 0.5)}</div>
+            {item.weeklyFee > 0 && <div className="text-red-400 text-[9px]">-${item.weeklyFee}/wk</div>}
+            {item.weeklyHappinessBoost > 0 && <div className="text-green-500 text-[9px]">+{item.weeklyHappinessBoost} 😊/wk</div>}
+            {item.studyBonus > 0 && <div className="text-blue-500 text-[9px]">+{item.studyBonus}h study</div>}
+            {item.travelBonus > 0 && <div className="text-violet-500 text-[9px]">-{item.travelBonus}h travel</div>}
           </div>
         </div>
       ))}
@@ -853,9 +895,25 @@ const InventoryModal = ({ inventory, onClose }) => {
             </>
           )}
         </div>
-        <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between text-[10px] text-slate-400">
+        {/* Weekly costs from subscriptions */}
+        {(() => {
+          const weeklyCosts = inventory.filter(i => i.weeklyFee).reduce((sum, i) => sum + i.weeklyFee, 0);
+          const weeklyHappy = inventory.filter(i => i.weeklyHappinessBoost).reduce((sum, i) => sum + i.weeklyHappinessBoost, 0);
+          if (weeklyCosts === 0 && weeklyHappy === 0) return null;
+          return (
+            <div className="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500">
+              <div className="font-bold text-slate-600 mb-0.5">📋 Weekly Effects</div>
+              {weeklyCosts > 0 && <div className="text-red-500">Subscriptions: -${weeklyCosts}/wk</div>}
+              {weeklyHappy > 0 && <div className="text-green-600">Happiness boost: +{weeklyHappy}/wk</div>}
+            </div>
+          );
+        })()}
+        <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
           <span>Sell items at Black's Market</span>
-          {totalResaleValue > 0 && <span className="text-green-600 font-bold">~${totalResaleValue} pawn value</span>}
+          <div className="flex items-center gap-2">
+            {totalResaleValue > 0 && <span className="text-green-600 font-bold">~${totalResaleValue} pawn value</span>}
+            <button onClick={onClose} className="text-[9px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded font-bold text-slate-600 transition">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1094,7 +1152,11 @@ const JonesSidebar = ({ jones, player }) => {
             <div className="text-[9px] space-y-0.5">
               <div>{playerNetWorth >= jones.netWorth ? '✅' : '❌'} Wealth: {playerNetWorth >= jones.netWorth ? 'Ahead!' : `$${(jones.netWorth - playerNetWorth).toFixed(0)} behind`}</div>
               <div>{player.happiness >= jones.happiness ? '✅' : '❌'} Happiness: {player.happiness >= jones.happiness ? 'Ahead!' : `${jones.happiness - player.happiness} pts behind`}</div>
+              <div>{meetsEducation(player.education, jones.education) ? '✅' : '❌'} Education: {meetsEducation(player.education, jones.education) ? 'Ahead!' : `Jones has ${jones.education}`}</div>
             </div>
+            {playerNetWorth >= jones.netWorth && player.happiness >= jones.happiness && meetsEducation(player.education, jones.education) && (
+              <div className="text-[9px] text-green-600 font-bold mt-1 text-center">🏆 Beating the Joneses!</div>
+            )}
           </div>
         </div>
       )}
@@ -1134,19 +1196,31 @@ const FullLogModal = ({ history, onClose }) => {
   // Color-code log entries by keyword
   const entryColor = (entry) => {
     const e = entry.toLowerCase();
-    if (e.includes('hungry') || e.includes('starving') || e.includes('fired') || e.includes('evict')) return 'text-red-400';
-    if (e.includes('earned') || e.includes('worked') || e.includes('hired') || e.includes('promoted') || e.includes('enrolled')) return 'text-green-400';
-    if (e.includes('bought') || e.includes('moved') || e.includes('paid')) return 'text-blue-400';
+    if (e.includes('hungry') || e.includes('starving') || e.includes('fired') || e.includes('evict') || e.includes('willy') || e.includes('spoiled') || e.includes('lost')) return 'text-red-400';
+    if (e.includes('earned') || e.includes('worked') || e.includes('hired') || e.includes('promoted') || e.includes('enrolled') || e.includes('completed') || e.includes('graduated')) return 'text-green-400';
+    if (e.includes('bought') || e.includes('moved') || e.includes('paid') || e.includes('sold')) return 'text-blue-400';
+    if (e.includes('economy')) return 'text-yellow-400';
+    if (e.includes('doctor') || e.includes('exhaustion')) return 'text-amber-400';
+    if (e.includes('jones')) return 'text-purple-400';
     if (e.includes('week') && e.includes('rent')) return 'text-slate-400';
     return 'text-slate-300';
   };
   const entryIcon = (entry) => {
     const e = entry.toLowerCase();
-    if (e.includes('worked') || e.includes('earned')) return '💰';
+    if (e.includes('worked') || e.includes('earned') || e.includes('gig')) return '💰';
     if (e.includes('hired') || e.includes('promoted')) return '🎉';
     if (e.includes('hungry') || e.includes('starving')) return '🍽️';
     if (e.includes('moved') || e.includes('rent')) return '🏠';
     if (e.includes('bought') || e.includes('enrolled')) return '🛒';
+    if (e.includes('completed') || e.includes('graduated')) return '🎓';
+    if (e.includes('networked')) return '🤝';
+    if (e.includes('rested') || e.includes('read')) return '📖';
+    if (e.includes('sold')) return '💸';
+    if (e.includes('willy')) return '👹';
+    if (e.includes('jones')) return '🤑';
+    if (e.includes('economy')) return '📊';
+    if (e.includes('stock') || e.includes('shares')) return '📈';
+    if (e.includes('doctor') || e.includes('exhaustion')) return '🏥';
     return '·';
   };
   return (
@@ -1206,7 +1280,14 @@ const WeekSummaryModal = ({ summary, onClose }) => {
                 <span className="text-slate-500">😊 <span className={`font-bold ${p.happiness < 30 ? 'text-red-500' : p.happiness >= 75 ? 'text-green-600' : 'text-slate-700'}`}>{p.happiness}/100</span></span>
                 <span className="text-slate-500">🎯 Dep <span className="text-slate-700 font-bold">{p.dependability}</span></span>
                 <span className="text-slate-400 truncate">💼 {p.job}</span>
+                <span className="text-slate-500">🍕 <span className={`font-bold ${(p.hunger ?? 0) >= 80 ? 'text-red-500' : (p.hunger ?? 0) >= 50 ? 'text-orange-500' : 'text-green-600'}`}>{p.hunger ?? 0}</span></span>
+                <span className="text-slate-500">🛁 <span className={`font-bold ${(p.relaxation ?? 50) <= 20 ? 'text-red-500' : 'text-teal-600'}`}>{p.relaxation ?? 50}</span></span>
+                <span className="text-slate-500">💵 <span className={`font-bold ${p.netWorth >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(p.netWorth).toLocaleString()}</span></span>
               </div>
+              {/* Highlight best change */}
+              {p.netWorthDelta > 100 && <div className="text-[9px] text-green-600 font-bold mt-1">🔥 Great week! Big gains!</div>}
+              {p.netWorthDelta < -200 && <div className="text-[9px] text-red-500 font-bold mt-1">😰 Rough week — expenses piled up</div>}
+              {(p.hunger ?? 0) >= 80 && <div className="text-[9px] text-red-500 font-bold mt-1 animate-pulse">🍽️ Starving! Buy food next week!</div>}
             </div>
           ))}
         </div>
@@ -1261,7 +1342,7 @@ const QuickEatsContent = ({ state, actions }) => {
             ⚠️ <strong>No food for this week</strong> — buy a plan below to avoid the hunger penalty!
           </div>
         )}
-        <p className="text-[10px] text-slate-400 mb-2">Auto-eaten at week's end. No fridge needed.</p>
+        <p className="text-[10px] text-slate-400 mb-2">Auto-eaten at week's end. No fridge needed. Reduces hunger by 55.</p>
         {weeklyMeals.map(item => {
           const price = adjustedPrice(item.cost, economy);
           const owned = !!storedMeal;
@@ -1630,9 +1711,15 @@ const LibraryContent = ({ state, actions }) => {
           <div className="mb-3">
             <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🗺️ Career Tracks</h3>
             <div className="space-y-2">
-              {CAREER_TRACKS.slice(0, 2).map((track, ti) => (
-                <div key={ti} className="bg-slate-50 rounded-lg p-2 border border-slate-200">
-                  <div className="text-[10px] font-bold text-slate-600 mb-1">{track.label}</div>
+              {CAREER_TRACKS.slice(0, 4).map((track, ti) => {
+                const entryJob = jobsData.find(j => j.id === track.jobs[0]);
+                const canEnter = entryJob && (!entryJob.requirements?.education || meetsEducation(player.education, entryJob.requirements.education));
+                return (
+                <div key={ti} className={`rounded-lg p-2 border ${canEnter ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-[10px] font-bold text-slate-600">{track.label}</div>
+                    {canEnter ? <span className="text-[8px] bg-green-100 text-green-700 px-1 rounded font-bold">✓ Eligible</span> : <span className="text-[8px] bg-slate-100 text-slate-400 px-1 rounded">locked</span>}
+                  </div>
                   <div className="flex items-center gap-1 flex-wrap">
                     {track.jobs.map((jobId, i) => {
                       const job = jobsData.find(j => j.id === jobId);
@@ -1649,7 +1736,8 @@ const LibraryContent = ({ state, actions }) => {
                     })}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -1741,7 +1829,7 @@ const TrendSettersContent = ({ state, actions }) => {
                     <span className={wear < 30 ? 'text-red-600 font-bold' : wear < 60 ? 'text-amber-600' : 'text-green-600'}>
                       {wear < 30 ? '⚠️ Needs replacing!' : wear < 60 ? 'Getting worn' : 'Good condition'}
                     </span>
-                    <span className="text-slate-400">{wear}%</span>
+                    <span className="text-slate-400">{wear}% · ~{Math.ceil(wear / 7)} wks left</span>
                   </div>
                   <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${wear < 30 ? 'bg-red-500' : wear < 60 ? 'bg-amber-400' : 'bg-green-500'}`}
@@ -1782,8 +1870,19 @@ const TrendSettersContent = ({ state, actions }) => {
           <div className="text-xs font-bold text-pink-800 mb-1">💡 Style Tips</div>
           <div className="text-[10px] text-pink-700 space-y-1">
             <div>• Some jobs require specific attire</div>
-            <div>• Clothes wear out — check durability</div>
-            <div>• Replace before it hits 0%!</div>
+            <div>• Clothes wear out ~7%/week — replace before 0%!</div>
+            <div>• Losing clothing = losing your job</div>
+            {player.job?.requirements?.item && (() => {
+              const reqItem = player.inventory.find(i => i.id === player.job.requirements.item);
+              const wear = reqItem?.clothingWear;
+              return (
+                <div className={`font-bold mt-1 ${!reqItem ? 'text-red-600' : wear < 30 ? 'text-red-600' : 'text-pink-900'}`}>
+                  Your job ({player.job.title}) requires: {player.job.requirements.item.replace(/_/g, ' ')}
+                  {!reqItem && ' ⚠️ You don\'t have this!'}
+                  {reqItem && wear < 30 && ` ⚠️ ${wear}% — replace soon or lose your job!`}
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -1815,7 +1914,14 @@ const GroceryStoreContent = ({ state, actions }) => {
         <div className="text-7xl mb-2">🛒</div>
         <div className="text-xs font-bold text-green-800 text-center">Fresh Mart</div>
         <div className="text-[10px] text-green-600 mt-1 text-center">Affordable groceries — get a fridge to stock up!</div>
-        <div className="mt-2 text-[10px] text-slate-500">Hunger: {player.hunger}/100</div>
+        <div className={`mt-2 text-[10px] font-bold ${player.hunger >= 80 ? 'text-red-600 animate-pulse' : player.hunger >= 50 ? 'text-orange-600' : 'text-green-600'}`}>
+          Hunger: {player.hunger}/100 {player.hunger >= 80 ? '⚠️ STARVING' : player.hunger >= 50 ? '⚠️ Hungry' : '✓ OK'}
+        </div>
+        {!hasStorage && (
+          <div className="mt-1 text-[9px] text-amber-600 font-bold text-center">
+            💡 Buy a fridge at MegaMart to store more!
+          </div>
+        )}
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Groceries</h3>
@@ -1829,7 +1935,7 @@ const GroceryStoreContent = ({ state, actions }) => {
 
         {storedServings >= maxStorage ? (
           <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2">
-            ✅ Stocked up! ({storedServings}/{maxStorage} weeks stored)
+            ✅ Stocked up! ({storedServings}/{maxStorage} weeks stored) — you're set for {storedServings} week{storedServings > 1 ? 's' : ''}!
           </div>
         ) : (
           <div className="space-y-1">
@@ -1854,8 +1960,9 @@ const GroceryStoreContent = ({ state, actions }) => {
         )}
 
         {hasStorage && (
-          <div className="text-[10px] text-green-700 mt-2">
-            🧊 {hasFreezer ? 'Freezer' : 'Fridge'}: {storedServings}/{maxStorage} weeks stored — auto-eaten each week.
+          <div className="text-[10px] text-green-700 mt-2 space-y-0.5">
+            <div>🧊 {hasFreezer ? 'Freezer' : 'Fridge'}: {storedServings}/{maxStorage} weeks stored — auto-eaten each week.</div>
+            <div className="text-green-600 font-bold">💰 Groceries: $40/wk vs Quick Eats: $60-80/wk — save ${20}-${40}/wk!</div>
           </div>
         )}
       </div>
@@ -1941,7 +2048,7 @@ const MegaMartContent = ({ state, actions }) => {
             })()}
           </div>
         )}
-        <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances</h3>
+        <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances{isRetailEmployee ? <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded ml-1 font-normal">Staff picks!</span> : ''}</h3>
         {appliances.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
           const price = adjustedPrice(item.cost, economy);
@@ -1988,7 +2095,7 @@ const CoffeeShopContent = ({ state, actions }) => {
       {/* Left: Weekly Plans + Quick Bites */}
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">☕ Weekly Plans</h3>
-        <p className="text-[10px] text-slate-500 mb-2">Covers your coffee for the whole week — auto-applied at week's end.</p>
+        <p className="text-[10px] text-slate-500 mb-2">Covers your coffee for the whole week — auto-applied at week's end. Reduces hunger by 12.</p>
         {storedCoffee && (
           <div className="p-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-800 mb-2">
             ✅ <strong>{storedCoffee.name}</strong> ready for this week.
@@ -2012,22 +2119,28 @@ const CoffeeShopContent = ({ state, actions }) => {
           );
         })}
         <div className="mt-3 border-t border-slate-200 pt-2">
-          <h3 className="font-bold text-xs text-slate-600 mb-1">Quick Bites</h3>
+          <h3 className="font-bold text-xs text-slate-600 mb-1">Quick Bites <span className="text-[9px] text-slate-400 font-normal">(instant effect)</span></h3>
           <button
             onClick={() => actions.buyItem({ id: 'espresso', name: 'Espresso', cost: espressoPrice, type: 'food', hungerRestore: 10, happinessBoost: 8, timeToEat: 0.5 })}
             disabled={player.money < espressoPrice}
-            className="w-full flex justify-between items-center p-1.5 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 mb-1 text-xs"
+            className="w-full flex justify-between items-center p-2 bg-white border-2 border-slate-200 rounded-lg hover:bg-amber-50 hover:border-amber-300 disabled:opacity-50 mb-1 text-xs transition active:scale-[0.99]"
           >
-            <span>☕ Espresso <span className="text-slate-400">(+8😊 now)</span></span>
-            <span className="font-mono">${espressoPrice}</span>
+            <div>
+              <span className="font-bold">☕ Espresso</span>
+              <span className="text-slate-400 ml-1">(+8😊, -10🍽️)</span>
+            </div>
+            <span className="font-mono font-bold">${espressoPrice}</span>
           </button>
           <button
             onClick={() => actions.buyItem({ id: 'pastry', name: 'Croissant', cost: pastryPrice, type: 'food', hungerRestore: 20, happinessBoost: 6, timeToEat: 0.5 })}
             disabled={player.money < pastryPrice}
-            className="w-full flex justify-between items-center p-1.5 bg-white border rounded hover:bg-amber-50 disabled:opacity-50 text-xs"
+            className="w-full flex justify-between items-center p-2 bg-white border-2 border-slate-200 rounded-lg hover:bg-amber-50 hover:border-amber-300 disabled:opacity-50 text-xs transition active:scale-[0.99]"
           >
-            <span>🥐 Croissant <span className="text-slate-400">(-20🍽️ now)</span></span>
-            <span className="font-mono">${pastryPrice}</span>
+            <div>
+              <span className="font-bold">🥐 Croissant</span>
+              <span className="text-slate-400 ml-1">(+6😊, -20🍽️)</span>
+            </div>
+            <span className="font-mono font-bold">${pastryPrice}</span>
           </button>
         </div>
       </div>
@@ -2103,7 +2216,7 @@ const CoffeeShopContent = ({ state, actions }) => {
           >
             <div className="flex justify-between items-center">
               <div className="font-bold">🤝 Meet & Greet (1h)</div>
-              <div className="text-blue-700 font-bold text-xs">+3 dep, +2 😊</div>
+              <div className="text-blue-700 font-bold text-xs">+{player.job ? ((player.dependability ?? 50) >= 70 ? 2 : 4) : ((player.dependability ?? 50) >= 70 ? 1 : 3)} dep, +2 😊</div>
             </div>
             <div className="text-slate-500 mt-0.5">
               Higher dep = lower job rejection rate
@@ -2134,7 +2247,12 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
       <div>
         <div className="flex items-center justify-between border-b border-slate-300 pb-1 mb-2">
           <h3 className="font-bold text-sm">🕶️ Pawn Shop</h3>
-          <span className="text-[9px] font-bold text-slate-500">{pawnLabel} ({Math.round(pawnMultiplier * 100)}¢/$)</span>
+          <div className="text-right">
+            <span className="text-[9px] font-bold text-slate-500">{pawnLabel} ({Math.round(pawnMultiplier * 100)}¢/$)</span>
+            {pawnable.length > 0 && (
+              <div className="text-[8px] text-green-600 font-bold">Total: ${pawnable.reduce((s, i) => s + Math.floor(i.cost * pawnMultiplier), 0)}</div>
+            )}
+          </div>
         </div>
         {pawnable.length === 0 ? (
           <div className="text-center py-6">
@@ -2215,7 +2333,10 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
             <span className="font-bold">🎸 Concert Ticket</span>
             <span className="font-mono font-black">${concertPrice}</span>
           </div>
-          <div className="text-xs text-purple-700 mt-0.5">+{concertTicket.happinessBoost} Happiness · +{concertTicket.relaxationBoost} Relaxation (immediate)</div>
+          <div className="text-xs text-purple-700 mt-0.5">
+            +{concertTicket.happinessBoost} Happiness · +{concertTicket.relaxationBoost} Relaxation
+            {(player.relaxation ?? 50) <= 30 && <span className="text-red-600 font-bold ml-1">← You need this!</span>}
+          </div>
         </button>
         <div className="mt-3 bg-slate-800 rounded-xl p-3 text-xs">
           <div className="text-slate-300 font-bold mb-1">💡 Black's Market Tips</div>
@@ -2275,6 +2396,12 @@ const CityCollegeContent = ({ state, actions }) => {
         </div>
       )}
 
+      {/* Study aid recommendations */}
+      {player.currentCourse && !ownsTextbook && !player.inventory.some(i => i.id === 'laptop') && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800">
+          💡 <strong>Study faster!</strong> A Textbook (+2h/session) from here or a Laptop (+3h/session) from Tech Store will speed up your degree.
+        </div>
+      )}
       {/* Textbook purchase */}
       {!ownsTextbook && (
         <button
@@ -2357,44 +2484,54 @@ const TechStoreContent = ({ state, actions }) => {
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="sm:col-span-2"><JobsHereCard locationId="tech_store" player={player} actions={actions} /></div>
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Products</h3>
+        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📱 Products</h3>
         {electronics.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
           const price = adjustedPrice(item.cost, economy);
+          const isRecommended = item.id === 'smartphone' && !owned && !player.inventory.some(i => i.id === 'smartphone');
           return (
             <button
               key={item.id}
               onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
-              disabled={owned}
-              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-blue-50 disabled:opacity-60 text-xs"
+              disabled={owned || player.money < price}
+              className={`w-full flex justify-between items-center p-2.5 border-2 rounded-lg mb-1.5 text-xs transition active:scale-[0.99]
+                ${owned ? 'bg-green-50 border-green-200 opacity-70' :
+                  isRecommended ? 'bg-blue-50 border-blue-300 hover:border-blue-400' :
+                  'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
             >
               <div className="text-left">
-                <div className="font-bold">{item.name}</div>
+                <div className="font-bold">{owned ? '✅ ' : isRecommended ? '⭐ ' : ''}{item.name}</div>
                 <div className="text-slate-400">{item.effect}</div>
+                {isRecommended && <div className="text-blue-600 text-[9px] font-bold mt-0.5">Unlocks gig work at Quick Eats!</div>}
               </div>
-              <span className="font-mono">{owned ? '✅' : `$${price}`}</span>
+              <span className="font-mono font-bold">{owned ? 'Owned' : `$${price}`}</span>
             </button>
           );
         })}
         {/* Streaming sub */}
-        {itemsData.filter(i => i.type === 'subscription' && i.id !== 'health_insurance').map(item => {
-          const owned = player.inventory.some(i => i.id === item.id);
-          const price = adjustedPrice(item.cost, economy);
-          return (
-            <button
-              key={item.id}
-              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
-              disabled={owned}
-              className="w-full flex justify-between items-center p-2 border-b border-dotted border-slate-300 hover:bg-blue-50 disabled:opacity-60 text-xs mt-2"
-            >
-              <div className="text-left">
-                <div className="font-bold">{item.name}</div>
-                <div className="text-slate-400">{item.effect}</div>
-              </div>
-              <span className="font-mono">{owned ? '✅' : `$${price}`}</span>
-            </button>
-          );
-        })}
+        <div className="mt-2 pt-2 border-t border-slate-200">
+          <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">📺 Subscriptions</div>
+          {itemsData.filter(i => i.type === 'subscription' && i.id !== 'health_insurance').map(item => {
+            const owned = player.inventory.some(i => i.id === item.id);
+            const price = adjustedPrice(item.cost, economy);
+            return (
+              <button
+                key={item.id}
+                onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
+                disabled={owned || player.money < price}
+                className={`w-full flex justify-between items-center p-2.5 border-2 rounded-lg mb-1.5 text-xs transition active:scale-[0.99]
+                  ${owned ? 'bg-green-50 border-green-200 opacity-70' : 'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50'}`}
+              >
+                <div className="text-left">
+                  <div className="font-bold">{owned ? '✅ ' : ''}{item.name}</div>
+                  <div className="text-slate-400">{item.effect}</div>
+                  {item.weeklyFee && <div className="text-amber-600 text-[9px] font-bold mt-0.5">${item.weeklyFee}/wk recurring</div>}
+                </div>
+                <span className="font-mono font-bold">{owned ? 'Owned' : `$${price}`}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Tech Work <EconomyWageBadge economy={economy} /></h3>
@@ -2468,7 +2605,7 @@ const NeoBankContent = ({ state, actions }) => {
           {player.savings > 0 ? (
             <div>
               <div className="text-[10px] text-green-600 font-semibold">+${Math.round(player.savings * 0.01).toLocaleString()} next week</div>
-              <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * 0.52).toLocaleString()} in 52 wks (compounding)</div>
+              <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * Math.pow(1.01, 52) - player.savings).toLocaleString()} interest in 52 wks</div>
             </div>
           ) : (
             <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1%/wk interest — compounds weekly!</div>
@@ -2484,13 +2621,20 @@ const NeoBankContent = ({ state, actions }) => {
             ))}
           </div>
           {player.money > 0 && (
-            <button onClick={() => actions.bankTransaction('deposit', Math.floor(player.money))}
-              className="w-full bg-indigo-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-indigo-700 transition mb-2">
-              💰 Deposit All (${Math.floor(player.money).toLocaleString()})
-            </button>
+            <div className="flex gap-1 mb-2">
+              <button onClick={() => actions.bankTransaction('deposit', Math.floor(player.money / 2))}
+                disabled={player.money < 2}
+                className="flex-1 bg-indigo-400 text-white text-[10px] font-bold py-1.5 rounded hover:bg-indigo-500 disabled:opacity-40 transition">
+                50% (${Math.floor(player.money / 2).toLocaleString()})
+              </button>
+              <button onClick={() => actions.bankTransaction('deposit', Math.floor(player.money))}
+                className="flex-1 bg-indigo-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-indigo-700 transition">
+                💰 All (${Math.floor(player.money).toLocaleString()})
+              </button>
+            </div>
           )}
           <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Withdraw</div>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-4 gap-1 mb-1">
             {AMOUNTS.map(amt => (
               <button key={amt} onClick={() => actions.bankTransaction('withdraw', amt)}
                 disabled={player.savings < amt}
@@ -2499,6 +2643,12 @@ const NeoBankContent = ({ state, actions }) => {
               </button>
             ))}
           </div>
+          {player.savings > 0 && (
+            <button onClick={() => actions.bankTransaction('withdraw', Math.floor(player.savings))}
+              className="w-full bg-indigo-100 text-indigo-700 text-[10px] font-bold py-1.5 rounded hover:bg-indigo-200 transition">
+              Withdraw All (${Math.floor(player.savings).toLocaleString()})
+            </button>
+          )}
         </div>
         {/* Debt */}
         <div className="bg-red-50 p-3 rounded border border-red-100">
@@ -2535,8 +2685,9 @@ const NeoBankContent = ({ state, actions }) => {
           </div>
           <div className="text-[9px] text-red-400 mt-1">⚠️ Max $5,000 debt. 5%/wk interest!</div>
           {player.debt > 0 && (
-            <div className="text-[9px] text-red-500 mt-0.5 font-bold">
-              Costing you: ${Math.round(player.debt * 0.05).toLocaleString()}/wk in interest
+            <div className="text-[9px] text-red-500 mt-0.5 font-bold space-y-0.5">
+              <div>Costing you: ${Math.round(player.debt * 0.05).toLocaleString()}/wk in interest</div>
+              <div className="text-red-400 font-normal">In 10 weeks your ${player.debt.toLocaleString()} becomes ${Math.round(player.debt * Math.pow(1.05, 10)).toLocaleString()}</div>
             </div>
           )}
         </div>
@@ -2590,7 +2741,12 @@ const NeoBankContent = ({ state, actions }) => {
             {(() => { const nj = getNextPromotion(player); return nj ? <button onClick={() => actions.applyForJob(nj, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded text-xs font-bold text-green-800 hover:bg-green-200">🆙 Promote → {nj.title}</button> : null; })()}
           </div>
         )}
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📈 Stocks</h3>
+        <div className="flex items-center justify-between border-b border-slate-300 pb-1 mb-2">
+          <h3 className="font-bold text-sm">📈 Stocks</h3>
+          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${state.economy === 'Boom' ? 'bg-green-100 text-green-700' : state.economy === 'Depression' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+            {state.economy} · {state.economyTimer}wk{state.economyTimer <= 2 ? ' ⚡' : ''}
+          </span>
+        </div>
         {(() => {
           const total = stocksData.reduce((sum, stock) => {
             const owned = player.portfolio?.[stock.symbol] || 0;
@@ -2635,10 +2791,11 @@ const NeoBankContent = ({ state, actions }) => {
                   <span className={ownedValue > 0 ? 'font-bold text-indigo-600' : ''}>{ownedValue > 0 ? `$${ownedValue}` : 'none held'}</span>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => actions.buyStock(stock.symbol, 1)} disabled={player.money < currentPrice} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">Buy</button>
-                  <button onClick={() => actions.buyStock(stock.symbol, 10)} disabled={player.money < currentPrice * 10} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">×10</button>
-                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-1 rounded hover:bg-red-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">Sell</button>
-                  <button onClick={() => actions.sellStockAll(stock.symbol)} disabled={owned < 1} className="flex-1 bg-red-200 text-red-900 py-1 rounded hover:bg-red-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title="Sell all shares at once">All</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 1)} disabled={player.money < currentPrice} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 1 share for $${currentPrice}`}>Buy 1</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 5)} disabled={player.money < currentPrice * 5} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 5 shares for $${currentPrice * 5}`}>×5</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 10)} disabled={player.money < currentPrice * 10} className="flex-1 bg-green-200 text-green-900 py-1 rounded hover:bg-green-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 10 shares for $${currentPrice * 10}`}>×10</button>
+                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-1 rounded hover:bg-red-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">Sell 1</button>
+                  <button onClick={() => actions.sellStockAll(stock.symbol)} disabled={owned < 1} className="flex-1 bg-red-200 text-red-900 py-1 rounded hover:bg-red-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Sell all ${owned} shares for $${owned * currentPrice}`}>All</button>
                 </div>
               </div>
             );
@@ -2684,7 +2841,14 @@ const HomeContent = ({ state, actions }) => {
 
         {/* Sleep / End Week */}
         <button
-          onClick={actions.endWeek}
+          onClick={() => {
+            const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
+            const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
+            if (!hasFood && nextHunger >= 80 && player.timeRemaining > 4) {
+              if (!window.confirm(`⚠️ No food! Hunger will hit ${nextHunger} → -20h penalty next week. End week anyway?`)) return;
+            }
+            actions.endWeek();
+          }}
           className={`w-full text-white font-black py-3.5 rounded-xl shadow-lg text-base flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 min-h-[52px]
             ${player.timeRemaining <= 10 ? 'bg-indigo-500 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500'}
           `}
@@ -2692,7 +2856,17 @@ const HomeContent = ({ state, actions }) => {
           <div className="flex items-center gap-2">😴 Sleep — End Week
             <span className="text-xs font-normal opacity-75">({player.timeRemaining}h left)</span>
           </div>
-          <div className="text-[9px] font-normal opacity-70">Rent, interest, hunger & happiness resolve at week end</div>
+          <div className="text-[9px] font-normal opacity-70">
+            {(() => {
+              const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
+              const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
+              if (!hasFood && nextHunger >= 50)
+                return `⚠️ No food! Hunger → ${nextHunger} = -${nextHunger >= 80 ? '20' : nextHunger >= 50 ? '10' : '5'}h penalty!`;
+              if (!hasFood && player.hunger >= 25)
+                return `⚠️ No food bought — hunger will rise to ${nextHunger}`;
+              return 'Rent, interest, hunger & happiness resolve at week end';
+            })()}
+          </div>
         </button>
 
         {/* Current home card */}
@@ -2704,13 +2878,14 @@ const HomeContent = ({ state, actions }) => {
               <div className="text-[10px] text-slate-500">{player.housing?.title} · ${player.housing?.rent ?? 0}/wk</div>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-500">
+          <div className="flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
             <span>🔒 {player.housing?.security ?? 'High'} security</span>
             {hasHotTub && <span>🛁 Hot tub</span>}
+            {player.job && <span className="text-green-600 font-bold">💰 ~${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}/shift</span>}
           </div>
         </div>
 
-        {/* Weekly stats snapshot */}
+        {/* Weekly stats + expense forecast */}
         <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-[10px]">
           <div className="font-bold text-slate-600 mb-1.5 text-xs">📊 This Week at a Glance</div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono">
@@ -2723,9 +2898,31 @@ const HomeContent = ({ state, actions }) => {
             <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
             <span className="text-slate-500">🍕 Hunger:</span>
             <span className={`font-bold ${(player.hunger ?? 0) >= 80 ? 'text-red-500 animate-pulse' : (player.hunger ?? 0) >= 60 ? 'text-orange-500' : 'text-green-600'}`}>
-              {player.hunger ?? 0} {(player.hunger ?? 0) >= 55 ? `→ ${Math.min(100, (player.hunger ?? 0) + 25)} next wk ⚠️` : `→ ${Math.min(100, (player.hunger ?? 0) + 25)} next wk`}
+              {player.hunger ?? 0} → {Math.min(100, (player.hunger ?? 0) + 25)} next wk{(player.hunger ?? 0) >= 55 ? ' ⚠️' : ''}
             </span>
           </div>
+          {/* Weekly expense preview */}
+          {(() => {
+            const rent = player.housing?.rent ?? 0;
+            const weeklyFees = player.inventory.reduce((sum, i) => sum + (i.weeklyFee || 0), 0);
+            const debtInterest = player.debt > 0 ? Math.floor(player.debt * 0.05) : 0;
+            const savingsInterest = player.savings > 0 ? Math.floor(player.savings * 0.01) : 0;
+            const totalOut = rent + weeklyFees + debtInterest;
+            const totalIn = savingsInterest;
+            return (
+              <div className="mt-1.5 pt-1.5 border-t border-slate-200">
+                <div className="font-bold text-slate-500 mb-0.5">💸 End-of-Week Forecast</div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 font-mono">
+                  <span className="text-slate-400">🏠 Rent:</span><span className="text-red-500">-${rent}</span>
+                  {weeklyFees > 0 && <><span className="text-slate-400">📋 Subs:</span><span className="text-red-500">-${weeklyFees}</span></>}
+                  {debtInterest > 0 && <><span className="text-slate-400">💳 Interest:</span><span className="text-red-500">-${debtInterest}</span></>}
+                  {savingsInterest > 0 && <><span className="text-slate-400">💾 Interest:</span><span className="text-green-500">+${savingsInterest}</span></>}
+                  <span className="text-slate-500 font-bold">Net:</span>
+                  <span className={`font-bold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-500'}`}>{totalIn - totalOut >= 0 ? '+' : ''}${totalIn - totalOut}</span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Rest options */}
@@ -2829,7 +3026,10 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
             <li>☕ <strong>Coffee Shop</strong> — weekly coffee plans &amp; work shifts</li>
             <li>🏠 <strong>Home</strong> — sleep, rest, and work from home</li>
           </ul>
-          <div className="text-[10px] text-indigo-500">Hunger grows +25/week. Hit 80 and you lose 20hrs next week!</div>
+          <div className="text-[10px] text-indigo-500 space-y-0.5">
+            <div>🍕 Hunger grows +25/week. Hit 80 = lose 20hrs next week!</div>
+            <div>⌨️ Keyboard: W=work, E=end week, R=rest, S=study, I=inventory</div>
+          </div>
         </div>
       )}
 
@@ -2876,13 +3076,14 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
       })()}
 
       <div className="space-y-2">
-        {housingData.map(h => {
+        {housingData.map((h, hi) => {
           const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
           const isCurrent = player.housing?.id === h.id;
           const canAfford = deposit === 0 || player.money >= deposit;
           const tierEmoji = h.homeType === 'luxury_condo' ? '🌇' : h.homeType === 'apartment' ? '🏘️' : '🏠';
           const securityColor = h.security === 'High' ? 'text-green-600' : h.security === 'Medium' ? 'text-amber-600' : 'text-red-500';
           const isSelected = selectedHousing?.id === h.id;
+          const isBestValue = hi === 1; // second cheapest is typically the best value
           return (
             <button
               key={h.id}
@@ -2918,6 +3119,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="font-mono font-bold text-sm">{h.rent === 0 ? '🆓 Free' : `$${h.rent}/wk`}</div>
+                  {h.rent > 0 && <div className="text-[8px] text-slate-400 font-mono">${h.rent * 4}/mo</div>}
                   <div className={`text-[10px] font-bold ${securityColor}`}>{h.security} security</div>
                 </div>
               </div>
@@ -3060,12 +3262,27 @@ const Board = () => {
           if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) endWeek();
           break;
         }
+        case 'r': {
+          // Rest 2h if at home
+          if (player.currentLocation === 'home' && player.timeRemaining >= 2) rest(2);
+          break;
+        }
+        case 's': {
+          // Study if at city_college and enrolled
+          if (player.currentLocation === 'city_college' && player.currentCourse && player.timeRemaining >= 10) study();
+          break;
+        }
+        case 'n': {
+          // Network if at coffee_shop
+          if (player.currentLocation === 'coffee_shop' && player.timeRemaining >= 1) network();
+          break;
+        }
         default: break;
       }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [endWeek, showGoals, showInventory, showLog, showPanel, state, toggleMute, work]);
+  }, [endWeek, showGoals, showInventory, showLog, showPanel, state, toggleMute, work, rest, study, network]);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
@@ -3199,10 +3416,21 @@ const Board = () => {
           return LOCATION_ORDER.map(id => {
             // Warning badges
             let warningBadge = null;
-            if (id === 'quick_eats' && player.hunger >= 60) {
+            const hasAnyFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
+            if (id === 'quick_eats' && (player.hunger >= 60 || (!hasAnyFood && player.hunger >= 25))) {
+              warningBadge = { icon: '!', color: player.hunger >= 60 ? 'bg-orange-500' : 'bg-yellow-500' };
+            } else if (id === 'grocery_store' && !hasAnyFood && player.hunger >= 40) {
               warningBadge = { icon: '!', color: 'bg-orange-500' };
+            } else if (id === 'trendsetters' && player.inventory.some(i => i.clothingWear !== undefined && i.clothingWear < 30)) {
+              warningBadge = { icon: '!', color: 'bg-red-500' };
             } else if (id === 'home' && (player.relaxation ?? 50) <= 20) {
               warningBadge = { icon: '!', color: 'bg-amber-500' };
+            } else if (id === 'neobank' && player.debt > 0 && player.debt >= 2000) {
+              warningBadge = { icon: '!', color: 'bg-red-500' };
+            } else if (id === 'leasing_office' && !player.hasChosenHousing) {
+              warningBadge = { icon: '!', color: 'bg-purple-500' };
+            } else if (id === 'city_college' && player.currentCourse && player.timeRemaining >= 10) {
+              warningBadge = { icon: '📖', color: 'bg-blue-500' };
             }
             const isPromoReady = !!(promoJob && id === workLocId);
             const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);

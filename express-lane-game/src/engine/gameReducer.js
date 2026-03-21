@@ -93,7 +93,7 @@ const updateActivePlayer = (state, fn) => {
 // ─── Helper: add log entry ─────────────────────────────────────────────────────
 const log = (state, message) => ({
   ...state,
-  history: [`Week ${state.week}: ${message}`, ...state.history].slice(0, 50),
+  history: [`Week ${state.week}: ${message}`, ...state.history].slice(0, 100),
 });
 
 // ─── Win / Lose Check ─────────────────────────────────────────────────────────
@@ -114,8 +114,8 @@ const checkEndConditions = (state) => {
     }
   }
 
-  // All players bottomed out → lost
-  if (state.players.every(p => p.happiness <= 0)) {
+  // All players bottomed out → lost (happiness at 0 AND broke)
+  if (state.players.every(p => p.happiness <= 0 && p.money <= 0 && p.savings <= 0)) {
     return { ...state, gameStatus: 'lost' };
   }
   return state;
@@ -164,34 +164,39 @@ export const gameReducer = (state, action) => {
       // Wild Willy: deterred by a suit
       const hasSuit = player.inventory.some(i => i.id === 'suit');
 
-      // 30% chance when leaving Black's Market in Low-security housing
-      if (player.currentLocation === 'blacks_market' && player.housing.security === 'Low' && Math.random() < 0.3) {
+      // 30% chance when leaving Black's Market in Low-security housing, 10% in Medium
+      const blacksChance = player.housing.security === 'Low' ? 0.3 : player.housing.security === 'Medium' ? 0.1 : 0;
+      if (player.currentLocation === 'blacks_market' && blacksChance > 0 && Math.random() < blacksChance) {
         if (hasSuit) {
           s = log(s, `👹 Wild Willy saw your suit and backed off.`);
         } else {
           const stolen = Math.floor(player.money * 0.5);
           if (stolen > 0) {
-            s = log(s, `👹 WILD WILLY stole $${stolen} from you!`);
-            s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen }));
+            s = log(s, `👹 WILD WILLY stole $${stolen} from you! -5 happiness.`);
+            s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen, happiness: Math.max(0, p.happiness - 5) }));
           } else {
             s = log(s, `👹 Wild Willy tried to rob you, but you're broke!`);
           }
         }
       }
 
-      // 20% chance when leaving NeoBank with >$500 in Low-security housing
-      if (player.currentLocation === 'neobank' && player.housing.security === 'Low' && player.money > 500 && Math.random() < 0.2) {
+      // 20% chance when leaving NeoBank with >$500 in Low-security housing, 5% in Medium
+      const bankChance = player.housing.security === 'Low' ? 0.2 : player.housing.security === 'Medium' ? 0.05 : 0;
+      if (player.currentLocation === 'neobank' && bankChance > 0 && player.money > 500 && Math.random() < bankChance) {
         if (hasSuit) {
           s = log(s, `👹 Wild Willy clocked your suit and kept walking.`);
         } else {
           const stolen = Math.floor(activePlayer(s).money * 0.3);
-          s = log(s, `👹 WILD WILLY ambushed you leaving the bank! Stole $${stolen}!`);
-          s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen }));
+          s = log(s, `👹 WILD WILLY ambushed you leaving the bank! Stole $${stolen}! -5 happiness.`);
+          s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen, happiness: Math.max(0, p.happiness - 5) }));
         }
       }
 
+      const saved = cost - effectiveCost;
       const newTime = activePlayer(s).timeRemaining - effectiveCost;
       s = updateActivePlayer(s, p => ({ ...p, currentLocation: locationId, timeRemaining: newTime }));
+      if (saved > 0) s = log(s, `Traveled to ${locationId.replace(/_/g, ' ')} (${effectiveCost}h — saved ${saved}h with vehicle).`);
+      else if (effectiveCost > 1) s = log(s, `Traveled to ${locationId.replace(/_/g, ' ')} (${effectiveCost}h). ${newTime}h remaining.`);
 
       if (newTime <= 0) return { ...s, awaitingEndWeek: true };
       return s;
@@ -209,18 +214,21 @@ export const gameReducer = (state, action) => {
       const earnings = calcShiftEarnings(player.job.wage * wageMultiplier, effectiveHours, state.economy);
       const newWeeksWorked = (player.job.weeksWorked || 0) + 1;
       const depBonus = overtime ? 7 : 5;
+      // Loyalty bonus: every 5 weeks at the same job earns extra
+      const loyaltyBonus = newWeeksWorked > 0 && newWeeksWorked % 5 === 0 ? 3 : 0;
       const happinessEffect = overtime ? -10 : 0;
 
+      const loyaltyMsg = loyaltyBonus > 0 ? ` Loyalty bonus: +${loyaltyBonus} dep!` : '';
       const logMsg = overtime
-        ? `${player.name} worked overtime (12h) as ${player.job.title}. Earned $${earnings} (1.5x). -10 happiness.`
-        : `${player.name} worked as ${player.job.title}. Earned $${earnings}.`;
+        ? `${player.name} worked overtime (12h) as ${player.job.title}. Earned $${earnings} (1.5x). -10 happiness.${loyaltyMsg}`
+        : `${player.name} worked as ${player.job.title}. Earned $${earnings}.${loyaltyMsg}`;
       let s = log(state, logMsg);
       s = updateActivePlayer(s, p => ({
         ...p,
         money: p.money + earnings,
         timeRemaining: p.timeRemaining - effectiveHours,
         job: { ...p.job, weeksWorked: newWeeksWorked },
-        dependability: Math.min(100, p.dependability + depBonus),
+        dependability: Math.min(100, p.dependability + depBonus + loyaltyBonus),
         happiness: Math.max(0, Math.min(100, p.happiness + happinessEffect)),
       }));
       return autoEndIfNeeded(s);
@@ -233,12 +241,13 @@ export const gameReducer = (state, action) => {
       if (player.timeRemaining < 4) return log(state, "Not enough time for a 4h shift.");
 
       const earnings = calcShiftEarnings(player.job.wage, 4, state.economy);
-      let s = log(state, `${player.name} worked a 4h shift as ${player.job.title}. Earned $${earnings}.`);
+      let s = log(state, `${player.name} worked a 4h shift as ${player.job.title}. Earned $${earnings}. +1 happiness.`);
       s = updateActivePlayer(s, p => ({
         ...p,
         money: p.money + earnings,
         timeRemaining: p.timeRemaining - 4,
         dependability: Math.min(100, p.dependability + 2),
+        happiness: Math.min(100, p.happiness + 1),
       }));
       return autoEndIfNeeded(s);
     }
@@ -250,8 +259,8 @@ export const gameReducer = (state, action) => {
       if (player.timeRemaining < 4) return log(state, "Not enough time for a gig shift.");
 
       const earnings = Math.floor(60 * (ECONOMY_WAGE_MULTIPLIER[state.economy] || 1));
-      let s = log(state, `Completed gig delivery. Earned $${earnings}.`);
-      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, timeRemaining: p.timeRemaining - 4 }));
+      let s = log(state, `Completed gig delivery. Earned $${earnings}. +2 happiness.`);
+      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, timeRemaining: p.timeRemaining - 4, dependability: Math.min(100, p.dependability + 1), happiness: Math.min(100, p.happiness + 2) }));
       return autoEndIfNeeded(s);
     }
 
@@ -312,8 +321,12 @@ export const gameReducer = (state, action) => {
         // Hired! Preserve experience within same career track
         const prevWeeksWorked = (player.job?.type === job.type) ? (player.job?.weeksWorked || 0) : 0;
         let s = log(stateAfterTime, `${player.name} hired at ${employer} as ${job.title}!`);
-        s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: prevWeeksWorked } }));
-        return { ...s, lastJobResult: { success: true, message: `${employer} hired you as ${job.title} at $${job.wage}/hr!` } };
+        s = updateActivePlayer(s, p => ({
+          ...p,
+          job: { ...job, weeksWorked: prevWeeksWorked },
+          happiness: Math.min(100, p.happiness + 5), // morale boost from getting hired
+        }));
+        return { ...s, lastJobResult: { success: true, message: `${employer} hired you as ${job.title} at $${job.wage}/hr! +5 happiness!` } };
       }
 
       // Promotion path — no time cost, no rejection
@@ -335,20 +348,28 @@ export const gameReducer = (state, action) => {
       }
       const prevWeeksWorked = (player.job?.type === job.type) ? (player.job?.weeksWorked || 0) : 0;
       let s = log(state, `${player.name} promoted to ${job.title}!`);
-      s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: prevWeeksWorked } }));
-      return { ...s, lastJobResult: { success: true, message: `Promoted to ${job.title} at $${job.wage}/hr! 🎉` } };
+      s = updateActivePlayer(s, p => ({
+        ...p,
+        job: { ...job, weeksWorked: prevWeeksWorked },
+        happiness: Math.min(100, p.happiness + 10), // big morale boost from promotion
+      }));
+      return { ...s, lastJobResult: { success: true, message: `Promoted to ${job.title} at $${job.wage}/hr! +10 happiness! 🎉` } };
     }
 
     // ── Network at coffee shop (spend 1h, gain +3 dependability) ─────────────
     case 'NETWORK': {
       const player = activePlayer(state);
       if (player.timeRemaining < 1) return log(state, "Not enough time to network.");
-      let s = log(state, `${player.name} networked at the Coffee Shop. +3 dependability, +2 happiness.`);
+      // Diminishing returns at high dep: full bonus up to 70, then reduced; always at least +1
+      const baseDep = player.job ? 4 : 3;
+      const depBonus = player.dependability >= 90 ? 1 : player.dependability >= 70 ? Math.max(1, Math.floor(baseDep / 2)) : baseDep;
+      const happBonus = 2;
+      let s = log(state, `${player.name} networked at the Coffee Shop. +${depBonus} dependability, +${happBonus} happiness.`);
       s = updateActivePlayer(s, p => ({
         ...p,
         timeRemaining: p.timeRemaining - 1,
-        dependability: Math.min(100, p.dependability + 3),
-        happiness: Math.min(100, p.happiness + 2),
+        dependability: Math.min(100, p.dependability + depBonus),
+        happiness: Math.min(100, p.happiness + happBonus),
       }));
       return autoEndIfNeeded(s);
     }
@@ -358,15 +379,21 @@ export const gameReducer = (state, action) => {
       const { hours = 2 } = action;
       const player = activePlayer(state);
       if (player.timeRemaining < hours) return log(state, "Not enough time to rest.");
-      const relaxGain = hours * 5;
+      const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
+      const isLuxury = player.housing?.homeType === 'luxury_condo';
+      const relaxBase = hours * 5;
+      const relaxBonus = (hasHotTub ? 3 : 0) + (isLuxury ? 2 : 0);
+      const relaxGain = relaxBase + relaxBonus;
       const happGain = hours;
+      const newRelax = Math.min(100, (player.relaxation ?? 50) + relaxGain);
+      const bonusMsg = relaxBonus > 0 ? ` (+${relaxBonus} from ${[hasHotTub && 'hot tub', isLuxury && 'luxury'].filter(Boolean).join(' & ')})` : '';
       let s = updateActivePlayer(state, p => ({
         ...p,
         timeRemaining: p.timeRemaining - hours,
-        relaxation: Math.min(100, (p.relaxation ?? 50) + relaxGain),
+        relaxation: newRelax,
         happiness: Math.min(100, p.happiness + happGain),
       }));
-      return log(s, `Rested ${hours}h at home. +${relaxGain} relaxation.`);
+      return log(s, `Rested ${hours}h at home. +${relaxGain} relaxation${bonusMsg} (now ${newRelax}). +${happGain} happiness.`);
     }
 
     // ── Read a book at the library ────────────────────────────────────────────
@@ -381,7 +408,12 @@ export const gameReducer = (state, action) => {
         relaxation: Math.min(100, (p.relaxation ?? 50) + (book.relaxGain ?? 0)),
         dependability: Math.min(100, (p.dependability ?? 0) + (book.depGain ?? 0)),
       }));
-      return log(s, `Read "${book.title}". +${book.happinessGain ?? 0} happiness.`);
+      const bookEffects = [
+        book.happinessGain ? `+${book.happinessGain} happiness` : '',
+        book.relaxGain ? `+${book.relaxGain} relaxation` : '',
+        book.depGain ? `+${book.depGain} dependability` : '',
+      ].filter(Boolean).join(', ');
+      return log(s, `Read "${book.title}". ${bookEffects}.`);
     }
 
     // ── Buy item ──────────────────────────────────────────────────────────────
@@ -447,6 +479,10 @@ export const gameReducer = (state, action) => {
         const hBoost = item.happinessBoost || 0;
         const rBoost = item.relaxationBoost || 0;
         const timeCost = item.timeToRest || 0;
+        // Check time before spending money
+        if (timeCost > 0 && player.timeRemaining < timeCost) {
+          return log(state, `Not enough time (need ${timeCost}h).`);
+        }
         const isLottery = item.name?.toLowerCase().includes('lottery');
         const isRest = item.id?.startsWith('rest_home');
         const lotteryVerb = hBoost > 0 ? '🎰 JACKPOT!' : '🎰 No luck.';
@@ -454,9 +490,7 @@ export const gameReducer = (state, action) => {
         const hStr = hBoost > 0 ? `+${hBoost}` : hBoost < 0 ? `${hBoost}` : '';
         const parts = [hStr ? `${hStr} happiness` : '', rBoost ? `+${rBoost} relaxation` : ''].filter(Boolean);
         let s = log(state, `${verb}${parts.length ? ' ' + parts.join(', ') + '.' : ''}`);
-        if (timeCost > 0 && activePlayer(s).timeRemaining < timeCost) {
-          return log(state, `Not enough time to rest (need ${timeCost}h).`);
-        }
+
         s = updateActivePlayer(s, p => ({
           ...p,
           money: Math.max(0, p.money - item.cost),
@@ -473,19 +507,24 @@ export const gameReducer = (state, action) => {
       if (item.type === 'vehicle') {
         const existingVehicle = player.inventory.find(i => i.type === 'vehicle' && i.id !== item.id);
         if (existingVehicle) {
-          // Replace old vehicle
-          let s = log(state, `Traded in ${existingVehicle.name} for ${item.name}.`);
+          const tradeIn = Math.floor(existingVehicle.cost * 0.5);
+          let s = log(state, `Traded in ${existingVehicle.name} ($${tradeIn} credit) for ${item.name}. +5 happiness!`);
           s = updateActivePlayer(s, p => ({
             ...p,
-            money: p.money - item.cost + Math.floor(existingVehicle.cost * 0.5),
+            money: p.money - item.cost + tradeIn,
             inventory: [...p.inventory.filter(i => i.id !== existingVehicle.id), item],
+            happiness: Math.min(100, p.happiness + 5),
           }));
           return s;
         }
       }
 
-      let s = log(state, `Bought ${item.name} for $${item.cost}.`);
-      s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item] }));
+      // First vehicle purchase gives happiness
+      const isFirstVehicle = item.type === 'vehicle' && !player.inventory.some(i => i.type === 'vehicle');
+      const purchaseHappy = isFirstVehicle ? 5 : 0;
+      const happyMsg = purchaseHappy ? ' +5 happiness!' : '';
+      let s = log(state, `Bought ${item.name} for $${item.cost}.${happyMsg}`);
+      s = updateActivePlayer(s, p => ({ ...p, money: p.money - item.cost, inventory: [...p.inventory, item], happiness: Math.min(100, p.happiness + purchaseHappy) }));
       return s;
     }
 
@@ -514,8 +553,12 @@ export const gameReducer = (state, action) => {
       const player = activePlayer(state);
       const qty = player.portfolio?.[symbol] || 0;
       if (qty < 1) return log(state, "No shares to sell.");
-      const earnings = state.market[symbol] * qty;
-      let s = log(state, `Sold all ${qty} shares of ${symbol} for $${earnings}.`);
+      const earnings = Math.floor(state.market[symbol] * qty);
+      const basePrice = stocksData.find(s => s.symbol === symbol)?.basePrice ?? state.market[symbol];
+      const costBasis = basePrice * qty;
+      const profitLoss = earnings - costBasis;
+      const plText = profitLoss >= 0 ? `+$${profitLoss} profit` : `-$${Math.abs(profitLoss)} loss`;
+      let s = log(state, `Sold all ${qty} shares of ${symbol} for $${earnings}. (${plText})`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: 0 } }));
       return s;
     }
@@ -534,7 +577,8 @@ export const gameReducer = (state, action) => {
       }
       if (player.money < course.cost) return log(state, "Not enough money for tuition.");
 
-      let s = log(state, `${player.name} enrolled in ${course.title}.`);
+      const sessionsNeeded = Math.ceil(course.totalHours / (10 + player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0)));
+      let s = log(state, `${player.name} enrolled in ${course.title}. Tuition: $${course.cost}. ~${sessionsNeeded} study sessions needed.`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money - course.cost, currentCourse: { ...course, progress: 0 } }));
       return s;
     }
@@ -550,13 +594,17 @@ export const gameReducer = (state, action) => {
       const newProgress = player.currentCourse.progress + 10 + studyBonus;
 
       if (newProgress >= player.currentCourse.totalHours) {
-        let s = log(state, `${player.name} completed ${player.currentCourse.title}! Earned: ${player.currentCourse.degree}.`);
-        s = updateActivePlayer(s, p => ({ ...p, education: p.currentCourse.degree, currentCourse: null, timeRemaining: p.timeRemaining - 10 }));
+        let s = log(state, `🎓 ${player.name} completed ${player.currentCourse.title}! Earned: ${player.currentCourse.degree}. +10 happiness!`);
+        s = updateActivePlayer(s, p => ({ ...p, education: p.currentCourse.degree, currentCourse: null, timeRemaining: p.timeRemaining - 10, happiness: Math.min(100, p.happiness + 10) }));
+        s = { ...s, lastJobResult: { success: true, message: `🎓 Graduated with a ${player.currentCourse.degree}! +10 happiness!` } };
         return autoEndIfNeeded(s);
       }
 
-      let s = log(state, `Studied 10hrs. Progress: ${newProgress}/${player.currentCourse.totalHours}`);
-      s = updateActivePlayer(s, p => ({ ...p, timeRemaining: p.timeRemaining - 10, currentCourse: { ...p.currentCourse, progress: newProgress } }));
+      const pctDone = Math.round((newProgress / player.currentCourse.totalHours) * 100);
+      let s = log(state, `Studied 10hrs. Progress: ${newProgress}/${player.currentCourse.totalHours} (${pctDone}%)`);
+      // Small happiness boost from studying — learning is fulfilling
+      const studyHappy = pctDone >= 75 ? 3 : 1;
+      s = updateActivePlayer(s, p => ({ ...p, timeRemaining: p.timeRemaining - 10, currentCourse: { ...p.currentCourse, progress: newProgress }, happiness: Math.min(100, p.happiness + studyHappy) }));
       return autoEndIfNeeded(s);
     }
 
@@ -572,8 +620,11 @@ export const gameReducer = (state, action) => {
         return log(state, `Can't afford the $${deposit} deposit for ${housing.title} (2 weeks rent).`);
       }
 
-      let s = log(state, `${player.name} moved into ${housing.title}.${deposit > 0 ? ` -$${deposit} deposit.` : ''}`);
-      s = updateActivePlayer(s, p => ({ ...p, housing, hasChosenHousing: true, money: p.money - deposit }));
+      const isUpgrade = housing.rent > (player.housing?.rent ?? 0);
+      const happBoost = isUpgrade ? 5 : 0;
+      const upgradeMsg = happBoost > 0 ? ` +${happBoost} happiness!` : '';
+      let s = log(state, `${player.name} moved into ${housing.title}.${deposit > 0 ? ` -$${deposit} deposit.` : ''}${upgradeMsg}`);
+      s = updateActivePlayer(s, p => ({ ...p, housing, hasChosenHousing: true, money: p.money - deposit, happiness: Math.min(100, p.happiness + happBoost) }));
       return s;
     }
 
@@ -588,31 +639,31 @@ export const gameReducer = (state, action) => {
       if (transactionType === 'deposit') {
         if (money < amount) return log(state, "Not enough cash to deposit.");
         money -= amount; savings += amount;
-        msg = `Deposited $${amount} into savings.`;
+        msg = `Deposited $${amount} into savings. (Balance: $${savings})`;
       } else if (transactionType === 'withdraw') {
         if (savings < amount) return log(state, "Not enough in savings.");
         savings -= amount; money += amount;
-        msg = `Withdrew $${amount} from savings.`;
+        msg = `Withdrew $${amount} from savings. (Remaining: $${savings})`;
       } else if (transactionType === 'repay') {
         const payAmount = Math.min(amount, debt);
         if (money < payAmount) return log(state, "Not enough cash to repay.");
         money -= payAmount; debt -= payAmount;
-        msg = `Repaid $${payAmount} of debt.`;
+        msg = debt === 0 ? `Repaid $${payAmount}! Debt-free! 🎉` : `Repaid $${payAmount} of debt.`;
       } else if (transactionType === 'borrow') {
         // Loan cap: max $5000 total debt
         if (debt + amount > 5000) {
-          const s2 = updateActivePlayer(
-            log(state, `Loan denied! Borrowing $${amount} would put you over the $5000 debt cap.`),
-            p => ({ ...p, happiness: Math.max(0, p.happiness - 5) })
-          );
-          return { ...s2, lastJobResult: { success: false, message: 'Loan denied. -5 happiness.' } };
+          return { ...log(state, `Loan denied! Borrowing $${amount} would exceed the $5000 debt cap.`), lastJobResult: { success: false, message: `Loan denied — max $5,000 debt. Current: $${debt}.` } };
         }
         debt += amount; money += amount;
         msg = `Borrowed $${amount}.`;
       }
 
       let s = log(state, msg);
-      s = updateActivePlayer(s, p => ({ ...p, money, savings, debt }));
+      // Happiness boost for paying off all debt
+      const wasFreeOfDebt = player.debt === 0;
+      const nowDebtFree = debt === 0 && !wasFreeOfDebt && transactionType === 'repay';
+      s = updateActivePlayer(s, p => ({ ...p, money, savings, debt, happiness: nowDebtFree ? Math.min(100, p.happiness + 5) : p.happiness }));
+      if (nowDebtFree) s = log(s, `${player.name} is debt-free! +5 happiness!`);
       return s;
     }
 
@@ -636,7 +687,7 @@ export const gameReducer = (state, action) => {
       const currentQty = player.portfolio[symbol] || 0;
       if (currentQty < quantity) return log(state, "Not enough shares to sell.");
 
-      const earnings = state.market[symbol] * quantity;
+      const earnings = Math.floor(state.market[symbol] * quantity);
       let s = log(state, `Sold ${quantity} shares of ${symbol} for $${earnings}.`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: currentQty - quantity } }));
       return s;
@@ -666,16 +717,19 @@ export const gameReducer = (state, action) => {
         // 1. Rent
         const moneyAfterRent = np.money - np.housing.rent;
         if (moneyAfterRent < 0) {
-          playerLog.push(`${np.name}: couldn't pay rent! $${Math.abs(moneyAfterRent)} debt added.`);
-          np.debt += Math.abs(moneyAfterRent);
+          const shortfall = Math.abs(moneyAfterRent);
+          playerLog.push(`${np.name}: couldn't pay rent! $${shortfall} debt added.`);
+          np.debt += shortfall;
           np.money = 0;
+          np.happiness = Math.max(0, np.happiness - 5); // stress from not paying rent
         } else {
           np.money = moneyAfterRent;
           playerLog.push(`${np.name}: rent paid $${np.housing.rent}.`);
         }
 
-        // 2. Hunger
-        np.hunger = Math.min(100, np.hunger + 25);
+        // 2. Hunger (+25/week base, less if they have a good housing tier)
+        const hungerIncrease = np.housing.homeType === 'luxury_condo' ? 20 : 25;
+        np.hunger = Math.min(100, np.hunger + hungerIncrease);
 
         // 3. Happiness
         let happinessDelta = -3;
@@ -693,7 +747,10 @@ export const gameReducer = (state, action) => {
 
         // 3b. Dependability decay
         let depDelta = -3;
-        if (!np.job) depDelta -= 5; // unemployed penalty
+        if (!np.job) {
+          depDelta -= 5; // unemployed penalty
+          if (np.dependability < 30) happinessDelta -= 2; // extra sadness when unemployed AND low dep
+        }
         np.dependability = Math.min(100, Math.max(0, np.dependability + depDelta));
 
         // 3c. Relaxation decay
@@ -732,12 +789,14 @@ export const gameReducer = (state, action) => {
         }
 
         // 3e. Relaxation bottomed out → forced doctor visit
-        if (np.relaxation === 0) {
+        if (np.relaxation <= 0) {
           const hasInsurance = np.inventory.some(i => i.id === 'health_insurance');
           const doctorCost = hasInsurance ? 50 : 200;
           np.money = Math.max(0, np.money - doctorCost);
+          np.relaxation = 30; // doctor's orders: mandatory rest reset
           np.maxTimeReduction = (np.maxTimeReduction || 0) + 5;
-          playerLog.push(`${np.name}: exhaustion sent them to the doctor! -$${doctorCost}, -5h next week.`);
+          np.happiness = Math.max(0, np.happiness - 5);
+          playerLog.push(`${np.name}: exhaustion sent them to the doctor! -$${doctorCost}, -5h & -5 happiness next week.`);
         }
 
         // 4. Debt interest
@@ -755,11 +814,10 @@ export const gameReducer = (state, action) => {
         }
 
         // 6a. Weekly meal plans (Quick Eats) — auto-eaten at week's end, no fridge needed
-        const weeklyMealIdx = np.inventory.findIndex(i => i.type === 'weekly_meal');
+        const meal = np.inventory.find(i => i.type === 'weekly_meal');
         let ateThisWeek = false;
-        if (weeklyMealIdx !== -1) {
-          const meal = np.inventory[weeklyMealIdx];
-          np.inventory = np.inventory.filter((_, idx) => idx !== weeklyMealIdx);
+        if (meal) {
+          np.inventory = np.inventory.filter(i => i !== meal);
           np.hunger = Math.max(0, np.hunger - (meal.weeklyHungerRestore || 55));
           if (meal.weeklyHappinessBoost) np.happiness = Math.min(100, np.happiness + meal.weeklyHappinessBoost);
           playerLog.push(`${np.name}: ate weekly meals (${meal.name}). Hunger down.`);
@@ -767,10 +825,9 @@ export const gameReducer = (state, action) => {
         }
 
         // 6ab. Weekly coffee plans (Coffee Shop) — auto-applied at week's end
-        const weeklyCoffeeIdx = np.inventory.findIndex(i => i.type === 'weekly_coffee');
-        if (weeklyCoffeeIdx !== -1) {
-          const coffee = np.inventory[weeklyCoffeeIdx];
-          np.inventory = np.inventory.filter((_, idx) => idx !== weeklyCoffeeIdx);
+        const coffee = np.inventory.find(i => i.type === 'weekly_coffee');
+        if (coffee) {
+          np.inventory = np.inventory.filter(i => i !== coffee);
           np.hunger = Math.max(0, np.hunger - (coffee.weeklyHungerRestore || 12));
           if (coffee.weeklyHappinessBoost) np.happiness = Math.min(100, np.happiness + coffee.weeklyHappinessBoost);
           playerLog.push(`${np.name}: weekly coffee fix (${coffee.name}). +Happiness.`);
@@ -781,11 +838,11 @@ export const gameReducer = (state, action) => {
         const hasFridge = np.inventory.some(i => i.id === 'refrigerator');
         const hasFreezer = np.inventory.some(i => i.id === 'freezer');
         const hasStorage = hasFridge || hasFreezer;
-        const groceryIdx = np.inventory.findIndex(i => i.id === 'groceries');
-        if (groceryIdx !== -1) {
+        const groceryItem = np.inventory.find(i => i.id === 'groceries');
+        if (groceryItem) {
           if (hasStorage) {
             // Eat one serving — reduces hunger significantly
-            np.inventory = np.inventory.filter((_, idx) => idx !== groceryIdx);
+            np.inventory = np.inventory.filter(i => i !== groceryItem);
             np.hunger = Math.max(0, np.hunger - 60);
             playerLog.push(`${np.name}: ate from fridge. Hunger down.`);
             ateThisWeek = true;
@@ -821,12 +878,15 @@ export const gameReducer = (state, action) => {
             playerLog.push(`${np.name}: only had snacks — still hungry! -${hungryPenalty}h next week.`);
           }
         } else {
-          // No food at all — full graduated penalty
+          // No food at all — graduated penalty based on hunger level
           if (np.hunger >= 80)      hungryPenalty = 20;
           else if (np.hunger >= 50) hungryPenalty = 10;
-          else                      hungryPenalty = 5;
-          np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: false, playerName: np.name };
-          playerLog.push(`${np.name}: went hungry (no food bought)! -${hungryPenalty}h next week.`);
+          else if (np.hunger >= 25) hungryPenalty = 5;
+          // hunger < 25 with no food → minor penalty, they're still okay
+          if (hungryPenalty > 0) {
+            np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: false, playerName: np.name };
+            playerLog.push(`${np.name}: went hungry (no food bought)! -${hungryPenalty}h next week.`);
+          }
         }
         const reduction = (np.maxTimeReduction || 0) + hungryPenalty;
         np.maxTime = Math.max(20, BASE_MAX_TIME - reduction);
@@ -849,16 +909,20 @@ export const gameReducer = (state, action) => {
       economyTimer -= 1;
       if (economyTimer <= 0) {
         const idx = ECONOMY_STATES.indexOf(economy);
+        const prevEconomy = economy;
         economy = ECONOMY_STATES[(idx + 1) % ECONOMY_STATES.length];
         economyTimer = 4 + Math.floor(Math.random() * 4);
-        s = log(s, `Economy shifted to ${economy}!`);
+        const econEmoji = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '📊';
+        const econEffect = economy === 'Boom' ? 'Wages +30%, prices +40%!' : economy === 'Depression' ? 'Wages -20%, prices -30%.' : 'Wages and prices normalized.';
+        s = log(s, `${econEmoji} Economy shifted from ${prevEconomy} → ${economy}! ${econEffect}`);
       }
 
-      // 9. Stock prices
+      // 9. Stock prices (economy affects direction bias)
       const newMarket = { ...s.market };
+      const economyBias = economy === 'Boom' ? 0.02 : economy === 'Depression' ? -0.02 : 0;
       stocksData.forEach(stock => {
         const current = newMarket[stock.symbol];
-        const change = (Math.random() * stock.volatility * 2) - stock.volatility;
+        const change = (Math.random() * stock.volatility * 2) - stock.volatility + economyBias;
         newMarket[stock.symbol] = Math.max(1, Math.floor(current * (1 + change)));
       });
 
@@ -893,7 +957,8 @@ export const gameReducer = (state, action) => {
             case 'rent_increase': {
               const extra = Math.floor(ep.housing.rent * event.effect.value);
               ep.money = Math.max(0, ep.money - extra);
-              effectDesc = `-$${extra} extra rent`;
+              ep.housing = { ...ep.housing, rent: ep.housing.rent + extra };
+              effectDesc = `rent +$${extra}/wk (now $${ep.housing.rent}/wk)`;
               break;
             }
             case 'savings_interest_bonus': {
@@ -924,8 +989,10 @@ export const gameReducer = (state, action) => {
 
       // 11. Jones AI
       let { jones } = s;
+      // Jones earns ~40h/wk equivalent but occasionally spends on fun/food (randomized)
+      const jonesSpending = 50 + Math.floor(Math.random() * 100); // $50-$150 weekly expenses
       const jonesIncome = Math.floor(jones.jobWage * 40 * (ECONOMY_WAGE_MULTIPLIER[economy] || 1));
-      const jonesMoney = jones.money + jonesIncome - jones.rent;
+      const jonesMoney = jones.money + jonesIncome - jones.rent - jonesSpending;
       let newJonesJobIndex = jones.jobIndex;
       let newJonesWeeksAtJob = jones.weeksAtJob + 1;
       const nextJobEntry = JONES_CAREER_TRACK[jones.jobIndex + 1];
@@ -935,12 +1002,14 @@ export const gameReducer = (state, action) => {
         s = log(s, `💼 Jones got promoted to ${nextJobEntry.title}!`);
       }
       const nextEdu = JONES_EDUCATION_TRACK.find(e => e.week === s.week + 1);
+      // Jones happiness fluctuates more realistically
+      const jonesHappyDelta = Math.random() < 0.3 ? -2 : 3; // occasionally has a bad week
       const updatedJones = {
         ...jones,
         money: Math.max(0, jonesMoney),
         netWorth: Math.max(0, jonesMoney),
         currentLocation: LOCATION_ORDER[Math.floor(Math.random() * LOCATION_ORDER.length)],
-        happiness: Math.min(100, jones.happiness + 3),
+        happiness: Math.min(100, Math.max(10, jones.happiness + jonesHappyDelta)),
         education: nextEdu ? nextEdu.degree : jones.education,
         jobIndex: newJonesJobIndex,
         jobTitle: JONES_CAREER_TRACK[newJonesJobIndex].title,
@@ -963,6 +1032,8 @@ export const gameReducer = (state, action) => {
             money: p.money,
             happiness: p.happiness,
             dependability: p.dependability,
+            hunger: p.hunger ?? 0,
+            relaxation: p.relaxation ?? 50,
             netWorth: newNetWorth,
             netWorthDelta: nwDiff,
             job: p.job?.title || 'Unemployed',
