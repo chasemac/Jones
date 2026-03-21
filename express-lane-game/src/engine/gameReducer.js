@@ -717,7 +717,9 @@ export const gameReducer = (state, action) => {
           playerLog.push(`${np.name}: ${worn.name} wore out!`);
           // If worn item was required for current job, lose the job
           if (np.job && np.job.requirements?.item === worn.id) {
+            const lostJobTitle = np.job.title;
             np.job = null;
+            np.clothingWarning = { itemName: worn.name, jobTitle: lostJobTitle, playerName: np.name };
             playerLog.push(`${np.name}: lost their job — need proper clothing!`);
           }
         }
@@ -993,6 +995,11 @@ export const gameReducer = (state, action) => {
     // ── Dismiss hunger warning dialog ────────────────────────────────────────
     case 'DISMISS_HUNGER_WARNING': {
       const cleared = state.players.map(p => ({ ...p, hungerWarning: null }));
+      return { ...state, players: cleared };
+    }
+
+    case 'DISMISS_CLOTHING_WARNING': {
+      const cleared = state.players.map(p => ({ ...p, clothingWarning: null }));
       return { ...state, players: cleared };
     }
 

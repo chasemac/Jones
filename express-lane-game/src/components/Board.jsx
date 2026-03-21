@@ -899,6 +899,30 @@ const HungerWarningModal = ({ warning, onClose }) => {
   );
 };
 
+const ClothingWarningModal = ({ warning, onClose }) => {
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-white border-4 border-amber-400 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4">
+        <div className="text-center text-5xl mb-3">👔</div>
+        <h3 className="text-xl font-black text-center text-slate-800 mb-1">Clothing Wore Out!</h3>
+        <p className="text-slate-600 text-center text-sm mb-4">
+          Your <strong>{warning.itemName}</strong> fell apart — it was required for your job as <strong>{warning.jobTitle}</strong>.
+        </p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-4">
+          <div className="text-lg font-black text-red-600">Job Lost</div>
+          <div className="text-xs text-red-400">You need to buy new clothing and reapply</div>
+        </div>
+        <p className="text-[11px] text-slate-400 text-center mb-4">
+          Visit TrendSetters to buy replacement clothing before applying again.
+        </p>
+        <button onClick={onClose} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition text-sm">
+          Got it — time to go shopping
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // ─── Event modal ──────────────────────────────────────────────────────────────
 const EventModal = ({ event, onClose }) => {
   // Detect positive/negative events by effectDesc keywords
@@ -1380,7 +1404,7 @@ const LIBRARY_LOCATION_GROUPS = [
 ];
 
 // ─── Salary transparency helper — all jobs sorted by wage ────────────────────
-const SalaryTransparencyView = ({ player }) => {
+const SalaryTransparencyView = ({ player, economy }) => {
   const sorted = [...jobsData].sort((a, b) => b.wage - a.wage);
   return (
     <div className="space-y-1">
@@ -1448,7 +1472,7 @@ const LibraryContent = ({ state, actions }) => {
             </div>
             {viewMode === 'salary' && (
               <div className="max-h-64 sm:max-h-none sm:flex-grow overflow-y-auto">
-                <SalaryTransparencyView player={player} />
+                <SalaryTransparencyView player={player} economy={economy} />
               </div>
             )}
             {viewMode === 'browse' && (
@@ -2866,7 +2890,7 @@ const LeasingOfficeContent = ({ state, actions }) => {
 
 // ─── Main Board Component ─────────────────────────────────────────────────────
 const Board = () => {
-  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, toggleMute, rest, readBook } = useGame();
+  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, dismissClothingWarning, toggleMute, rest, readBook } = useGame();
 
   const actions = { travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, toggleMute, rest, readBook };
 
@@ -3246,6 +3270,12 @@ const Board = () => {
         <HungerWarningModal
           warning={state.players.find(p => p.hungerWarning).hungerWarning}
           onClose={dismissHungerWarning}
+        />
+      )}
+      {!state.weekSummary && !state.pendingEvent && !state.players?.some(p => p.hungerWarning) && state.players?.some(p => p.clothingWarning) && (
+        <ClothingWarningModal
+          warning={state.players.find(p => p.clothingWarning).clothingWarning}
+          onClose={dismissClothingWarning}
         />
       )}
       {state.pendingEvent && (
