@@ -350,7 +350,7 @@ const LocationPanel = ({ locationId, player, children, onClose }) => {
   const isLowTime = (player?.timeRemaining ?? 99) < 6;
   const isAtHome = locationId === 'home' || locationId === 'leasing_office';
   return (
-    <div className="absolute inset-x-2 sm:inset-x-4 top-3 bottom-[4.5rem] sm:bottom-24 bg-white/96 border-4 rounded-[1.75rem] shadow-[0_24px_60px_rgba(15,23,42,0.35)] z-20 flex flex-col overflow-hidden backdrop-blur"
+    <div className="absolute inset-x-2 sm:inset-x-4 top-3 bottom-[8.5rem] sm:bottom-[8rem] bg-white/96 border-4 rounded-[1.75rem] shadow-[0_24px_60px_rgba(15,23,42,0.35)] z-20 flex flex-col overflow-hidden backdrop-blur"
       style={{ borderColor: config.color }}>
       {isLowTime && !isAtHome && (
         <div className="bg-red-600 text-white text-[10px] font-black text-center py-1.5 px-2 animate-pulse flex items-center justify-center gap-2 flex-shrink-0">
@@ -2816,6 +2816,7 @@ const HomeContent = ({ state, actions }) => {
 const LeasingOfficeContent = ({ state, actions }) => {
   const { player } = state;
   const isFirstVisit = state.week === 1 && !player.hasChosenHousing;
+  const [selectedHousing, setSelectedHousing] = React.useState(null);
   return (
     <div className="space-y-3">
       {isFirstVisit && (
@@ -2836,6 +2837,44 @@ const LeasingOfficeContent = ({ state, actions }) => {
         {isFirstVisit ? '🏠 Choose your home to begin:' : '🔄 Change Your Lease'}
       </div>
 
+      {/* Confirmation panel */}
+      {selectedHousing && (() => {
+        const h = selectedHousing;
+        const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
+        const tierEmoji = h.homeType === 'luxury_condo' ? '🌇' : h.homeType === 'apartment' ? '🏘️' : '🏠';
+        return (
+          <div className="bg-purple-50 border-2 border-purple-400 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-3xl">{tierEmoji}</span>
+              <div>
+                <div className="font-black text-base">{h.title}</div>
+                <div className="text-xs text-slate-500">{h.description}</div>
+              </div>
+            </div>
+            <div className="space-y-1 text-xs mb-3">
+              <div className="flex justify-between"><span>Weekly rent:</span><span className="font-mono font-bold">{h.rent === 0 ? 'Free' : `$${h.rent}/wk`}</span></div>
+              {deposit > 0 && <div className="flex justify-between text-orange-600 font-bold"><span>Security deposit:</span><span className="font-mono">-${deposit}</span></div>}
+              <div className="flex justify-between"><span>Happiness effect:</span><span className="font-bold">{h.happiness > 0 ? `+${h.happiness}/wk` : h.happiness < 0 ? `${h.happiness}/wk` : 'None'}</span></div>
+              <div className="flex justify-between"><span>Security:</span><span className="font-bold">{h.security}</span></div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { actions.rentApartment(h); setSelectedHousing(null); }}
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95"
+              >
+                {isFirstVisit ? 'Move In' : 'Sign Lease'} {deposit > 0 ? `(-$${deposit})` : ''}
+              </button>
+              <button
+                onClick={() => setSelectedHousing(null)}
+                className="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition active:scale-95"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="space-y-2">
         {housingData.map(h => {
           const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
@@ -2843,13 +2882,15 @@ const LeasingOfficeContent = ({ state, actions }) => {
           const canAfford = deposit === 0 || player.money >= deposit;
           const tierEmoji = h.homeType === 'luxury_condo' ? '🌇' : h.homeType === 'apartment' ? '🏘️' : '🏠';
           const securityColor = h.security === 'High' ? 'text-green-600' : h.security === 'Medium' ? 'text-amber-600' : 'text-red-500';
+          const isSelected = selectedHousing?.id === h.id;
           return (
             <button
               key={h.id}
-              onClick={() => !isCurrent && canAfford && actions.rentApartment(h)}
+              onClick={() => !isCurrent && canAfford && setSelectedHousing(h)}
               disabled={isCurrent || !canAfford}
               className={`w-full p-3 border-2 rounded-xl text-sm transition-all active:scale-[0.99]
                 ${isCurrent ? 'bg-purple-100 border-purple-400 cursor-default' :
+                  isSelected ? 'bg-purple-50 border-purple-400 shadow-md' :
                   !canAfford ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed' :
                   'hover:bg-purple-50 border-slate-200 hover:border-purple-400 hover:shadow-md'}
               `}
