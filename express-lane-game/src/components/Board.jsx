@@ -612,7 +612,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         </div>
         {player.job && (
           <div className="text-[8px] text-slate-400 text-right hidden sm:block leading-none">
-            ≈<span className="text-green-400 font-mono">${player.job.wage * 8}/wk</span>
+            ≈<span className="text-green-400 font-mono">${Math.floor(effectiveWage(player.job.wage, economy) * 8)}/wk</span>
           </div>
         )}
       </div>
@@ -1136,7 +1136,7 @@ const FullLogModal = ({ history, onClose }) => {
         <div className="flex-grow overflow-y-auto space-y-0.5 pr-1">
           {history.length === 0
             ? <div className="text-slate-500 italic text-xs text-center py-4">No events yet.</div>
-            : [...history].reverse().map((entry, i) => (
+            : history.map((entry, i) => (
                 <div key={i} className={`text-[11px] flex gap-1.5 items-start border-b border-slate-800 last:border-0 py-1 ${entryColor(entry)}`}>
                   <span className="shrink-0 w-4 text-center">{entryIcon(entry)}</span>
                   <span>{entry}</span>
@@ -1212,7 +1212,7 @@ const QuickEatsContent = ({ state, actions }) => {
             <div className="flex justify-between text-[9px] font-bold text-slate-600 mb-0.5">
               <span>Hunger</span>
               <span className={player.hunger >= 80 ? 'text-red-600 animate-pulse' : player.hunger >= 60 ? 'text-orange-600' : 'text-green-600'}>
-                {player.hunger >= 80 ? '⚠️ STARVING — −20h penalty next week!' : player.hunger >= 60 ? 'Getting hungry' : 'Good'}
+                {player.hunger >= 80 ? '⚠️ STARVING — −20h if unfed!' : player.hunger >= 60 ? '⚠️ Hungry — −10h if unfed' : 'Good'}
               </span>
             </div>
             <div className="h-2 bg-orange-100 rounded-full overflow-hidden border border-orange-200">
@@ -1280,7 +1280,7 @@ const QuickEatsContent = ({ state, actions }) => {
         {/* Hunger penalty preview */}
         {player.hunger >= 50 && (
           <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-lg text-[10px] text-red-700">
-            ⏱ Projected penalty next week: <strong>-{player.hunger >= 80 ? 20 : player.hunger >= 60 ? 12 : 6}hrs</strong> if unfed
+            ⏱ Projected penalty if unfed: <strong>-{player.hunger >= 80 ? 20 : player.hunger >= 50 ? 10 : 5}hrs</strong> (half if you eat snacks)
           </div>
         )}
         <div className="mt-1 text-[10px] text-slate-400 italic">💡 Fresh Mart groceries save money — need a fridge from MegaMart</div>
@@ -1307,7 +1307,7 @@ const QuickEatsContent = ({ state, actions }) => {
                 className="p-2 bg-orange-100 border-2 border-orange-300 rounded-xl hover:bg-orange-200 disabled:opacity-50 text-xs transition active:scale-95"
               >
                 <div className="font-bold">🍔 Full Shift (8h)</div>
-                <div className="font-mono font-black text-green-600 text-sm">+${effectiveWage(player.job.wage, economy) * 8}</div>
+                <div className="font-mono font-black text-green-600 text-sm">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
               </button>
             </div>
             <button
@@ -1402,8 +1402,8 @@ const SalaryTransparencyView = ({ player }) => {
               </div>
             </div>
             <div className="text-right shrink-0 ml-2">
-              <div className="font-mono font-black text-green-700">${job.wage}/hr</div>
-              <div className="text-[8px] text-slate-400">${job.wage * 8}/shift</div>
+              <div className="font-mono font-black text-green-700">${effectiveWage(job.wage, economy)}/hr</div>
+              <div className="text-[8px] text-slate-400">${Math.floor(effectiveWage(job.wage, economy) * 8)}/shift</div>
             </div>
           </div>
         );
@@ -1414,7 +1414,7 @@ const SalaryTransparencyView = ({ player }) => {
 
 
 const LibraryContent = ({ state, actions }) => {
-  const { player } = state;
+  const { player, economy } = state;
   const isTradeEmployee = player.job?.type === 'trade';
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [viewMode, setViewMode] = useState('browse'); // 'browse' | 'salary'
@@ -1575,7 +1575,7 @@ const LibraryContent = ({ state, actions }) => {
                 <button onClick={actions.work} disabled={player.timeRemaining < 8}
                   className="p-2 bg-yellow-100 border-2 border-yellow-300 rounded-xl hover:bg-yellow-200 disabled:opacity-50 text-xs transition active:scale-95">
                   <div className="font-bold">🔧 Site (8h)</div>
-                  <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+                  <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
                 </button>
               </div>
               <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
@@ -1894,7 +1894,7 @@ const MegaMartContent = ({ state, actions }) => {
               <button onClick={actions.work} disabled={player.timeRemaining < 8}
                 className="p-2 bg-red-100 border-2 border-red-300 rounded-xl hover:bg-red-200 disabled:opacity-50 text-xs transition active:scale-95">
                 <div className="font-bold">🛒 Full (8h)</div>
-                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, economy) * 8}</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
               </button>
             </div>
             <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
@@ -2027,7 +2027,7 @@ const CoffeeShopContent = ({ state, actions }) => {
                 className="p-2 bg-amber-100 border-2 border-amber-300 rounded-xl hover:bg-amber-200 disabled:opacity-50 text-xs transition active:scale-95"
               >
                 <div className="font-bold">☕ Full (8h)</div>
-                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, economy) * 8}</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
               </button>
             </div>
             <button
@@ -2096,7 +2096,7 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const { player, economy } = state;
   const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
-  const [confirmIdx, setConfirmIdx] = React.useState(null);
+  const [confirmId, setConfirmId] = React.useState(null);
 
   // Pawn prices scale with economy
   const pawnMultiplier = economy === 'Boom' ? 0.60 : economy === 'Depression' ? 0.40 : 0.50;
@@ -2120,28 +2120,29 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
           </div>
         ) : pawnable.map((item, i) => {
           const pawnValue = Math.floor(item.cost * pawnMultiplier);
+          const itemKey = `${item.id}-${i}`;
           return (
-            <div key={i} className="flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-lg mb-1.5 text-xs shadow-sm">
+            <div key={itemKey} className="flex justify-between items-center p-2.5 bg-white border border-slate-200 rounded-lg mb-1.5 text-xs shadow-sm">
               <div className="min-w-0 mr-2">
                 <div className="font-bold truncate">{item.name}</div>
                 {item.clothingWear !== undefined && (
                   <div className={`text-[9px] ${item.clothingWear <= 30 ? 'text-red-500' : 'text-slate-400'}`}>{item.clothingWear}% durability</div>
                 )}
               </div>
-              {confirmIdx === i ? (
+              {confirmId === itemKey ? (
                 <div className="flex gap-1 shrink-0">
                   <button
-                    onClick={() => { actions.sellItem(item); setConfirmIdx(null); }}
+                    onClick={() => { actions.sellItem(item); setConfirmId(null); }}
                     className="bg-red-600 text-white px-2.5 py-1.5 rounded-lg font-bold hover:bg-red-700 active:scale-95 text-xs min-h-[36px]"
                   >✓ Sell!</button>
                   <button
-                    onClick={() => setConfirmIdx(null)}
+                    onClick={() => setConfirmId(null)}
                     className="bg-slate-200 text-slate-600 px-2.5 py-1.5 rounded-lg hover:bg-slate-300 active:scale-95 min-h-[36px]"
                   >✕</button>
                 </div>
               ) : (
                 <button
-                  onClick={() => setConfirmIdx(i)}
+                  onClick={() => setConfirmId(itemKey)}
                   className="bg-slate-800 text-white px-2.5 py-1.5 rounded-lg font-bold hover:bg-slate-700 active:scale-95 shrink-0 text-xs min-h-[36px]"
                 >
                   ${pawnValue}
@@ -2384,7 +2385,7 @@ const TechStoreContent = ({ state, actions }) => {
               <button onClick={actions.work} disabled={player.timeRemaining < 8}
                 className="p-2 bg-blue-100 border-2 border-blue-300 rounded-xl hover:bg-blue-200 disabled:opacity-50 text-xs transition active:scale-95">
                 <div className="font-bold">💻 Sprint (8h)</div>
-                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, economy) * 8}</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
               </button>
             </div>
             <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
@@ -2519,10 +2520,11 @@ const NeoBankContent = ({ state, actions }) => {
           <h3 className="font-bold text-xs mb-2 text-slate-600">🛡️ Insurance</h3>
           {itemsData.filter(i => i.id === 'health_insurance').map(item => {
             const owned = player.inventory.some(i => i.id === item.id);
+            const price = adjustedPrice(item.cost, state.economy);
             return (
               <button
                 key={item.id}
-                onClick={() => !owned && actions.buyItem(item)}
+                onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
                 disabled={owned}
                 className="w-full flex justify-between items-center p-2 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 disabled:opacity-60 text-xs"
               >
@@ -2530,7 +2532,7 @@ const NeoBankContent = ({ state, actions }) => {
                   <div className="font-bold">{item.name}</div>
                   <div className="text-slate-400">{item.effect}</div>
                 </div>
-                <span className="font-mono">{owned ? '✅' : `$${item.cost}`}</span>
+                <span className="font-mono">{owned ? '✅' : `$${price}`}</span>
               </button>
             );
           })}
@@ -2549,7 +2551,7 @@ const NeoBankContent = ({ state, actions }) => {
               <button onClick={actions.work} disabled={player.timeRemaining < 8}
                 className="p-2 bg-indigo-100 border-2 border-indigo-300 rounded-xl hover:bg-indigo-200 disabled:opacity-50 text-xs transition active:scale-95">
                 <div className="font-bold">💼 Full (8h)</div>
-                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
               </button>
             </div>
             <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
@@ -2746,7 +2748,7 @@ const HomeContent = ({ state, actions }) => {
               <button onClick={actions.work} disabled={player.timeRemaining < 8}
                 className="p-2 bg-violet-100 border-2 border-violet-300 rounded-xl hover:bg-violet-200 disabled:opacity-50 text-xs transition active:scale-95">
                 <div className="font-bold">🖥️ Full (8h)</div>
-                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
               </button>
             </div>
             <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
@@ -3138,8 +3140,9 @@ const Board = () => {
               warningBadge = { icon: '!', color: 'bg-amber-500' };
             }
             const isPromoReady = !!(promoJob && id === workLocId);
+            const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
             const travelHours = player.currentLocation !== id
-              ? travelCost(player.currentLocation, id)
+              ? Math.max(1, travelCost(player.currentLocation, id) - travelBonus)
               : null;
             const config = id === 'home'
               ? { ...LOCATIONS_CONFIG.home, emoji: homeEmoji(player.housing), label: player.housing?.homeType === 'luxury_condo' ? 'Condo' : player.housing?.homeType === 'apartment' ? 'Apartment' : 'Home' }

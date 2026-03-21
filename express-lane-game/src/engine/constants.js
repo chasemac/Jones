@@ -109,6 +109,18 @@ export const travelCost = (fromId, toId) => {
   return Math.min(cw, ccw);
 };
 
+// Location ID → employer name (used in job application messages)
+export const LOCATION_EMPLOYER_NAME = {
+  quick_eats: 'Quick Eats',
+  coffee_shop: 'The Grind',
+  megamart: 'MegaMart',
+  trendsetters: 'TrendSetters',
+  tech_store: 'Tech Store',
+  neobank: 'NeoBank',
+  public_library: 'City Works',
+  home: 'Remote',
+};
+
 // Job types → fallback work location (job.location takes priority in practice)
 export const JOB_WORK_LOCATION = {
   service: 'coffee_shop',

@@ -8,6 +8,7 @@ import {
   JONES_EDUCATION_TRACK,
   travelCost,
   calculateDeposit,
+  LOCATION_EMPLOYER_NAME,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
@@ -268,25 +269,26 @@ export const gameReducer = (state, action) => {
         let stateAfterTime = updateActivePlayer(state, p => ({ ...p, timeRemaining: p.timeRemaining - 2 }));
 
         // Hard requirement checks (instant disqualification)
+        const employer = LOCATION_EMPLOYER_NAME[job.location] || job.title;
         if (job.requirements?.experience) {
           const weeksWorked = player.job?.weeksWorked || 0;
           if (weeksWorked < job.requirements.experience) {
-            let s = log(stateAfterTime, `Rejected from ${job.company}! Need ${job.requirements.experience} weeks of experience.`);
-            return { ...s, lastJobResult: { success: false, message: `${job.company} rejected you — need ${job.requirements.experience} weeks of experience.` } };
+            let s = log(stateAfterTime, `Rejected from ${employer}! Need ${job.requirements.experience} weeks of experience.`);
+            return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — need ${job.requirements.experience} weeks of experience.` } };
           }
         }
         if (job.requirements?.education && !meetsEducation(player.education, job.requirements.education)) {
-          let s = log(stateAfterTime, `Rejected from ${job.company}! Need a ${job.requirements.education}.`);
-          return { ...s, lastJobResult: { success: false, message: `${job.company} rejected you — need a ${job.requirements.education}.` } };
+          let s = log(stateAfterTime, `Rejected from ${employer}! Need a ${job.requirements.education}.`);
+          return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — need a ${job.requirements.education}.` } };
         }
         if (job.requirements?.item && !player.inventory.some(i => i.id === job.requirements.item)) {
           const itemName = job.requirements.item.replace(/_/g, ' ');
-          let s = log(stateAfterTime, `Rejected from ${job.company}! Need: ${itemName}.`);
-          return { ...s, lastJobResult: { success: false, message: `${job.company} rejected you — you need: ${itemName}.` } };
+          let s = log(stateAfterTime, `Rejected from ${employer}! Need: ${itemName}.`);
+          return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — you need: ${itemName}.` } };
         }
         if (job.requirements?.dependability && player.dependability < job.requirements.dependability) {
-          let s = log(stateAfterTime, `Rejected from ${job.company}! Need ${job.requirements.dependability} dependability.`);
-          return { ...s, lastJobResult: { success: false, message: `${job.company} rejected you — need ${job.requirements.dependability} dependability.` } };
+          let s = log(stateAfterTime, `Rejected from ${employer}! Need ${job.requirements.dependability} dependability.`);
+          return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — need ${job.requirements.dependability} dependability.` } };
         }
 
         // Probabilistic rejection — even qualified applicants can be turned down.
@@ -296,22 +298,22 @@ export const gameReducer = (state, action) => {
         const finalRejectionChance = baseChance * (1 - depBonus);
         if (Math.random() < finalRejectionChance) {
           const rejectionMessages = [
-            `${job.company} went with another candidate.`,
-            `${job.company} said they'll keep your résumé on file. (They won't.)`,
-            `${job.company} ghosted you after the interview.`,
-            `${job.company} said you were overqualified. Sure.`,
-            `${job.company} passed this time. Try again.`,
+            `${employer} went with another candidate.`,
+            `${employer} said they'll keep your résumé on file. (They won't.)`,
+            `${employer} ghosted you after the interview.`,
+            `${employer} said you were overqualified. Sure.`,
+            `${employer} passed this time. Try again.`,
           ];
           const msg = rejectionMessages[Math.floor(Math.random() * rejectionMessages.length)];
-          let s = log(stateAfterTime, `Rejected by ${job.company}.`);
+          let s = log(stateAfterTime, `Rejected by ${employer}.`);
           return { ...s, lastJobResult: { success: false, message: msg } };
         }
 
         // Hired! Preserve experience within same career track
         const prevWeeksWorked = (player.job?.type === job.type) ? (player.job?.weeksWorked || 0) : 0;
-        let s = log(stateAfterTime, `${player.name} hired at ${job.company} as ${job.title}!`);
+        let s = log(stateAfterTime, `${player.name} hired at ${employer} as ${job.title}!`);
         s = updateActivePlayer(s, p => ({ ...p, job: { ...job, weeksWorked: prevWeeksWorked } }));
-        return { ...s, lastJobResult: { success: true, message: `${job.company} hired you as ${job.title} at $${job.wage}/hr!` } };
+        return { ...s, lastJobResult: { success: true, message: `${employer} hired you as ${job.title} at $${job.wage}/hr!` } };
       }
 
       // Promotion path — no time cost, no rejection
