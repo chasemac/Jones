@@ -2813,7 +2813,7 @@ const HomeContent = ({ state, actions }) => {
 };
 
 // ─── Leasing Office ───────────────────────────────────────────────────────────
-const LeasingOfficeContent = ({ state, actions }) => {
+const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
   const { player } = state;
   const isFirstVisit = state.week === 1 && !player.hasChosenHousing;
   const [selectedHousing, setSelectedHousing] = React.useState(null);
@@ -2859,7 +2859,7 @@ const LeasingOfficeContent = ({ state, actions }) => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => { actions.rentApartment(h); setSelectedHousing(null); }}
+                onClick={() => { actions.rentApartment(h); setSelectedHousing(null); onMoveIn?.(); }}
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95"
               >
                 {isFirstVisit ? 'Move In' : 'Sign Lease'} {deposit > 0 ? `(-$${deposit})` : ''}
@@ -3117,7 +3117,7 @@ const Board = () => {
       case 'tech_store':     return <TechStoreContent state={state} actions={actions} />;
       case 'neobank':        return <NeoBankContent state={state} actions={actions} />;
       case 'home':           return <HomeContent state={state} actions={actions} />;
-      case 'leasing_office': return <LeasingOfficeContent state={state} actions={actions} />;
+      case 'leasing_office': return <LeasingOfficeContent state={state} actions={actions} onMoveIn={() => setShowPanel(false)} />;
       default:               return <div className="text-slate-400 italic text-center p-8">Nothing here yet.</div>;
     }
   };
