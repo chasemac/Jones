@@ -122,7 +122,7 @@ export const playSound = (type) => {
       default:
         break;
     }
-  } catch (e) {
+  } catch {
     // Silently ignore audio errors (e.g. in test env)
   }
 };

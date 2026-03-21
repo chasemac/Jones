@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { gameReducer, buildInitialState } from '../engine/gameReducer';
 import { playSound, toggleMute, isMuted } from '../utils/sound';
@@ -8,18 +9,57 @@ export const useGame = () => useContext(GameContext);
 // ─── Persistence helpers ──────────────────────────────────────────────────────
 const SAVE_KEY = 'jones_v2_state';
 
+const hydrateSavedState = (saved) => {
+  if (!saved || typeof saved !== 'object') return null;
+
+  const playerCount = Math.max(1, saved.playerCount || saved.players?.length || 1);
+  const playerEmojis = Array.isArray(saved.players) ? saved.players.map(player => player?.emoji) : null;
+  const baseState = buildInitialState(saved.difficulty || 'normal', playerCount, playerEmojis);
+
+  const players = baseState.players.map((basePlayer, index) => ({
+    ...basePlayer,
+    ...(saved.players?.[index] || {}),
+    housing: {
+      ...basePlayer.housing,
+      ...(saved.players?.[index]?.housing || {}),
+    },
+    portfolio: {
+      ...basePlayer.portfolio,
+      ...(saved.players?.[index]?.portfolio || {}),
+    },
+    inventory: Array.isArray(saved.players?.[index]?.inventory) ? saved.players[index].inventory : basePlayer.inventory,
+  }));
+
+  return {
+    ...baseState,
+    ...saved,
+    players,
+    playerCount,
+    history: Array.isArray(saved.history) ? saved.history : baseState.history,
+    market: saved.market && typeof saved.market === 'object' ? { ...baseState.market, ...saved.market } : baseState.market,
+    jones: {
+      ...baseState.jones,
+      ...(saved.jones || {}),
+    },
+    pendingEvent: null,
+    lastJobResult: null,
+    awaitingEndWeek: false,
+    weekSummary: null,
+  };
+};
+
 const loadSavedState = () => {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { /* ignore */ }
+    if (raw) return hydrateSavedState(JSON.parse(raw));
+  } catch { /* ignore */ }
   return null;
 };
 
 const saveState = (state) => {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
 };
 
 // ─── Provider ─────────────────────────────────────────────────────────────────

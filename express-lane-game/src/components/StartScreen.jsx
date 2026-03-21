@@ -48,23 +48,43 @@ const StartScreen = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900 flex flex-col items-center overflow-y-auto z-50 py-2 sm:py-6 px-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-7 my-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.28),transparent_24%),linear-gradient(180deg,#082f49_0%,#0f172a_42%,#111827_100%)] px-4 py-3 sm:py-6">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute left-[8%] top-10 h-24 w-24 rounded-full bg-amber-300/20 blur-2xl" />
+        <div className="absolute right-[10%] top-24 h-32 w-32 rounded-full bg-sky-300/20 blur-3xl" />
+        <div className="absolute bottom-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-indigo-400/10 blur-3xl" />
+      </div>
+      <div className="relative mx-auto my-auto w-full max-w-2xl rounded-[2rem] border border-white/15 bg-white/92 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:p-7">
 
         {/* Title */}
-        <div className="text-center mb-4">
-          <div className="text-3xl sm:text-4xl mb-1">🏙️</div>
-          <h1 className="text-2xl sm:text-4xl font-black text-indigo-700 leading-tight">Life in the Express Lane</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">A satirical life-sim. Beat The Joneses.</p>
+        <div className="mb-5 text-center">
+          <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-indigo-700 shadow-sm">
+            <span>Satirical Life Sim</span>
+            <span className="opacity-40">•</span>
+            <span>Mobile Ready</span>
+          </div>
+          <div className="text-4xl sm:text-5xl mb-1">🏙️</div>
+          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 leading-[0.95]">Life in the Express Lane</h1>
+          <p className="text-slate-500 text-sm sm:text-base mt-2 max-w-md mx-auto">Outwork the city, outlearn the grind, and finally beat The Joneses at their own game.</p>
         </div>
 
+        {hasSave && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left shadow-sm">
+            <div>
+              <div className="text-xs font-black uppercase tracking-wide text-emerald-700">Save Found</div>
+              <div className="text-sm text-emerald-900">Jump back into your last run or start fresh with a new setup.</div>
+            </div>
+            <div className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-emerald-700 shadow-sm">Ready</div>
+          </div>
+        )}
+
         {/* Win conditions */}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           {HOW_TO_WIN.map(g => (
-            <div key={g.label} className="bg-indigo-50 p-2 sm:p-3 rounded-xl border border-indigo-100 text-center">
+            <div key={g.label} className="bg-gradient-to-b from-indigo-50 to-white p-3 rounded-2xl border border-indigo-100 text-center shadow-sm">
               <div className="text-xl sm:text-2xl mb-0.5">{g.icon}</div>
-              <div className="font-black text-indigo-800 text-[11px] sm:text-xs leading-tight">{g.label}</div>
-              <div className="text-[9px] text-indigo-500 hidden sm:block mt-0.5 leading-tight">{g.desc}</div>
+              <div className="font-black text-indigo-900 text-[11px] sm:text-xs leading-tight">{g.label}</div>
+              <div className="text-[9px] text-indigo-500 mt-1 leading-tight">{g.desc}</div>
             </div>
           ))}
         </div>
@@ -72,13 +92,13 @@ const StartScreen = () => {
         {/* How to play toggle */}
         <button
           onClick={() => setShowHowToPlay(v => !v)}
-          className="w-full text-xs text-slate-500 border border-slate-200 rounded-lg py-1.5 mb-3 hover:bg-slate-50 transition flex items-center justify-center gap-1.5"
+          className="w-full text-xs text-slate-500 border border-slate-200 rounded-xl py-2 mb-3 hover:bg-slate-50 transition flex items-center justify-center gap-1.5 shadow-sm"
         >
           <span>{showHowToPlay ? '▼' : '▶'}</span>
           <span>How to Play</span>
         </button>
         {showHowToPlay && (
-          <div className="bg-slate-50 rounded-xl p-3 mb-3 text-xs text-slate-600 border border-slate-200 space-y-1.5">
+          <div className="bg-slate-50 rounded-2xl p-3.5 mb-3 text-xs text-slate-600 border border-slate-200 space-y-1.5 shadow-inner">
             <div className="font-bold text-slate-700 mb-1">📋 Quick Start Guide</div>
             <div>🏠 <strong>Leasing Office</strong> — choose your first home</div>
             <div>📚 <strong>Library</strong> — browse job listings and apply</div>
@@ -91,7 +111,7 @@ const StartScreen = () => {
         )}
 
         {/* Difficulty selection */}
-        <div className="mb-3">
+        <div className="mb-4">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Choose Difficulty</div>
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(DIFFICULTY_PRESETS).map(([key, preset]) => {
@@ -101,9 +121,9 @@ const StartScreen = () => {
                 <button
                   key={key}
                   onClick={() => setSelectedDifficulty(key)}
-                  className={`p-2.5 rounded-xl border-2 text-left transition-all min-h-[44px] active:scale-95 ${isSelected
-                    ? `${meta.selectedColor} shadow-md scale-[1.03]`
-                    : `${meta.color} hover:scale-[1.01]`
+                  className={`p-3 rounded-2xl border-2 text-left transition-all min-h-[48px] active:scale-95 ${isSelected
+                    ? `${meta.selectedColor} shadow-lg scale-[1.03]`
+                    : `${meta.color} hover:scale-[1.01] shadow-sm`
                   }`}
                 >
                   <div className="text-xl mb-0.5">{meta.icon}</div>
@@ -122,16 +142,16 @@ const StartScreen = () => {
         </div>
 
         {/* Player count + emoji picker */}
-        <div className="mb-4">
+        <div className="mb-5 rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Players</div>
           <div className="flex gap-2 mb-3">
             {[1, 2, 3, 4].map(n => (
               <button
                 key={n}
                 onClick={() => setPlayerCount(n)}
-                className={`flex-1 h-12 sm:h-14 rounded-xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 flex flex-col items-center justify-center ${playerCount === n
-                  ? 'border-indigo-500 bg-indigo-50 shadow-md'
-                  : 'border-slate-200 hover:border-slate-400'
+                className={`flex-1 h-14 sm:h-16 rounded-2xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 flex flex-col items-center justify-center ${playerCount === n
+                  ? 'border-indigo-500 bg-white shadow-md'
+                  : 'border-slate-200 bg-white hover:border-slate-400'
                 }`}
               >
                 <div>{playerEmojis[n - 1]}</div>
@@ -155,10 +175,10 @@ const StartScreen = () => {
                     <button
                       key={emoji}
                       onClick={() => setPlayerEmoji(i, emoji)}
-                      className={`w-9 h-9 rounded-lg text-xl flex items-center justify-center transition-all active:scale-90 ${
+                      className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all active:scale-90 shadow-sm ${
                         playerEmojis[i] === emoji
-                          ? 'bg-indigo-100 border-2 border-indigo-500 shadow-sm scale-110'
-                          : 'bg-slate-100 border-2 border-transparent hover:border-slate-300'
+                          ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
+                          : 'bg-white border-2 border-transparent hover:border-slate-300'
                       }`}
                     >
                       {emoji}
@@ -171,10 +191,12 @@ const StartScreen = () => {
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-col gap-2">
+        <div className="sticky bottom-0 -mx-4 sm:-mx-7 mt-2 border-t border-slate-200 bg-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-7">
+          <div className="mb-2 text-[10px] text-center font-semibold uppercase tracking-[0.18em] text-slate-400">Ready To Roll</div>
+          <div className="flex flex-col gap-2">
           <button
             onClick={handleStart}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base sm:text-lg py-3 sm:py-4 rounded-xl shadow-lg transition active:scale-95 min-h-[48px]"
+            className="bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base sm:text-lg py-3.5 sm:py-4 rounded-2xl shadow-[0_16px_35px_rgba(79,70,229,0.35)] transition active:scale-95 min-h-[52px]"
           >
             🚀 New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label}{playerCount > 1 ? ` (${playerCount}P)` : ''}
           </button>
@@ -182,7 +204,7 @@ const StartScreen = () => {
           {hasSave && (
             <button
               onClick={handleResume}
-              className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl shadow transition active:scale-95 min-h-[44px]"
+              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl shadow transition active:scale-95 min-h-[48px]"
             >
               ▶ Resume Saved Game
             </button>
@@ -196,10 +218,11 @@ const StartScreen = () => {
               Delete Save Data
             </button>
           )}
+          </div>
         </div>
 
         <p className="mt-4 text-[10px] text-center text-slate-400">
-          Inspired by "Jones in the Fast Lane" (Sierra On-Line, 1990) · Keyboard: I=Inventory, G=Goals, L=Log
+          Inspired by "Jones in the Fast Lane" (Sierra On-Line, 1990) · Keyboard: I=Inventory, G=Goals, L=Log, M=Mute
         </p>
       </div>
     </div>
