@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, EDUCATION_RANK, calculateNetWorth, getEducationProgress, calculateDeposit, JOB_WORK_LOCATION } from '../engine/constants';
+import { LOCATION_ORDER, DIFFICULTY_PRESETS, meetsEducation, travelCost, ECONOMY_PRICE_MULTIPLIER, ECONOMY_WAGE_MULTIPLIER, EDUCATION_RANK, calculateNetWorth, getEducationProgress, calculateDeposit, JOB_WORK_LOCATION } from '../engine/constants';
 
 // Adjust item price by economy state
 const adjustedPrice = (baseCost, economy) =>
@@ -82,6 +82,8 @@ const homeEmoji = (housing) => {
   if (housing.homeType === 'luxury_condo') return '🌇';
   return '🏘️'; // apartment
 };
+
+const getJobLocation = (job) => job?.workLocation || job?.location || JOB_WORK_LOCATION[job?.type] || null;
 
 // ─── Shared "Jobs Here" card used by every location panel ────────────────────
 const JobsHereCard = ({ locationId, player, actions }) => {
@@ -174,6 +176,13 @@ const MapBackground = ({ economy }) => {
   return (
     <svg className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 100 100" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="skyTint" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#dbeafe" />
+          <stop offset="100%" stopColor="#f8fafc" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="100" height="100" fill="url(#skyTint)" />
       {/* Green interior park fill */}
       <path d="M 12 12 L 38 12 L 72 12 L 83 22 L 83 48 L 71 72 L 57 81 L 42 81 L 26 81 L 12 81 Z"
         fill={parkFill} stroke="none" />
@@ -181,6 +190,7 @@ const MapBackground = ({ economy }) => {
 
       {/* Ring road — asphalt base */}
       <path d={RING_PATH} fill="none" stroke="#6b7280" strokeWidth="5" strokeLinejoin="round" />
+      <path d={RING_PATH} fill="none" stroke="rgba(15,23,42,0.18)" strokeWidth="7" strokeLinejoin="round" />
       {/* Ring road — lighter road surface */}
       <path d={RING_PATH} fill="none" stroke="#e5e7eb" strokeWidth="3.5" strokeLinejoin="round" />
       {/* Yellow dashed center line */}
@@ -203,7 +213,7 @@ const MapBackground = ({ economy }) => {
 };
 
 // ─── Building node ────────────────────────────────────────────────────────────
-const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadge, travelHours, isPromoReady, hasJob }) => (
+const BuildingNode = ({ config, isCurrent, isTraveling, onClick, warningBadge, travelHours, isPromoReady, hasJob }) => (
   <div
     onClick={onClick}
     className={`absolute flex flex-col items-center cursor-pointer transition-all duration-200 hover:scale-110 z-10 group
@@ -216,7 +226,7 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadg
     }}
   >
     <div
-      className={`w-10 h-10 sm:w-14 sm:h-14 bg-white border-2 sm:border-4 rounded-lg sm:rounded-xl shadow-lg flex items-center justify-center text-xl sm:text-3xl relative
+      className={`w-12 h-12 sm:w-14 sm:h-14 bg-white/95 border-2 sm:border-4 rounded-xl sm:rounded-2xl shadow-[0_14px_24px_rgba(15,23,42,0.24)] flex items-center justify-center text-2xl sm:text-3xl relative backdrop-blur
         ${isCurrent ? 'ring-4 ring-yellow-400 scale-110 shadow-2xl' : 'opacity-90 hover:opacity-100 hover:shadow-xl'}
         ${isPromoReady && !isCurrent ? 'ring-2 ring-green-400 animate-pulse' : ''}
         ${hasJob && !isCurrent ? 'ring-2 ring-emerald-300' : ''}
@@ -245,7 +255,7 @@ const BuildingNode = ({ id, config, isCurrent, isTraveling, onClick, warningBadg
         </div>
       )}
     </div>
-    <div className={`mt-0.5 sm:mt-1 text-white text-[7px] sm:text-[9px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full shadow whitespace-nowrap ${isCurrent ? 'bg-yellow-500 text-black' : 'bg-slate-800'}`}>
+    <div className={`mt-0.5 sm:mt-1 text-white text-[8px] sm:text-[9px] font-bold px-2 sm:px-2.5 py-0.5 rounded-full shadow whitespace-nowrap ${isCurrent ? 'bg-yellow-500 text-black' : 'bg-slate-800/95 backdrop-blur'}`}>
       {config.label}
     </div>
     {/* Travel time — always visible */}
@@ -309,7 +319,7 @@ const PlayerToken = ({ locationId, isMoving, label, emoji, colorClass, zIndex })
 };
 
 // ─── Floating money popup ──────────────────────────────────────────────────────
-const FloatingMoney = ({ amount, id, onDone }) => {
+const FloatingMoney = ({ amount, onDone }) => {
   const isPositive = amount >= 0;
   useEffect(() => {
     const t = setTimeout(onDone, 1200);
@@ -340,16 +350,16 @@ const LocationPanel = ({ locationId, player, children, onClose }) => {
   const isLowTime = (player?.timeRemaining ?? 99) < 6;
   const isAtHome = locationId === 'home' || locationId === 'leasing_office';
   return (
-    <div className="absolute inset-x-2 sm:inset-x-4 top-4 bottom-16 sm:bottom-24 bg-white border-4 rounded-2xl shadow-2xl z-20 flex flex-col overflow-hidden"
+    <div className="absolute inset-x-2 sm:inset-x-4 top-3 bottom-[4.5rem] sm:bottom-24 bg-white/96 border-4 rounded-[1.75rem] shadow-[0_24px_60px_rgba(15,23,42,0.35)] z-20 flex flex-col overflow-hidden backdrop-blur"
       style={{ borderColor: config.color }}>
       {isLowTime && !isAtHome && (
-        <div className="bg-red-600 text-white text-[10px] font-black text-center py-1 px-2 animate-pulse flex items-center justify-center gap-2 flex-shrink-0">
+        <div className="bg-red-600 text-white text-[10px] font-black text-center py-1.5 px-2 animate-pulse flex items-center justify-center gap-2 flex-shrink-0">
           ⚡ Only {player.timeRemaining}h left — go home and sleep!
           <button onClick={onClose} className="underline font-black ml-1">Back to map →</button>
         </div>
       )}
-      <div className="px-4 py-2.5 flex justify-between items-center flex-shrink-0"
-        style={{ background: config.color + '18', borderBottom: `2px solid ${config.color}40` }}>
+      <div className="sticky top-0 z-10 px-4 py-3 flex justify-between items-center flex-shrink-0 backdrop-blur"
+        style={{ background: `${config.color}18`, borderBottom: `2px solid ${config.color}40` }}>
         <div className="flex items-center gap-2 min-w-0">
           <h2 className="text-lg sm:text-xl font-black uppercase tracking-wide flex items-center gap-2 truncate" style={{ color: config.color }}>
             <span className="text-xl sm:text-2xl flex-shrink-0">{config.emoji}</span>
@@ -363,19 +373,19 @@ const LocationPanel = ({ locationId, player, children, onClose }) => {
         </div>
         <button
           onClick={onClose}
-          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-3 py-1.5 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1 flex-shrink-0 ml-2 min-h-[36px] min-w-[64px] justify-center"
+          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-3.5 py-2 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1 flex-shrink-0 ml-2 min-h-[40px] min-w-[72px] justify-center"
         >
           MAP 🗺️
         </button>
       </div>
-      <div className="flex-grow p-3 sm:p-4 overflow-y-auto bg-white">
+      <div className="flex-grow p-3 sm:p-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))]">
         {children}
       </div>
       {/* Bottom close button for mobile — easier to reach */}
-      <div className="sm:hidden flex-shrink-0 border-t border-slate-100 px-3 py-2">
+      <div className="sm:hidden flex-shrink-0 border-t border-slate-100 px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <button
           onClick={onClose}
-          className="w-full bg-slate-800 text-white font-bold py-2 rounded-xl text-sm active:scale-95 transition"
+          className="w-full bg-slate-800 text-white font-bold py-3 rounded-2xl text-sm active:scale-95 transition shadow-sm"
         >
           ← Back to Map
         </button>
@@ -443,7 +453,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const happinessBarColor = player.happiness < 20 ? 'bg-red-500' : player.happiness < 50 ? 'bg-orange-400' : player.happiness < 75 ? 'bg-yellow-400' : 'bg-green-500';
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-slate-900 border-t-2 border-slate-700 z-30 shadow-2xl">
+    <div className="absolute bottom-0 left-0 right-0 z-30 border-t border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.96))] shadow-[0_-12px_30px_rgba(2,6,23,0.5)] backdrop-blur">
       {/* Multiplayer player tabs */}
       {isMultiplayer && (
         <div className="flex border-b border-slate-700 overflow-x-auto">
@@ -461,7 +471,14 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           })}
         </div>
       )}
-      <div className={`flex items-center justify-between px-2 md:px-3 gap-1 md:gap-2 ${isMultiplayer ? 'h-14 md:h-20' : 'h-16 md:h-24'}`}>
+      <div className={`px-2 md:px-3 pt-2 ${isMultiplayer ? 'pb-[max(0.55rem,env(safe-area-inset-bottom))]' : 'pb-[max(0.65rem,env(safe-area-inset-bottom))]'}`}>
+      <div className="mb-1.5 flex gap-1 overflow-x-auto md:hidden">
+        <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white">🎓 {player.education}</span>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${player.job ? 'bg-emerald-500/20 text-emerald-200' : 'bg-red-500/20 text-red-200'}`}>💼 {player.job ? player.job.title : 'Unemployed'}</span>
+        <span className="shrink-0 rounded-full bg-sky-500/20 px-2 py-1 text-[9px] font-black text-sky-100">🎯 {player.dependability ?? 50}</span>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${(player.relaxation ?? 50) <= 20 ? 'bg-amber-500/25 text-amber-100' : 'bg-teal-500/20 text-teal-100'}`}>🛁 {player.relaxation ?? 50}</span>
+      </div>
+      <div className={`flex items-center justify-between gap-1 md:gap-2 ${isMultiplayer ? 'min-h-[4.2rem] md:h-20' : 'min-h-[4.6rem] md:h-24'}`}>
       {/* Week + Economy */}
       <div className={`flex flex-col items-center min-w-[44px] md:min-w-[52px] rounded-lg px-1 py-0.5 ${economyBg}`}>
         <div className="text-base md:text-2xl leading-none">📅</div>
@@ -576,8 +593,8 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
       </div>
 
       {/* Money display */}
-      <div className="flex flex-col items-end gap-0.5">
-        <div className={`bg-black/60 px-2 py-1 rounded-lg border font-mono text-sm sm:text-base min-w-[64px] sm:min-w-[88px] text-right leading-none ${player.money < 0 ? 'text-red-400 border-red-800' : 'text-green-400 border-slate-700'}`}>
+      <div className="flex flex-col items-end gap-1">
+        <div className={`px-2.5 py-1.5 rounded-2xl border font-mono text-sm sm:text-base min-w-[74px] sm:min-w-[96px] text-right leading-none shadow-inner ${player.money < 0 ? 'text-red-300 border-red-900/60 bg-red-950/40' : 'text-green-300 border-emerald-900/40 bg-black/40'}`}>
           ${Math.round(player.money).toLocaleString()}
         </div>
         {player.savings > 0 && (
@@ -605,23 +622,24 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         <div className="flex gap-1">
           <button
             onClick={onOpenInventory}
-            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white w-9 h-9 rounded-lg text-base border border-slate-600 transition flex items-center justify-center"
+            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white min-w-[3rem] h-11 rounded-xl text-sm border border-slate-600 transition flex items-center justify-center gap-1 px-2"
             title="Inventory (I)"
-          >🎒</button>
+          ><span>🎒</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">Bag</span></button>
           <button
             onClick={onOpenGoals}
-            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white w-9 h-9 rounded-lg text-base border border-slate-600 transition flex items-center justify-center"
+            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white min-w-[3rem] h-11 rounded-xl text-sm border border-slate-600 transition flex items-center justify-center gap-1 px-2"
             title="Goals (G)"
-          >🎯</button>
+          ><span>🎯</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">Goals</span></button>
           <button
             onClick={() => { onToggleMute(); setMuted(m => !m); }}
-            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white w-9 h-9 rounded-lg text-base border border-slate-600 transition flex items-center justify-center"
+            className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white min-w-[3rem] h-11 rounded-xl text-sm border border-slate-600 transition flex items-center justify-center gap-1 px-2"
             title={muted ? 'Unmute (M)' : 'Mute (M)'}
-          >{muted ? '🔇' : '🔊'}</button>
+          ><span>{muted ? '🔇' : '🔊'}</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">{muted ? 'Mute' : 'Sound'}</span></button>
         </div>
         <div className="hidden md:block text-[8px] text-slate-600 text-center">
           I · G · L · M · Esc
         </div>
+      </div>
       </div>
       </div>
     </div>
@@ -735,7 +753,7 @@ const GoalsModal = ({ state, onClose }) => {
 // ─── Notification modal ───────────────────────────────────────────────────────
 const NotificationModal = ({ title, message, type, onClose }) => (
   <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-    <div className="bg-white border-4 rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4" style={{ borderColor: type === 'success' ? '#22c55e' : '#ef4444' }} onClick={e => e.stopPropagation()}>
+    <div className="bg-white border-4 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4" style={{ borderColor: type === 'success' ? '#22c55e' : '#ef4444' }} onClick={e => e.stopPropagation()}>
       <div className="text-center text-4xl mb-3">{type === 'success' ? '🎉' : '🚫'}</div>
       <h3 className={`text-xl font-black text-center mb-2 uppercase ${type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{title}</h3>
       <p className="text-slate-600 text-center text-sm mb-4">{message}</p>
@@ -805,7 +823,7 @@ const InventoryModal = ({ inventory, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white border-4 border-slate-800 rounded-[1.75rem] shadow-2xl p-5 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3 border-b-2 border-slate-200 pb-2">
           <div>
             <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
@@ -852,7 +870,7 @@ const HungerWarningModal = ({ warning, onClose }) => {
   const borderColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className={`bg-white border-4 ${borderColor} rounded-2xl shadow-2xl p-6 max-w-xs w-full mx-4`}>
+      <div className={`bg-white border-4 ${borderColor} rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4`}>
         <div className="text-center text-5xl mb-3">{emoji}</div>
         <h3 className="text-xl font-black text-center text-slate-800 mb-1">
           {hadSomeFood ? 'Still Hungry!' : 'You Went Hungry!'}
@@ -894,7 +912,7 @@ const EventModal = ({ event, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-xs w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-[1.75rem] shadow-2xl max-w-sm w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
         <div className={`bg-gradient-to-br ${headerBg} p-4 text-center`}>
           <div className="text-4xl mb-1">{icon}</div>
           <h3 className="text-lg font-black text-white">{event.title}</h3>
@@ -933,7 +951,7 @@ const RingTips = ({ player, week }) => {
   }
   const promoJob = getNextPromotion(player);
   if (promoJob) {
-    const workLocId = JOB_WORK_LOCATION[player.job?.type];
+    const workLocId = getJobLocation(player.job);
     const loc = LOCATIONS_CONFIG[workLocId];
     alerts.push({ emoji: '🆙', text: `Promotion ready! Go to ${loc?.label ?? 'work'} to become ${promoJob.title}` });
   }
@@ -961,7 +979,7 @@ const RingTips = ({ player, week }) => {
       tutorialTips.push({ emoji: '🍔', text: "Visit Quick Eats and grab a week's worth of meals" });
     }
     if (player.job && player.timeRemaining >= 8) {
-      const workLocId = JOB_WORK_LOCATION[player.job.type];
+      const workLocId = getJobLocation(player.job);
       const loc = LOCATIONS_CONFIG[workLocId];
       tutorialTips.push({ emoji: loc?.emoji ?? '💼', text: `Head to ${loc?.label ?? 'your workplace'} and work a shift` });
     }
@@ -977,7 +995,7 @@ const RingTips = ({ player, week }) => {
     <>
       {/* Expanded panel — bottom sheet on mobile, floats on sm+ */}
       {open && (
-        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-52 bg-amber-50 border-t-2 sm:border-2 border-amber-300 sm:rounded-xl p-3 shadow-xl z-40 max-h-48 overflow-y-auto">
+        <div className="absolute bottom-20 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-60 bg-amber-50/95 backdrop-blur border-t-2 sm:border-2 border-amber-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] font-black uppercase text-amber-600">💡 What to do next</div>
             <button onClick={() => setOpen(false)} className="text-amber-500 hover:text-amber-800 text-lg leading-none font-bold px-1">×</button>
@@ -995,10 +1013,11 @@ const RingTips = ({ player, week }) => {
       {/* Icon button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-[4.5rem] sm:bottom-28 right-16 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/80 border-amber-500 hover:bg-amber-300'}`}
+        className={`absolute bottom-[5rem] sm:bottom-28 right-[4.75rem] h-11 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 border-2 px-3 ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/90 border-amber-500 hover:bg-amber-300'}`}
         title="Hints"
       >
         <span className="text-lg leading-none">💡</span>
+        <span className="text-[10px] font-black uppercase tracking-wide text-slate-900">Tips</span>
         {!open && tips.length > 0 && (
           <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
             {tips.length}
@@ -1010,7 +1029,7 @@ const RingTips = ({ player, week }) => {
 };
 
 // ─── Jones sidebar ────────────────────────────────────────────────────────────
-const JonesSidebar = ({ jones, difficulty, player }) => {
+const JonesSidebar = ({ jones, player }) => {
   const [open, setOpen] = React.useState(false);
   const playerNetWorth = calculateNetWorth(player);
 
@@ -1018,7 +1037,7 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
     <>
       {/* Expanded panel — bottom sheet on mobile, floats on sm+ */}
       {open && (
-        <div className="absolute bottom-16 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[14rem] sm:w-52 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-xl p-3 shadow-xl z-40 max-h-52 overflow-y-auto">
+        <div className="absolute bottom-20 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[15rem] sm:w-60 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
             <div className="flex items-center gap-2">
@@ -1058,10 +1077,11 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
       {/* Icon button */}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-[4.5rem] sm:bottom-28 right-28 w-10 h-10 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
+        className={`absolute bottom-[5rem] sm:bottom-28 right-[9.5rem] h-11 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 px-3 ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
         title="The Joneses"
       >
         <span className="text-lg leading-none">🤑</span>
+        <span className={`text-[10px] font-black uppercase tracking-wide ${open ? 'text-red-900' : 'text-white'}`}>Jones</span>
       </button>
     </>
   );
@@ -1071,11 +1091,12 @@ const JonesSidebar = ({ jones, difficulty, player }) => {
 // Collapsed to a small bell button so it doesn't overlap any buildings.
 const NotificationFeed = ({ history, onOpenLog }) => (
   <button
-    className="absolute bottom-[4.5rem] sm:bottom-28 right-4 w-10 h-10 bg-slate-900/90 backdrop-blur border border-slate-700 rounded-full flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg"
+    className="absolute bottom-[5rem] sm:bottom-28 right-4 h-11 rounded-full bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg gap-1 px-3"
     onClick={onOpenLog}
     title="Open event log"
   >
     <span className="text-lg leading-none">🔔</span>
+    <span className="text-[10px] font-black uppercase tracking-wide text-white">Log</span>
     {history.length > 0 && (
       <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
         {Math.min(history.length, 99)}
@@ -1106,7 +1127,7 @@ const FullLogModal = ({ history, onClose }) => {
   };
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-slate-900 border-2 border-slate-600 rounded-2xl shadow-2xl p-4 max-w-sm w-full mx-4 max-h-[80%] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-slate-900 border-2 border-slate-600 rounded-[1.75rem] shadow-2xl p-4 max-w-xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-white font-black text-base">📋 Event Log</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">✕</button>
@@ -1130,18 +1151,16 @@ const FullLogModal = ({ history, onClose }) => {
 // ─── Week summary modal ───────────────────────────────────────────────────────
 const WeekSummaryModal = ({ summary, onClose }) => {
   const [countdown, setCountdown] = React.useState(5);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
 
   useEffect(() => {
     const interval = setInterval(() => setCountdown(c => c - 1), 1000);
-    const t = setTimeout(() => onCloseRef.current(), 5000);
+    const t = setTimeout(onClose, 5000);
     return () => { clearTimeout(t); clearInterval(interval); };
-  }, []); // intentionally empty
+  }, [onClose]);
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-indigo-500 rounded-2xl shadow-2xl p-5 max-w-xs w-full mx-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white border-4 border-indigo-500 rounded-[1.75rem] shadow-2xl p-5 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="text-center text-3xl mb-1">🌙</div>
         <h3 className="text-lg font-black text-center text-indigo-800 mb-0.5">Week {summary.week} Complete!</h3>
         <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in {Math.max(0, countdown)}s · tap to dismiss</p>
@@ -2612,8 +2631,9 @@ const HomeContent = ({ state, actions }) => {
   const homeType = player.housing?.homeType;
   const emoji = homeEmoji(player.housing);
   const homeName = homeType === 'luxury_condo' ? 'Luxury Condo' : homeType === 'apartment' ? 'Your Apartment' : "Mom's House";
-  const isWFH = player.job?.workLocation === 'home';
-  const isCorpRemote = player.job?.type === 'corporate' && !isWFH;
+  const jobLocation = getJobLocation(player.job);
+  const isWFH = jobLocation === 'home';
+  const requiresLaptopForHomeWork = isWFH && player.job?.requirements?.item === 'laptop';
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
   const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
 
@@ -2715,7 +2735,7 @@ const HomeContent = ({ state, actions }) => {
         </h3>
 
         {/* Data Entry — WFH, no laptop needed */}
-        {isWFH && (
+        {isWFH && (!requiresLaptopForHomeWork || hasLaptop) && (
           <>
             <div className="grid grid-cols-2 gap-1.5 mb-1.5">
               <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
@@ -2741,44 +2761,18 @@ const HomeContent = ({ state, actions }) => {
           </>
         )}
 
-        {/* Corporate remote — needs laptop */}
-        {isCorpRemote && hasLaptop && (
-          <>
-            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
-                className="p-2 bg-emerald-50 border-2 border-emerald-200 rounded-xl hover:bg-emerald-100 disabled:opacity-50 text-xs transition active:scale-95">
-                <div className="font-bold">⏱ Part (4h)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
-              </button>
-              <button onClick={actions.work} disabled={player.timeRemaining < 8}
-                className="p-2 bg-emerald-100 border-2 border-emerald-300 rounded-xl hover:bg-emerald-200 disabled:opacity-50 text-xs transition active:scale-95">
-                <div className="font-bold">🏢 Remote (8h)</div>
-                <div className="font-mono font-black text-green-600">+${effectiveWage(player.job.wage, state.economy) * 8}</div>
-              </button>
-            </div>
-            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
-              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
-              <div className="flex justify-between items-center">
-                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
-                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
-              </div>
-              <div className="text-amber-700">-10 happiness · ${player.job.title}</div>
-            </button>
-            <ExpProgressBar player={player} />
-          </>
-        )}
-        {isCorpRemote && !hasLaptop && (
+        {isWFH && requiresLaptopForHomeWork && !hasLaptop && (
           <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">Need a 💻 Laptop to work remotely from home.</div>
         )}
 
-        {!isWFH && !isCorpRemote && (
+        {!isWFH && (
           <div className="text-xs p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 italic">
             {player.job ? `${player.job.title}s report in-person — head to your work location.` : 'Get a remote job to work from home.'}
           </div>
         )}
 
-        {/* Promotion at home for WFH/remote workers */}
-        {(isWFH || isCorpRemote) && (() => {
+        {/* Promotion at home for home-based workers */}
+        {isWFH && (() => {
           const nextJob = getNextPromotion(player);
           if (!nextJob) return null;
           return (
@@ -2891,44 +2885,20 @@ const Board = () => {
     setFloats(f => [...f, { id, amount }]);
   };
 
-  // Watch for job application results
-  const prevJobResult = useRef(state.lastJobResult);
-  useEffect(() => {
-    if (state.lastJobResult && state.lastJobResult !== prevJobResult.current) {
-      setNotification({
-        title: state.lastJobResult.success ? "You're Hired!" : "Application Rejected",
-        message: state.lastJobResult.message,
-        type: state.lastJobResult.success ? 'success' : 'error',
-      });
-      prevJobResult.current = state.lastJobResult;
-    }
-  }, [state.lastJobResult]);
+  const showJobResultNotification = useEffectEvent((result) => {
+    setNotification({
+      title: result.success ? "You're Hired!" : "Application Rejected",
+      message: result.message,
+      type: result.success ? 'success' : 'error',
+    });
+  });
 
-  // Flash on end week
-  const prevWeek = useRef(state.week);
-  useEffect(() => {
-    if (state.week !== prevWeek.current) {
-      setWeekFlash(true);
-      setTimeout(() => setWeekFlash(false), 600);
-      prevWeek.current = state.week;
-    }
-  }, [state.week]);
+  const flashWeekChange = useEffectEvent(() => {
+    setWeekFlash(true);
+    setTimeout(() => setWeekFlash(false), 600);
+  });
 
-  // Track money changes for floating text
-  const prevMoney = useRef(state.player.money);
-  useEffect(() => {
-    const diff = Math.round(state.player.money - prevMoney.current);
-    if (Math.abs(diff) >= 1) addFloat(diff);
-    prevMoney.current = state.player.money;
-  }, [state.player.money]);
-
-  // When time runs out, animate player walking home then end the week
-  useEffect(() => {
-    if (!state.awaitingEndWeek) return;
-
-    const from = state.player.currentLocation;
-    const home = state.player.hasChosenHousing ? 'home' : 'leasing_office';
-
+  const animateEndWeek = useEffectEvent((from, home) => {
     if (from === home) {
       endWeek();
       return;
@@ -2954,7 +2924,42 @@ const Board = () => {
       endWeek();
     }, (path.length + 1) * STEP_MS);
     animTimers.current.push(done);
-  }, [state.awaitingEndWeek]);
+  });
+
+  // Watch for job application results
+  const prevJobResult = useRef(state.lastJobResult);
+  useEffect(() => {
+    if (state.lastJobResult && state.lastJobResult !== prevJobResult.current) {
+      showJobResultNotification(state.lastJobResult);
+      prevJobResult.current = state.lastJobResult;
+    }
+  }, [state.lastJobResult]);
+
+  // Flash on end week
+  const prevWeek = useRef(state.week);
+  useEffect(() => {
+    if (state.week !== prevWeek.current) {
+      flashWeekChange();
+      prevWeek.current = state.week;
+    }
+  }, [state.week]);
+
+  // Track money changes for floating text
+  const prevMoney = useRef(state.player.money);
+  useEffect(() => {
+    const diff = Math.round(state.player.money - prevMoney.current);
+    if (Math.abs(diff) >= 1) addFloat(diff);
+    prevMoney.current = state.player.money;
+  }, [state.player.money]);
+
+  // When time runs out, animate player walking home then end the week
+  useEffect(() => {
+    if (!state.awaitingEndWeek) return;
+
+    const from = state.player.currentLocation;
+    const home = state.player.hasChosenHousing ? 'home' : 'leasing_office';
+    animateEndWeek(from, home);
+  }, [state.awaitingEndWeek, state.player.currentLocation, state.player.hasChosenHousing]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -2978,14 +2983,14 @@ const Board = () => {
         case 'w': {
           // Work if at work location and has time
           if (player.job && player.timeRemaining >= 8) {
-            const loc = JOB_WORK_LOCATION[player.job.type];
-            if (loc === player.currentLocation) actions.work();
+            const loc = getJobLocation(player.job);
+            if (loc === player.currentLocation) work();
           }
           break;
         }
         case 'e': {
           // End week if at home
-          if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) actions.endWeek();
+          if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) endWeek();
           break;
         }
         default: break;
@@ -2993,7 +2998,7 @@ const Board = () => {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [state]);
+  }, [endWeek, showGoals, showInventory, showLog, showPanel, state, toggleMute, work]);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
@@ -3051,7 +3056,8 @@ const Board = () => {
   };
 
   return (
-    <div className="relative w-full flex-1 lg:flex-none bg-green-100 lg:rounded-xl overflow-hidden border-4 border-slate-800 shadow-2xl select-none lg:h-[min(680px,_calc(100dvh-2rem))]">
+    <div className="relative w-full flex-1 lg:flex-none overflow-hidden border-[3px] border-slate-900/90 bg-[linear-gradient(180deg,#cdeeff_0%,#dff7ff_32%,#eefbf5_100%)] shadow-[0_30px_80px_rgba(15,23,42,0.45)] select-none lg:h-[min(720px,_calc(100dvh-2rem))] lg:rounded-[1.75rem]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.7),transparent_32%),linear-gradient(180deg,transparent,rgba(15,23,42,0.08))]" />
 
       {/* CSS keyframes injected once */}
       <style>{`
@@ -3097,7 +3103,7 @@ const Board = () => {
       )}
 
       {/* Padded map area — keeps buildings away from container edges */}
-      <div className="absolute inset-x-2 sm:inset-x-5 top-1 bottom-16 sm:bottom-24">
+      <div className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24">
         {/* Map background */}
         <MapBackground economy={state.economy} />
 
@@ -3107,7 +3113,7 @@ const Board = () => {
           const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-600';
           const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '📊';
           return (
-            <div className={`absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[8px] font-black px-2 py-0.5 rounded-full shadow-lg z-10 pointer-events-none`}>
+            <div className={`absolute top-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg z-10 pointer-events-none border border-white/20`}>
               <span>{icon}</span><span>{economy}</span><span className="opacity-50">·</span><span>Wk {week}</span>
               {economyTimer <= 2 ? (
                 <span className="opacity-90 animate-pulse bg-white/20 px-1 rounded">→shift in {economyTimer}wk</span>
@@ -3122,7 +3128,7 @@ const Board = () => {
         {(() => {
           const { player } = state;
           const promoJob = getNextPromotion(player);
-          const workLocId = player.job ? (player.job.workLocation || player.job.location || JOB_WORK_LOCATION[player.job.type] || null) : null;
+          const workLocId = getJobLocation(player.job);
           return LOCATION_ORDER.map(id => {
             // Warning badges
             let warningBadge = null;
@@ -3141,7 +3147,6 @@ const Board = () => {
             return (
               <BuildingNode
                 key={id}
-                id={id}
                 config={config}
                 isCurrent={state.player.currentLocation === id}
                 isTraveling={isMoving}
@@ -3149,7 +3154,7 @@ const Board = () => {
                 warningBadge={warningBadge}
                 travelHours={travelHours}
                 isPromoReady={isPromoReady}
-                hasJob={player.job?.location === id}
+                hasJob={getJobLocation(player.job) === id}
               />
             );
           });
@@ -3187,7 +3192,7 @@ const Board = () => {
       {/* Multiplayer turn banner */}
       {state.players?.length > 1 && (
         <div
-          className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-4 py-1.5 rounded-full font-black text-sm shadow-lg text-white flex items-center gap-2"
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-full font-black text-sm shadow-lg text-white flex items-center gap-2 border border-white/25 backdrop-blur"
           style={{ background: state.player?.color || '#6366f1' }}
         >
           {state.player?.emoji} {state.player?.name}'s Turn
@@ -3196,7 +3201,7 @@ const Board = () => {
       )}
 
       {/* Jones + Tips + Bell — icon row bottom-right */}
-      <JonesSidebar jones={state.jones} difficulty={state.difficulty} player={state.player} />
+      <JonesSidebar jones={state.jones} player={state.player} />
       <RingTips player={state.player} week={state.week} />
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
@@ -3212,7 +3217,6 @@ const Board = () => {
         <FloatingMoney
           key={f.id}
           amount={f.amount}
-          id={f.id}
           onDone={() => setFloats(prev => prev.filter(x => x.id !== f.id))}
         />
       ))}

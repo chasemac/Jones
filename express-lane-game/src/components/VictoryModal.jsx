@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { DIFFICULTY_PRESETS, calculateNetWorth } from '../engine/constants';
+import { calculateNetWorth } from '../engine/constants';
 
 const GRADE_MESSAGES_WIN = [
   "Incredible. You crushed it!",
@@ -28,7 +28,7 @@ const VictoryModal = () => {
   // Grade by week count (faster = better)
   const gradeIdx = isWin
     ? week <= 20 ? 0 : week <= 35 ? 1 : week <= 50 ? 2 : 3
-    : Math.floor(Math.random() * GRADE_MESSAGES_LOSS.length);
+    : week % GRADE_MESSAGES_LOSS.length;
   const flavorText = isWin ? GRADE_MESSAGES_WIN[gradeIdx] : GRADE_MESSAGES_LOSS[gradeIdx];
   const grade = isWin ? (week <= 20 ? 'S' : week <= 35 ? 'A' : week <= 50 ? 'B' : 'C') : 'F';
   const gradeColor = grade === 'S' ? 'text-yellow-500' : grade === 'A' ? 'text-green-500' : grade === 'B' ? 'text-blue-500' : grade === 'C' ? 'text-slate-500' : 'text-red-500';

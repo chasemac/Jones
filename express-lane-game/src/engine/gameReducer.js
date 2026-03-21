@@ -598,9 +598,9 @@ export const gameReducer = (state, action) => {
         msg = `Repaid $${payAmount} of debt.`;
       } else if (transactionType === 'borrow') {
         // Loan cap: max $5000 total debt
-        if (debt >= 5000) {
+        if (debt + amount > 5000) {
           const s2 = updateActivePlayer(
-            log(state, `Loan denied! You already have $${debt} in debt.`),
+            log(state, `Loan denied! Borrowing $${amount} would put you over the $5000 debt cap.`),
             p => ({ ...p, happiness: Math.max(0, p.happiness - 5) })
           );
           return { ...s2, lastJobResult: { success: false, message: 'Loan denied. -5 happiness.' } };
@@ -657,7 +657,7 @@ export const gameReducer = (state, action) => {
       // ── All players done — process the week for everyone ──────────────────
       const BASE_MAX_TIME = 60;
 
-      const updatedPlayers = s.players.map((p, i) => {
+      const updatedPlayers = s.players.map((p) => {
         let np = { ...p };
         let playerLog = [];
 
