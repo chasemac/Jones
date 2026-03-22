@@ -119,7 +119,7 @@ const HomeContent = ({ state, actions }) => {
                 key={hrs}
                 onClick={() => actions.rest(hrs)}
                 disabled={player.timeRemaining < hrs}
-                className={`flex-1 py-2 border-2 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-40
+                className={`flex-1 py-2 border-2 rounded-xl text-xs font-bold transition active:scale-95 disabled:opacity-40 min-h-[44px]
                   ${isLowRelax ? 'bg-red-50 border-red-300 text-red-700 animate-pulse' : 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100'}
                 `}
               >
@@ -145,12 +145,12 @@ const HomeContent = ({ state, actions }) => {
           <>
             <div className="grid grid-cols-2 gap-1.5 mb-1.5">
               <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
-                className="p-2 bg-violet-50 border-2 border-violet-200 rounded-xl hover:bg-violet-100 disabled:opacity-50 text-xs transition active:scale-95">
+                className="p-2 bg-violet-50 border-2 border-violet-200 rounded-xl hover:bg-violet-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
                 <div className="font-bold">⏱ Part (4h)</div>
                 <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
               </button>
               <button onClick={actions.work} disabled={player.timeRemaining < 8}
-                className="p-2 bg-violet-100 border-2 border-violet-300 rounded-xl hover:bg-violet-200 disabled:opacity-50 text-xs transition active:scale-95">
+                className="p-2 bg-violet-100 border-2 border-violet-300 rounded-xl hover:bg-violet-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
                 <div className="font-bold">🖥️ Full (8h)</div>
                 <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
               </button>

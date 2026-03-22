@@ -173,12 +173,12 @@ const NeoBankContent = ({ state, actions }) => {
             <h3 className="font-bold text-sm border-b border-indigo-200 pb-1 mb-2">🏦 Staff Only <EconomyWageBadge economy={state.economy} /></h3>
             <div className="grid grid-cols-2 gap-1.5 mb-1.5">
               <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
-                className="p-2 bg-indigo-50 border-2 border-indigo-200 rounded-xl hover:bg-indigo-100 disabled:opacity-50 text-xs transition active:scale-95">
+                className="p-2 bg-indigo-50 border-2 border-indigo-200 rounded-xl hover:bg-indigo-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
                 <div className="font-bold">⏱ Part (4h)</div>
                 <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
               </button>
               <button onClick={actions.work} disabled={player.timeRemaining < 8}
-                className="p-2 bg-indigo-100 border-2 border-indigo-300 rounded-xl hover:bg-indigo-200 disabled:opacity-50 text-xs transition active:scale-95">
+                className="p-2 bg-indigo-100 border-2 border-indigo-300 rounded-xl hover:bg-indigo-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
                 <div className="font-bold">💼 Full (8h)</div>
                 <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
               </button>
@@ -214,7 +214,7 @@ const NeoBankContent = ({ state, actions }) => {
             </div>
           );
         })()}
-        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-52 sm:max-h-72 overflow-y-auto pr-1">
           {stocksData.map(stock => {
             const currentPrice = state.market[stock.symbol];
             const owned = player.portfolio?.[stock.symbol] || 0;
@@ -255,11 +255,11 @@ const NeoBankContent = ({ state, actions }) => {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => actions.buyStock(stock.symbol, 1)} disabled={player.money < currentPrice} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 1 share for $${currentPrice}`}>Buy 1</button>
-                  <button onClick={() => actions.buyStock(stock.symbol, 5)} disabled={player.money < currentPrice * 5} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 5 shares for $${currentPrice * 5}`}>×5</button>
-                  <button onClick={() => actions.buyStock(stock.symbol, 10)} disabled={player.money < currentPrice * 10} className="flex-1 bg-green-200 text-green-900 py-1 rounded hover:bg-green-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 10 shares for $${currentPrice * 10}`}>×10</button>
-                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-1 rounded hover:bg-red-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition">Sell 1</button>
-                  <button onClick={() => actions.sellStockAll(stock.symbol)} disabled={owned < 1} className="flex-1 bg-red-200 text-red-900 py-1 rounded hover:bg-red-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Sell all ${owned} shares for $${owned * currentPrice}`}>All</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 1)} disabled={player.money < currentPrice} className="flex-1 bg-green-100 text-green-800 py-1.5 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition min-h-[36px]" title={`Buy 1 share for $${currentPrice}`}>Buy 1</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 5)} disabled={player.money < currentPrice * 5} className="flex-1 bg-green-100 text-green-800 py-1.5 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition min-h-[36px]" title={`Buy 5 shares for $${currentPrice * 5}`}>×5</button>
+                  <button onClick={() => actions.buyStock(stock.symbol, 10)} disabled={player.money < currentPrice * 10} className="flex-1 bg-green-200 text-green-900 py-1.5 rounded hover:bg-green-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition min-h-[36px]" title={`Buy 10 shares for $${currentPrice * 10}`}>×10</button>
+                  <button onClick={() => actions.sellStock(stock.symbol, 1)} disabled={owned < 1} className="flex-1 bg-red-100 text-red-800 py-1.5 rounded hover:bg-red-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition min-h-[36px]">Sell 1</button>
+                  <button onClick={() => actions.sellStockAll(stock.symbol)} disabled={owned < 1} className="flex-1 bg-red-200 text-red-900 py-1.5 rounded hover:bg-red-300 disabled:opacity-40 text-xs font-bold active:scale-95 transition min-h-[36px]" title={`Sell all ${owned} shares for $${owned * currentPrice}`}>All</button>
                 </div>
               </div>
             );

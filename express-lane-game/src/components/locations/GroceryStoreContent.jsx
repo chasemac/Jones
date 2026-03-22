@@ -66,7 +66,7 @@ const GroceryStoreContent = ({ state, actions }) => {
                   for (let i = 0; i < n; i++) actions.buyItem({ ...groceryItem, cost: groceryPrice });
                 }}
                 disabled={!canBuy(n)}
-                className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm"
+                className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm min-h-[44px]"
               >
                 <div>
                   <div className="font-bold">🥦 {n === 1 ? '1 week' : `${n} weeks`} of groceries</div>

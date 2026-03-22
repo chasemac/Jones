@@ -53,7 +53,7 @@ const StartScreen = () => {
         <div className="absolute right-[10%] top-24 h-32 w-32 rounded-full bg-sky-300/20 blur-3xl" />
         <div className="absolute bottom-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-indigo-400/10 blur-3xl" />
       </div>
-      <div className="relative mx-auto my-auto w-full max-w-2xl rounded-[2rem] border border-white/15 bg-white/92 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:p-7">
+      <div className="relative mx-auto my-auto w-full max-w-2xl rounded-[2rem] border border-white/15 bg-white/92 px-4 pt-4 pb-36 shadow-[0_30px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:px-7 sm:pt-7 sm:pb-36">
 
         {/* Title */}
         <div className="mb-5 text-center">
@@ -193,7 +193,7 @@ const StartScreen = () => {
         </div>
 
         {/* Action buttons */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-7 mt-2 border-t border-slate-200 bg-white/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-7">
+        <div className="sticky bottom-0 -mx-4 sm:-mx-7 mt-2 border-t border-slate-200 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-7">
           <div className="mb-2 text-[10px] text-center font-semibold uppercase tracking-[0.18em] text-slate-400">Ready To Roll</div>
           <div className="flex flex-col gap-2">
           <button

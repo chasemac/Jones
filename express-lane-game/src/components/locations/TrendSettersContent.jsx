@@ -23,7 +23,7 @@ const TrendSettersContent = ({ state, actions }) => {
             <button
               onClick={actions.partTimeWork}
               disabled={player.timeRemaining < 4}
-              className="p-2 bg-pink-50 border-2 border-pink-200 rounded-xl hover:bg-pink-100 disabled:opacity-50 text-xs transition active:scale-95"
+              className="p-2 bg-pink-50 border-2 border-pink-200 rounded-xl hover:bg-pink-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
             >
               <div className="font-bold">⏱ Part (4h)</div>
               <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
@@ -31,7 +31,7 @@ const TrendSettersContent = ({ state, actions }) => {
             <button
               onClick={actions.work}
               disabled={player.timeRemaining < 8}
-              className="p-2 bg-pink-100 border-2 border-pink-300 rounded-xl hover:bg-pink-200 disabled:opacity-50 text-xs transition active:scale-95"
+              className="p-2 bg-pink-100 border-2 border-pink-300 rounded-xl hover:bg-pink-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
             >
               <div className="font-bold">👕 Full (8h)</div>
               <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>

@@ -161,7 +161,7 @@ const LibraryContent = ({ state, actions }) => {
                       <button
                         onClick={() => actions.applyForJob(job)}
                         disabled={player.timeRemaining < 2}
-                        className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition active:scale-95 disabled:opacity-40 ${canApply ? 'bg-slate-700 hover:bg-slate-900' : 'bg-slate-400 hover:bg-slate-500'}`}
+                        className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition active:scale-95 disabled:opacity-40 min-h-[44px] ${canApply ? 'bg-slate-700 hover:bg-slate-900' : 'bg-slate-400 hover:bg-slate-500'}`}
                       >
                         {canApply ? '📋 Apply (2 hrs)' : '🚫 Apply anyway (likely rejected)'}
                       </button>
@@ -184,12 +184,12 @@ const LibraryContent = ({ state, actions }) => {
             <>
               <div className="grid grid-cols-2 gap-1.5 mb-1.5">
                 <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
-                  className="p-2 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-xs transition active:scale-95">
+                  className="p-2 bg-yellow-50 border-2 border-yellow-200 rounded-xl hover:bg-yellow-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
                   <div className="font-bold">⏱ Half (4h)</div>
                   <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
                 </button>
                 <button onClick={actions.work} disabled={player.timeRemaining < 8}
-                  className="p-2 bg-yellow-100 border-2 border-yellow-300 rounded-xl hover:bg-yellow-200 disabled:opacity-50 text-xs transition active:scale-95">
+                  className="p-2 bg-yellow-100 border-2 border-yellow-300 rounded-xl hover:bg-yellow-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
                   <div className="font-bold">🔧 Site (8h)</div>
                   <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
                 </button>

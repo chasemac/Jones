@@ -74,7 +74,7 @@ const CoffeeShopContent = ({ state, actions }) => {
               <button
                 onClick={actions.partTimeWork}
                 disabled={player.timeRemaining < 4}
-                className="p-2 bg-amber-50 border-2 border-amber-200 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95"
+                className="p-2 bg-amber-50 border-2 border-amber-200 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
               >
                 <div className="font-bold">⏱ Part (4h)</div>
                 <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
@@ -82,7 +82,7 @@ const CoffeeShopContent = ({ state, actions }) => {
               <button
                 onClick={actions.work}
                 disabled={player.timeRemaining < 8}
-                className="p-2 bg-amber-100 border-2 border-amber-300 rounded-xl hover:bg-amber-200 disabled:opacity-50 text-xs transition active:scale-95"
+                className="p-2 bg-amber-100 border-2 border-amber-300 rounded-xl hover:bg-amber-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
               >
                 <div className="font-bold">☕ Full (8h)</div>
                 <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
@@ -132,7 +132,7 @@ const CoffeeShopContent = ({ state, actions }) => {
           <button
             onClick={actions.network}
             disabled={player.timeRemaining < 1}
-            className="w-full p-2.5 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 text-xs transition active:scale-95"
+            className="w-full p-2.5 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
           >
             <div className="flex justify-between items-center">
               <div className="font-bold">🤝 Meet & Greet (1h)</div>

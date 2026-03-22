@@ -70,7 +70,7 @@ const QuickEatsContent = ({ state, actions }) => {
               key={item.id}
               onClick={() => actions.buyItem({ ...item, cost: price })}
               disabled={owned || !canAfford}
-              className={`w-full text-left p-2.5 border-2 rounded-xl mb-1.5 text-sm transition active:scale-95
+              className={`w-full text-left p-2.5 border-2 rounded-xl mb-1.5 text-sm transition active:scale-95 min-h-[44px]
                 ${owned ? 'bg-green-50 border-green-200 opacity-60' :
                   canAfford ? 'bg-white border-orange-200 hover:border-orange-400 hover:bg-orange-50' :
                   'bg-slate-50 border-slate-200 opacity-50'}`}
@@ -122,7 +122,7 @@ const QuickEatsContent = ({ state, actions }) => {
               <button
                 onClick={actions.partTimeWork}
                 disabled={player.timeRemaining < 4}
-                className="p-2 bg-orange-50 border-2 border-orange-200 rounded-xl hover:bg-orange-100 disabled:opacity-50 text-xs transition active:scale-95"
+                className="p-2 bg-orange-50 border-2 border-orange-200 rounded-xl hover:bg-orange-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
               >
                 <div className="font-bold">⏱ Part-Time (4h)</div>
                 <div className="font-mono font-black text-green-600 text-sm">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
@@ -130,7 +130,7 @@ const QuickEatsContent = ({ state, actions }) => {
               <button
                 onClick={actions.work}
                 disabled={player.timeRemaining < 8}
-                className="p-2 bg-orange-100 border-2 border-orange-300 rounded-xl hover:bg-orange-200 disabled:opacity-50 text-xs transition active:scale-95"
+                className="p-2 bg-orange-100 border-2 border-orange-300 rounded-xl hover:bg-orange-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
               >
                 <div className="font-bold">🍔 Full Shift (8h)</div>
                 <div className="font-mono font-black text-green-600 text-sm">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>

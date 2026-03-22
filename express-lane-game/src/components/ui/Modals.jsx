@@ -286,7 +286,7 @@ export const HungerWarningModal = ({ warning, onClose }) => {
             ? 'Buy a weekly plan at Quick Eats or Coffee Shop to avoid the penalty entirely!'
             : 'Visit Quick Eats or Coffee Shop to buy a weekly food plan next week!'}
         </p>
-        <button onClick={onClose} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition text-sm">
+        <button onClick={onClose} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition text-sm min-h-[44px]">
           Got it — I'll eat better next week 🍔
         </button>
       </div>
@@ -310,7 +310,7 @@ export const ClothingWarningModal = ({ warning, onClose }) => {
         <p className="text-[11px] text-slate-400 text-center mb-4">
           Visit TrendSetters to buy replacement clothing before applying again.
         </p>
-        <button onClick={onClose} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition text-sm">
+        <button onClick={onClose} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded-xl transition text-sm min-h-[44px]">
           Got it — time to go shopping
         </button>
       </div>
@@ -451,7 +451,7 @@ export const WeekSummaryModal = ({ summary, onClose }) => {
         <div className="h-1 bg-slate-200 rounded-full overflow-hidden mb-3">
           <div className="h-full bg-indigo-400 transition-all duration-1000" style={{ width: `${(countdown / 5) * 100}%` }} />
         </div>
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2 mb-4 overflow-y-auto max-h-[50vh]">
           {summary.lines.map((p, i) => (
             <div key={i} className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
               <div className="flex justify-between items-center mb-1.5">

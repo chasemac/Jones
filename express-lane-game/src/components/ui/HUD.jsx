@@ -38,7 +38,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         </div>
       )}
       <div className={`px-2 md:px-3 pt-2 ${isMultiplayer ? 'pb-[max(0.55rem,env(safe-area-inset-bottom))]' : 'pb-[max(0.65rem,env(safe-area-inset-bottom))]'}`}>
-      <div className="mb-1.5 flex gap-1 overflow-x-auto md:hidden">
+      <div className="mb-1.5 flex gap-1 flex-wrap md:hidden">
         <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white">🎓 {player.education}</span>
         <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${player.job ? 'bg-emerald-500/20 text-emerald-200' : 'bg-red-500/20 text-red-200'}`}>💼 {player.job ? player.job.title : 'Unemployed'}</span>
         <span className="shrink-0 rounded-full bg-sky-500/20 px-2 py-1 text-[9px] font-black text-sky-100">🎯 {player.dependability ?? 50}</span>
@@ -84,7 +84,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             style={{ width: `${timePct}%` }}
           />
         </div>
-        <div className="flex gap-1 md:hidden flex-wrap">
+        <div className="flex gap-1 md:hidden flex-wrap mt-0.5">
           {player.hunger >= 60 && (
             <span className={`text-white text-[8px] font-black px-1.5 py-0.5 rounded-full ${player.hunger >= 80 ? 'bg-red-600 animate-pulse' : 'bg-orange-500'}`}>
               🍕{player.hunger >= 80 ? 'STARVING' : player.hunger}

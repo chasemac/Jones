@@ -72,19 +72,19 @@ const VictoryModal = () => {
           </div>
 
           <div className="bg-slate-50 rounded-xl p-4 mb-4 grid grid-cols-2 gap-2 text-left text-sm border border-slate-200">
-            <div>
+            <div className="min-w-0">
               <div className="text-[10px] uppercase text-slate-400">Net Worth</div>
-              <div className={`font-bold text-base ${netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>${netWorth.toLocaleString()}</div>
+              <div className={`font-bold text-base truncate ${netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>${netWorth.toLocaleString()}</div>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[10px] uppercase text-slate-400">Education</div>
-              <div className="font-bold text-base">{player.education}</div>
+              <div className="font-bold text-base truncate">{player.education}</div>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[10px] uppercase text-slate-400">Career</div>
-              <div className="font-bold">{player.job?.title || 'Unemployed'}</div>
+              <div className="font-bold truncate">{player.job?.title || 'Unemployed'}</div>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[10px] uppercase text-slate-400">Dependability</div>
               <div className="font-bold">{player.dependability ?? 0}/100</div>
             </div>

@@ -63,18 +63,18 @@ export const effectiveTravelCost = (fromId, toId, inventory) => {
  * @type {Object<string, {emoji: string, label: string, color: string, pos: {x: number, y: number}}>}
  */
 export const LOCATIONS_CONFIG = {
-  leasing_office: { emoji: '🏠', label: 'Leasing', color: '#9333ea', pos: { x: 5, y: 8 } },
+  leasing_office: { emoji: '🏠', label: 'Leasing', color: '#9333ea', pos: { x: 9, y: 8 } },
   quick_eats:     { emoji: '🍔', label: 'Quick Eats', color: '#ea580c', pos: { x: 38, y: 8 } },
   public_library: { emoji: '📚', label: 'Library', color: '#059669', pos: { x: 72, y: 8 } },
-  trendsetters:   { emoji: '👕', label: 'TrendSetters', color: '#db2777', pos: { x: 88, y: 20 } },
-  coffee_shop:    { emoji: '☕', label: 'Coffee Shop', color: '#78350f', pos: { x: 88, y: 50 } },
+  trendsetters:   { emoji: '👕', label: 'TrendSetters', color: '#db2777', pos: { x: 91, y: 20 } },
+  coffee_shop:    { emoji: '☕', label: 'Coffee Shop', color: '#78350f', pos: { x: 91, y: 50 } },
   megamart:       { emoji: '🏪', label: 'MegaMart', color: '#dc2626', pos: { x: 75, y: 74 } },
-  blacks_market:  { emoji: '🕶️', label: "Black's Mkt", color: '#1e293b', pos: { x: 60, y: 85 } },
-  grocery_store:  { emoji: '🛒', label: 'Fresh Mart', color: '#16a34a', pos: { x: 44, y: 85 } },
-  city_college:   { emoji: '🎓', label: 'City College', color: '#2563eb', pos: { x: 28, y: 85 } },
-  tech_store:     { emoji: '📱', label: 'Tech Store', color: '#475569', pos: { x: 5, y: 85 } },
-  home:           { emoji: '🏠', label: 'Home', color: '#7c3aed', pos: { x: 5, y: 66 } },
-  neobank:        { emoji: '🏦', label: 'NeoBank', color: '#4f46e5', pos: { x: 5, y: 47 } },
+  blacks_market:  { emoji: '🕶️', label: "Black's Mkt", color: '#1e293b', pos: { x: 60, y: 88 } },
+  grocery_store:  { emoji: '🛒', label: 'Fresh Mart', color: '#16a34a', pos: { x: 44, y: 88 } },
+  city_college:   { emoji: '🎓', label: 'City College', color: '#2563eb', pos: { x: 28, y: 88 } },
+  tech_store:     { emoji: '📱', label: 'Tech Store', color: '#475569', pos: { x: 9, y: 85 } },
+  home:           { emoji: '🏠', label: 'Home', color: '#7c3aed', pos: { x: 9, y: 66 } },
+  neobank:        { emoji: '🏦', label: 'NeoBank', color: '#4f46e5', pos: { x: 9, y: 47 } },
 };
 
 /**

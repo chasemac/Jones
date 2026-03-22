@@ -195,12 +195,12 @@ export const LocationPanel = ({ locationId, player, children, onClose }) => {
         <button
           onClick={onClose}
           aria-label="Return to map"
-          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-3.5 py-2 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1 flex-shrink-0 ml-2 min-h-[40px] min-w-[72px] justify-center"
+          className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-3.5 py-2 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1 flex-shrink-0 ml-2 min-h-[44px] min-w-[72px] justify-center"
         >
           ← Map
         </button>
       </div>
-      <div className="flex-grow p-3 sm:p-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))]">
+      <div className="flex-grow p-3 sm:p-4 overflow-y-auto overflow-x-hidden bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))]">
         {children}
       </div>
       <div className="sm:hidden flex-shrink-0 border-t border-slate-100 px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

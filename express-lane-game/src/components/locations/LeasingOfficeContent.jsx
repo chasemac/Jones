@@ -51,13 +51,13 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
             <div className="flex gap-2">
               <button
                 onClick={() => { actions.rentApartment(h); setSelectedHousing(null); onMoveIn?.(); }}
-                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95"
+                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-sm transition active:scale-95 min-h-[44px]"
               >
                 {isFirstVisit ? 'Move In' : 'Sign Lease'} {deposit > 0 ? `(-$${deposit})` : ''}
               </button>
               <button
                 onClick={() => setSelectedHousing(null)}
-                className="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition active:scale-95"
+                className="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-sm transition active:scale-95 min-h-[44px]"
               >
                 Back
               </button>

@@ -46,7 +46,7 @@ const CityCollegeContent = ({ state, actions }) => {
           <button
             onClick={actions.study}
             disabled={player.timeRemaining < 10}
-            className="w-full bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-black py-2 rounded-lg disabled:opacity-50 text-sm transition active:scale-95"
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-black py-2 rounded-lg disabled:opacity-50 text-sm transition active:scale-95 min-h-[44px]"
           >
             📖 Study {10 + studyBonus}hrs
             <span className="text-xs font-normal ml-1">({player.timeRemaining}h left this week)</span>
@@ -120,7 +120,7 @@ const CityCollegeContent = ({ state, actions }) => {
                   {!canAfford && !alreadyDone ? <span className="text-red-500">Need ${(course.cost - player.money).toFixed(0)} more</span> : ''}
                 </div>
                 {degreeUnlocks[course.degree] && (
-                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">
+                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5 line-clamp-2">
                     → Unlocks: {degreeUnlocks[course.degree].join(', ')}
                   </div>
                 )}
