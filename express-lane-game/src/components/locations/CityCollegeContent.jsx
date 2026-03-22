@@ -68,7 +68,7 @@ const CityCollegeContent = ({ state, actions }) => {
         <button
           onClick={() => actions.buyItem({ ...textbook, cost: textbookPrice })}
           disabled={player.money < textbookPrice}
-          className="w-full flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 disabled:opacity-50 text-xs transition"
+          className="w-full flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 disabled:opacity-50 text-xs transition min-h-[44px]"
         >
           <div>
             <div className="font-bold">📚 Buy Textbook <span className="text-green-600 font-normal">(saves time!)</span></div>

@@ -45,7 +45,7 @@ const NeoBankContent = ({ state, actions }) => {
             {AMOUNTS.map(amt => (
               <button key={amt} onClick={() => actions.bankTransaction('deposit', amt)}
                 disabled={player.money < amt}
-                className="bg-white border border-indigo-200 rounded py-1 text-[10px] font-bold hover:bg-indigo-100 disabled:opacity-40 transition">
+                className="bg-white border border-indigo-200 rounded py-1 text-[10px] font-bold hover:bg-indigo-100 disabled:opacity-40 transition min-h-[36px]">
                 ${amt}
               </button>
             ))}
@@ -68,7 +68,7 @@ const NeoBankContent = ({ state, actions }) => {
             {AMOUNTS.map(amt => (
               <button key={amt} onClick={() => actions.bankTransaction('withdraw', amt)}
                 disabled={player.savings < amt}
-                className="bg-white border border-indigo-200 rounded py-1 text-[10px] font-bold hover:bg-indigo-100 disabled:opacity-40 transition">
+                className="bg-white border border-indigo-200 rounded py-1 text-[10px] font-bold hover:bg-indigo-100 disabled:opacity-40 transition min-h-[36px]">
                 ${amt}
               </button>
             ))}
@@ -90,7 +90,7 @@ const NeoBankContent = ({ state, actions }) => {
                 {AMOUNTS.map(amt => (
                   <button key={amt} onClick={() => actions.bankTransaction('repay', amt)}
                     disabled={player.money < amt || player.debt === 0}
-                    className="bg-white border border-red-200 rounded py-1 text-[10px] font-bold hover:bg-red-100 disabled:opacity-40 transition">
+                    className="bg-white border border-red-200 rounded py-1 text-[10px] font-bold hover:bg-red-100 disabled:opacity-40 transition min-h-[36px]">
                     ${amt}
                   </button>
                 ))}
@@ -132,7 +132,7 @@ const NeoBankContent = ({ state, actions }) => {
             {AMOUNTS.map(amt => (
               <button key={amt} onClick={() => actions.bankTransaction('borrow', amt)}
                 disabled={player.debt + amt > 5000}
-                className="bg-white border border-red-200 rounded py-1 text-[10px] font-bold hover:bg-red-100 disabled:opacity-40 transition">
+                className="bg-white border border-red-200 rounded py-1 text-[10px] font-bold hover:bg-red-100 disabled:opacity-40 transition min-h-[36px]">
                 ${amt}
               </button>
             ))}
@@ -184,7 +184,7 @@ const NeoBankContent = ({ state, actions }) => {
               </button>
             </div>
             <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
-              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]">
               <div className="flex justify-between items-center">
                 <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
                 <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>

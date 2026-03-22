@@ -195,7 +195,7 @@ const LibraryContent = ({ state, actions }) => {
                 </button>
               </div>
               <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
-                className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
+                className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]">
                 <div className="flex justify-between items-center">
                   <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
                   <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>

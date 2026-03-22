@@ -457,7 +457,7 @@ export const WeekSummaryModal = ({ summary, onClose }) => {
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-sm font-bold">{p.emoji} {p.name}</span>
                 <span className={`text-base font-black ${p.netWorthDelta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {p.netWorthDelta >= 0 ? '+' : ''}${p.netWorthDelta.toFixed(0)}
+                  {p.netWorthDelta >= 0 ? '+' : '-'}${Math.abs(Math.round(p.netWorthDelta)).toLocaleString()}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] font-mono">

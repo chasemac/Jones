@@ -40,7 +40,7 @@ const TrendSettersContent = ({ state, actions }) => {
           <button
             onClick={actions.workOvertime}
             disabled={player.timeRemaining < 12}
-            className="w-full p-2 bg-pink-50 border border-pink-300 rounded-xl hover:bg-pink-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5"
+            className="w-full p-2 bg-pink-50 border border-pink-300 rounded-xl hover:bg-pink-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]"
           >
             <div className="flex justify-between items-center">
               <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>

@@ -14,7 +14,7 @@ const JobsHereCard = ({ locationId, player, actions }) => {
     <div className={`border rounded-xl overflow-hidden mb-3 ${isUnemployed && hasEntryJob ? 'border-green-300 shadow-sm' : 'border-slate-200'}`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold transition ${isUnemployed && hasEntryJob ? 'bg-green-50 hover:bg-green-100 text-green-800' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold transition min-h-[40px] ${isUnemployed && hasEntryJob ? 'bg-green-50 hover:bg-green-100 text-green-800' : 'bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
       >
         <span>
           {isUnemployed && hasEntryJob ? '🟢 ' : '🧾 '}
@@ -60,7 +60,7 @@ const JobsHereCard = ({ locationId, player, actions }) => {
                   <button
                     onClick={() => actions.applyForJob(job)}
                     disabled={player.timeRemaining < 2}
-                    className={`w-full py-1 rounded text-[10px] font-bold text-white transition active:scale-95 disabled:opacity-40 ${canApply ? 'bg-slate-700 hover:bg-slate-800' : 'bg-slate-400 hover:bg-slate-500'}`}
+                    className={`w-full py-1 rounded text-[10px] font-bold text-white transition active:scale-95 disabled:opacity-40 min-h-[36px] ${canApply ? 'bg-slate-700 hover:bg-slate-800' : 'bg-slate-400 hover:bg-slate-500'}`}
                   >
                     {canApply ? '📋 Apply (2 hrs)' : '🚫 Apply anyway'}
                   </button>

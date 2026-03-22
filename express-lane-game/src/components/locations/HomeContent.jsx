@@ -49,8 +49,10 @@ const HomeContent = ({ state, actions }) => {
             {(() => {
               const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
               const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
+              if (!hasFood && nextHunger >= 80)
+                return `⚠️ STARVING next week — -20h penalty! Buy food!`;
               if (!hasFood && nextHunger >= 50)
-                return `⚠️ No food! Hunger → ${nextHunger} = -${nextHunger >= 80 ? '20' : nextHunger >= 50 ? '10' : '5'}h penalty!`;
+                return `⚠️ No food — hunger hits ${nextHunger}, -10h penalty!`;
               if (!hasFood && player.hunger >= 25)
                 return `⚠️ No food bought — hunger will rise to ${nextHunger}`;
               return 'Rent, interest, hunger & happiness resolve at week end';
@@ -85,7 +87,7 @@ const HomeContent = ({ state, actions }) => {
             <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
             <span className="text-slate-500">🍕 Hunger:</span>
             <span className={`font-bold ${(player.hunger ?? 0) >= 80 ? 'text-red-500 animate-pulse' : (player.hunger ?? 0) >= 60 ? 'text-orange-500' : 'text-green-600'}`}>
-              {player.hunger ?? 0} → {Math.min(100, (player.hunger ?? 0) + 25)} next wk{(player.hunger ?? 0) >= 55 ? ' ⚠️' : ''}
+              {player.hunger ?? 0} → {Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25))} next wk{(player.hunger ?? 0) >= 55 ? ' ⚠️' : ''}
             </span>
           </div>
           {(() => {
@@ -156,7 +158,7 @@ const HomeContent = ({ state, actions }) => {
               </button>
             </div>
             <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
-              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5">
+              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]">
               <div className="flex justify-between items-center">
                 <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
                 <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
