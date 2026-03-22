@@ -2,7 +2,8 @@ import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
 import JobsHereCard from '../ui/JobsHereCard';
-import { EconomyWageBadge, ExpProgressBar, hungerEmojiFill } from '../ui/GameWidgets';
+import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
+import { hungerEmojiFill } from '../ui/hungerUtils';
 import itemsData from '../../data/items.json';
 
 const QuickEatsContent = ({ state, actions }) => {

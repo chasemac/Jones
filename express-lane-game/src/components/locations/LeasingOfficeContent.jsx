@@ -67,7 +67,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
       })()}
 
       <div className="space-y-2">
-        {housingData.map((h, hi) => {
+        {housingData.map((h) => {
           const deposit = calculateDeposit(h.rent, player.housing?.rent ?? 0);
           const isCurrent = player.housing?.id === h.id;
           const canAfford = deposit === 0 || player.money >= deposit;

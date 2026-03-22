@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
 import { effectiveWage } from '../../engine/economyModel';
-import { hungerEmojiFill } from './GameWidgets';
+import { hungerEmojiFill } from './hungerUtils';
 import stocksData from '../../data/stocks.json';
 
 const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
