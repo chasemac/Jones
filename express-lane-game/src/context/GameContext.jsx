@@ -107,7 +107,7 @@ export const GameProvider = ({ children }) => {
       dispatch({ type: 'INIT_GAME', difficulty: 'normal' });
     },
     travel: (locationId) => { playSound('move'); dispatch({ type: 'TRAVEL', locationId }); },
-    work: (opts = {}) => { playSound('coin'); dispatch({ type: 'WORK', ...opts }); },
+    work: () => { playSound('coin'); dispatch({ type: 'WORK' }); },
     workOvertime: () => { playSound('coin'); dispatch({ type: 'WORK', overtime: true }); },
     partTimeWork: () => { playSound('coin'); dispatch({ type: 'PART_TIME_WORK' }); },
     gigWork: () => { playSound('coin'); dispatch({ type: 'GIG_WORK' }); },
