@@ -241,7 +241,7 @@ const Board = () => {
   };
 
   return (
-    <div className="relative w-full flex-1 lg:flex-none overflow-hidden border-[3px] border-slate-900/90 bg-[linear-gradient(180deg,#cdeeff_0%,#dff7ff_32%,#eefbf5_100%)] shadow-[0_30px_80px_rgba(15,23,42,0.45)] select-none lg:h-[min(720px,_calc(100dvh-2rem))] lg:rounded-[1.75rem]">
+    <div className="relative w-full flex-1 lg:flex-none overflow-hidden border-[3px] border-slate-900/90 bg-[linear-gradient(180deg,#cdeeff_0%,#dff7ff_32%,#eefbf5_100%)] shadow-[0_30px_80px_rgba(15,23,42,0.45)] select-none lg:h-[min(720px,_calc(100dvh-2rem))] xl:h-[min(780px,_calc(100dvh-2rem))] lg:rounded-[1.75rem]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.7),transparent_32%),linear-gradient(180deg,transparent,rgba(15,23,42,0.08))]" />
 
       {/* CSS keyframes injected once */}

@@ -3,10 +3,10 @@ import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
 import { effectiveWage } from '../../engine/economyModel';
 import { hungerEmojiFill } from './hungerUtils';
 import stocksData from '../../data/stocks.json';
-import { isMuted as getSoundMuted } from '../../utils/sound';
+import { isMuted } from '../../utils/sound';
 
 const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
-  const [muted, setMuted] = useState(getSoundMuted());
+  const [muted, setMuted] = useState(isMuted);
   const { player, week, economy, players } = state;
   const isMultiplayer = players && players.length > 1;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
@@ -105,26 +105,26 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         </div>
         <div className="hidden md:contents">
           <div className="flex items-center gap-1">
-            <span className="text-[8px] text-slate-400 w-16 shrink-0">🎯 Dep {player.dependability ?? 50}</span>
-            <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <span className="text-[8px] lg:text-[10px] text-slate-400 w-16 lg:w-20 shrink-0">🎯 Dep {player.dependability ?? 50}</span>
+            <div className="flex-grow h-1.5 lg:h-2 bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-blue-400 transition-all duration-500" style={{ width: `${player.dependability ?? 50}%` }} />
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-[8px] text-slate-400 w-16 shrink-0">🛁 Relax {player.relaxation ?? 50}</span>
-            <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <span className="text-[8px] lg:text-[10px] text-slate-400 w-16 lg:w-20 shrink-0">🛁 Relax {player.relaxation ?? 50}</span>
+            <div className="flex-grow h-1.5 lg:h-2 bg-slate-800 rounded-full overflow-hidden">
               <div className={`h-full transition-all duration-500 ${(player.relaxation ?? 50) < 20 ? 'bg-red-500 animate-pulse' : 'bg-teal-400'}`} style={{ width: `${player.relaxation ?? 50}%` }} />
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <span className={`text-[8px] w-16 shrink-0 ${player.hunger >= 80 ? 'text-red-400 font-bold animate-pulse' : player.hunger >= 60 ? 'text-orange-400' : 'text-slate-400'}`}>
+            <span className={`text-[8px] lg:text-[10px] w-16 lg:w-20 shrink-0 ${player.hunger >= 80 ? 'text-red-400 font-bold animate-pulse' : player.hunger >= 60 ? 'text-orange-400' : 'text-slate-400'}`}>
               {hungerEmojiFill(player.hunger)} {player.hunger >= 80 ? 'STARVING' : player.hunger >= 60 ? 'Hungry' : ''}
             </span>
-            <div className="flex-grow h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="flex-grow h-1.5 lg:h-2 bg-slate-800 rounded-full overflow-hidden">
               <div className={`h-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : player.hunger >= 30 ? 'bg-yellow-500' : 'bg-green-500'}`} style={{ width: `${player.hunger}%` }} />
             </div>
           </div>
-          <div className="flex gap-2 text-[8px] flex-wrap items-center">
+          <div className="flex gap-2 text-[8px] lg:text-[10px] flex-wrap items-center">
             <span className="text-slate-400">🎓 {player.education}</span>
             <span className={`${player.job ? 'text-slate-400' : 'text-red-400 animate-pulse font-bold'}`}>
               💼 {player.job ? `${player.job.title} (${player.job.weeksWorked || 0}wk)` : '⚠️ Unemployed — visit Library!'}
@@ -161,7 +161,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             ⚠️ -${Math.round(player.debt).toLocaleString()}
           </div>
         )}
-        <div className="text-[8px] text-slate-500 text-right hidden sm:block leading-none">
+        <div className="text-[8px] lg:text-[10px] text-slate-500 text-right hidden sm:block leading-none">
           Net: <span className={netWorth < 0 ? 'text-red-400' : 'text-green-400'}>${Math.round(netWorth).toLocaleString()}</span>
           {(() => {
             const snap = state.weekStartSnapshot?.find(s => s.name === player.name);
@@ -173,7 +173,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           })()}
         </div>
         {player.job && (
-          <div className="text-[8px] text-slate-400 text-right hidden sm:block leading-none">
+          <div className="text-[8px] lg:text-[10px] text-slate-400 text-right hidden sm:block leading-none">
             ≈<span className="text-green-400 font-mono">${Math.floor(effectiveWage(player.job.wage, economy) * 8)}/shift</span>
             <span className="text-slate-500 ml-1">· ${Math.floor(effectiveWage(player.job.wage, economy) * 40)}/wk</span>
           </div>
@@ -181,7 +181,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         {(() => {
           const portfolioVal = stocksData.reduce((sum, s) => sum + (player.portfolio?.[s.symbol] || 0) * (state.market[s.symbol] || 0), 0);
           return portfolioVal > 0 ? (
-            <div className="text-[8px] text-indigo-400 text-right hidden sm:block leading-none">
+            <div className="text-[8px] lg:text-[10px] text-indigo-400 text-right hidden sm:block leading-none">
               📈 ${portfolioVal.toLocaleString()}
             </div>
           ) : null;
@@ -205,7 +205,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             title={muted ? 'Unmute (M)' : 'Mute (M)'}
           ><span>{muted ? '🔇' : '🔊'}</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">{muted ? 'Mute' : 'Sound'}</span></button>
         </div>
-        <div className="hidden md:block text-[7px] text-slate-600 text-center" title="I=Inventory, G=Goals, L=Log, M=Mute, W=Work (or part-time), E=End Week at home, R=Rest, S=Study, N=Network, Esc=Close">
+        <div className="hidden md:block text-[8px] text-slate-600 text-center" title="I=Inventory, G=Goals, L=Log, M=Mute, W=Work (or part-time), E=End Week at home, R=Rest, S=Study, N=Network, Esc=Close">
           ⌨ I G L M W E R S N
         </div>
       </div>

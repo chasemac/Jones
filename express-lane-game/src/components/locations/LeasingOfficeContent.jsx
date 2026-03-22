@@ -9,10 +9,10 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
   return (
     <div className="space-y-3">
       {isFirstVisit && (
-        <div className="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-4 mb-1">
-          <div className="font-black text-base text-indigo-900 mb-1">👋 Welcome to Life in the Express Lane!</div>
-          <p className="text-xs text-indigo-700 mb-3">First things first — choose a place to live. Your rent comes out each week, so pick what you can afford.</p>
-          <ul className="text-xs text-indigo-700 space-y-1 list-disc list-inside mb-2">
+        <div className="bg-indigo-50 border-2 border-indigo-300 rounded-xl p-3 sm:p-4 mb-1">
+          <div className="font-black text-sm sm:text-base text-indigo-900 mb-1">👋 Welcome to Life in the Express Lane!</div>
+          <p className="text-xs text-indigo-700 mb-2 sm:mb-3">First things first — choose a place to live. Your rent comes out each week, so pick what you can afford.</p>
+          <ul className="text-xs text-indigo-700 space-y-0.5 sm:space-y-1 list-disc list-inside mb-1 sm:mb-2">
             <li>📚 <strong>Library</strong> — browse companies &amp; apply for jobs</li>
             <li>🍔 <strong>Quick Eats</strong> — buy weekly meals so you don't starve</li>
             <li>☕ <strong>Coffee Shop</strong> — weekly coffee plans &amp; work shifts</li>
@@ -20,7 +20,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
           </ul>
           <div className="text-[10px] text-indigo-500 space-y-0.5">
             <div>🍕 Hunger grows +25/week. Hit 80 = lose 20hrs next week!</div>
-            <div>⌨️ Keyboard: W=work, E=end week, R=rest, S=study, I=inventory</div>
+            <div className="hidden sm:block">⌨️ Keyboard: W=work, E=end week, R=rest, S=study, I=inventory</div>
           </div>
         </div>
       )}
