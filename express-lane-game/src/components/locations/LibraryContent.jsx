@@ -21,6 +21,11 @@ const SalaryTransparencyView = ({ player, economy }) => {
               <div className="min-w-0">
                 <div className="font-bold truncate">{job.title} {isCurrent && <span className="text-[8px] text-emerald-700">← you</span>}</div>
                 <div className="text-[9px] text-slate-400">{LIBRARY_LOCATION_GROUPS.find(g => g.id === job.location)?.label ?? job.location.replace(/_/g, ' ')} {job.remote ? '· 🏠 WFH' : ''}</div>
+                {!isCurrent && (
+                  <span className={`text-[8px] font-bold px-1 rounded ${qualified ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    {qualified ? '✅ Eligible' : '❌ Missing reqs'}
+                  </span>
+                )}
               </div>
             </div>
             <div className="text-right shrink-0 ml-2">

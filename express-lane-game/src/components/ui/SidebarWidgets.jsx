@@ -30,6 +30,15 @@ export const RingTips = ({ player, week }) => {
     alerts.push({ emoji: '💔', text: 'Happiness critical — near game over! Buy something fun.' });
   }
 
+  // Keep critical no-job and hunger alerts active after week 5
+  if (!player.job && week > 5) {
+    alerts.push({ emoji: '📚', text: 'No job! Visit the Library to browse listings and get hired' });
+  }
+  const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
+  if (!hasFood && player.hunger >= 40 && week > 5) {
+    alerts.push({ emoji: '🍔', text: "No food! Visit Quick Eats or Coffee Shop before week ends" });
+  }
+
   const tutorialTips = [];
   if (week <= 5) {
     if (!player.hasChosenHousing) {
@@ -58,7 +67,7 @@ export const RingTips = ({ player, week }) => {
   return (
     <>
       {open && (
-        <div className="absolute bottom-20 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-60 bg-amber-50/95 backdrop-blur border-t-2 sm:border-2 border-amber-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
+        <div className="absolute bottom-24 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-60 bg-amber-50/95 backdrop-blur border-t-2 sm:border-2 border-amber-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] font-black uppercase text-amber-600">💡 What to do next</div>
             <button onClick={() => setOpen(false)} className="text-amber-500 hover:text-amber-800 text-lg leading-none font-bold px-1">×</button>
@@ -97,7 +106,7 @@ export const JonesSidebar = ({ jones, player }) => {
   return (
     <>
       {open && (
-        <div className="absolute bottom-20 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[15rem] sm:w-60 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
+        <div className="absolute bottom-24 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[15rem] sm:w-60 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
           <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
             <div className="flex items-center gap-2">
               <div className="text-2xl">🤑</div>
@@ -147,18 +156,32 @@ export const JonesSidebar = ({ jones, player }) => {
   );
 };
 
-export const NotificationFeed = ({ history, onOpenLog }) => (
-  <button
-    className="absolute bottom-[5rem] sm:bottom-28 right-4 h-11 rounded-full bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg gap-1 px-3"
-    onClick={onOpenLog}
-    title="Open event log"
-  >
-    <span className="text-lg leading-none">🔔</span>
-    <span className="text-[10px] font-black uppercase tracking-wide text-white">Log</span>
-    {history.length > 0 && (
-      <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
-        {Math.min(history.length, 99)}
-      </span>
-    )}
-  </button>
-);
+export const NotificationFeed = ({ history, onOpenLog }) => {
+  const [lastViewedCount, setLastViewedCount] = useState(() => {
+    try { return parseInt(localStorage.getItem('jones_log_viewed') || '0', 10); } catch { return 0; }
+  });
+
+  const unread = Math.max(0, history.length - lastViewedCount);
+
+  const handleOpen = () => {
+    setLastViewedCount(history.length);
+    try { localStorage.setItem('jones_log_viewed', String(history.length)); } catch { /* */ }
+    onOpenLog();
+  };
+
+  return (
+    <button
+      className="absolute bottom-[5rem] sm:bottom-28 right-4 h-11 rounded-full bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg gap-1 px-3"
+      onClick={handleOpen}
+      title="Open event log"
+    >
+      <span className="text-lg leading-none">🔔</span>
+      <span className="text-[10px] font-black uppercase tracking-wide text-white">Log</span>
+      {unread > 0 && (
+        <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+          {Math.min(unread, 99)}
+        </span>
+      )}
+    </button>
+  );
+};

@@ -270,6 +270,8 @@ export function rollRandomEvent(players) {
       break;
     case 'rent_increase': {
       const extra = Math.floor(ep.housing.rent * event.effect.value);
+      // Skip if rent hike would push rent unreasonably high (>$200 increase cap)
+      if (extra > 200) { effectDesc = 'landlord backed down (unit controlled)'; break; }
       ep.money = Math.max(0, ep.money - extra);
       ep.housing = { ...ep.housing, rent: ep.housing.rent + extra };
       effectDesc = `rent +$${extra}/wk (now $${ep.housing.rent}/wk)`;
@@ -363,6 +365,7 @@ export function buildWeekSummary(week, updatedPlayers, weekStartSnapshot, fallba
         netWorth: newNetWorth,
         netWorthDelta: newNetWorth - oldNetWorth,
         job: p.job?.title || 'Unemployed',
+        currentCourse: p.currentCourse ?? null,
       };
     }),
   };

@@ -240,6 +240,7 @@ export const gameReducer = (state, action) => {
         ...p,
         money: p.money + earnings,
         timeRemaining: p.timeRemaining - 4,
+        job: { ...p.job, weeksWorked: (p.job?.weeksWorked || 0) + 1 },
         dependability: Math.min(100, p.dependability + 2),
         happiness: Math.min(100, p.happiness + 1),
       }));
@@ -496,7 +497,19 @@ export const gameReducer = (state, action) => {
       }
 
       const alreadyOwned = player.inventory.some(i => i.id === item.id);
-      if (alreadyOwned && item.type !== 'food') return log(state, `You already own ${item.name}.`);
+      const isWornClothing = alreadyOwned && player.inventory.some(i => i.id === item.id && i.clothingWear !== undefined);
+      if (alreadyOwned && !isWornClothing && item.type !== 'food') return log(state, `You already own ${item.name}.`);
+      // If replacing worn clothing, remove the old one and add fresh
+      if (isWornClothing) {
+        const fresh = { ...item, clothingWear: 150 };
+        let s = log(state, `Replaced ${item.name} with fresh clothing. ($${item.cost})`);
+        s = updateActivePlayer(s, p => ({
+          ...p,
+          money: p.money - item.cost,
+          inventory: [...p.inventory.filter(i => i.id !== item.id), fresh],
+        }));
+        return s;
+      }
       // Allow vehicle upgrade (bicycle → car): remove old vehicle when buying a better one
       if (item.type === 'vehicle') {
         const existingVehicle = player.inventory.find(i => i.type === 'vehicle' && i.id !== item.id);
@@ -681,8 +694,12 @@ export const gameReducer = (state, action) => {
       const currentQty = player.portfolio[symbol] || 0;
       if (currentQty < quantity) return log(state, "Not enough shares to sell.");
 
-      const earnings = Math.floor(state.market[symbol] * quantity);
-      let s = log(state, `Sold ${quantity} shares of ${symbol} for $${earnings}.`);
+      const currentPrice = state.market[symbol];
+      const earnings = Math.floor(currentPrice * quantity);
+      const basePrice = stocksData.find(s => s.symbol === symbol)?.basePrice ?? currentPrice;
+      const profitLoss = (currentPrice - basePrice) * quantity;
+      const plText = profitLoss >= 0 ? `+$${profitLoss.toFixed(2)} profit` : `-$${Math.abs(profitLoss).toFixed(2)} loss`;
+      let s = log(state, `Sold ${quantity} shares of ${symbol} for $${earnings}. (${plText})`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: currentQty - quantity } }));
       return s;
     }
@@ -748,12 +765,12 @@ export const gameReducer = (state, action) => {
 
     // ── Dismiss hunger warning dialog ────────────────────────────────────────
     case 'DISMISS_HUNGER_WARNING': {
-      const cleared = state.players.map(p => ({ ...p, hungerWarning: null }));
+      const cleared = state.players.map(p => p.hungerWarning ? { ...p, hungerWarning: null } : p);
       return { ...state, players: cleared };
     }
 
     case 'DISMISS_CLOTHING_WARNING': {
-      const cleared = state.players.map(p => ({ ...p, clothingWarning: null }));
+      const cleared = state.players.map(p => p.clothingWarning ? { ...p, clothingWarning: null } : p);
       return { ...state, players: cleared };
     }
 

@@ -31,6 +31,19 @@ const QuickEatsContent = ({ state, actions }) => {
           </div>
           <span className="text-[9px] font-mono font-bold text-slate-500">{player.hunger}/100</span>
         </div>
+        {/* Hunger projection for next week */}
+        {!storedMeal && (
+          <div className="mt-2 text-[9px] text-slate-500 grid grid-cols-2 gap-1">
+            <div className={`p-1.5 rounded border ${Math.max(0, Math.min(100, player.hunger + 25 - 55)) <= 30 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-amber-600'}`}>
+              <div className="font-bold">With meal plan:</div>
+              <div>{Math.max(0, Math.min(100, player.hunger + 25 - 55))} hunger next wk</div>
+            </div>
+            <div className={`p-1.5 rounded border ${player.hunger + 25 >= 80 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+              <div className="font-bold">Without food:</div>
+              <div>{Math.min(100, player.hunger + 25)} hunger → {player.hunger + 25 >= 80 ? '-20h penalty!' : player.hunger + 25 >= 50 ? '-10h penalty' : 'OK'}</div>
+            </div>
+          </div>
+        )}
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">🍔 Weekly Meal Plans</h3>
@@ -66,6 +79,11 @@ const QuickEatsContent = ({ state, actions }) => {
                 <div>
                   <div className="font-bold">🍔 {item.name}</div>
                   <div className="text-[10px] text-slate-500 mt-0.5">{item.effect}</div>
+                  {!owned && (
+                    <div className="text-[9px] text-green-600 font-bold mt-0.5">
+                      → {Math.max(0, player.hunger - (item.weeklyHungerRestore ?? 55))} hunger after eating
+                    </div>
+                  )}
                 </div>
                 <span className="font-mono font-bold text-sm shrink-0 ml-2">${price}<span className="text-[9px] font-normal text-slate-400">/wk</span></span>
               </div>

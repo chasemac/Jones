@@ -35,13 +35,26 @@ const GroceryStoreContent = ({ state, actions }) => {
       </div>
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Groceries</h3>
-        {!hasStorage && (
-          <div className="mb-2 p-2 bg-amber-50 border border-amber-300 rounded text-[10px] text-amber-800">
-            ⚠️ <strong>No fridge!</strong> Food spoils at week's end. Buy a fridge at MegaMart to store up to 2 weeks.
+        {/* Storage capacity display */}
+        <div className="mb-2 p-2 bg-slate-50 border border-slate-200 rounded text-[10px]">
+          <div className="flex justify-between items-center mb-1">
+            <span className="font-bold text-slate-600">
+              {hasFreezer ? '🧊 Freezer' : hasFridge ? '❄️ Fridge' : '🛍️ No storage'}
+            </span>
+            <span className={`font-mono font-bold ${storedServings >= maxStorage ? 'text-green-600' : storedServings > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+              {storedServings}/{maxStorage} wks stored
+            </span>
           </div>
-        )}
+          <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${storedServings >= maxStorage ? 'bg-green-500' : storedServings > 0 ? 'bg-amber-400' : 'bg-slate-300'}`}
+              style={{ width: `${maxStorage > 0 ? (storedServings / maxStorage) * 100 : 0}%` }}
+            />
+          </div>
+          {!hasStorage && <div className="mt-1 text-amber-700 font-bold">⚠️ Food spoils at week's end — buy a fridge at MegaMart (stores 2 wks)</div>}
+        </div>
         {storedServings >= maxStorage ? (
-          <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2">
+          <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2 mt-2">
             ✅ Stocked up! ({storedServings}/{maxStorage} weeks stored) — you're set for {storedServings} week{storedServings > 1 ? 's' : ''}!
           </div>
         ) : (

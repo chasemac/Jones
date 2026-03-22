@@ -3,6 +3,17 @@ import { adjustedPrice } from '../../engine/economyModel';
 import { meetsEducation } from '../../engine/constants';
 import itemsData from '../../data/items.json';
 import educationData from '../../data/education.json';
+import jobsData from '../../data/jobs.json';
+
+// Map each degree to jobs it unlocks (by exact education requirement match)
+const degreeUnlocks = {};
+jobsData.forEach(job => {
+  const req = job.requirements?.education;
+  if (req) {
+    if (!degreeUnlocks[req]) degreeUnlocks[req] = [];
+    degreeUnlocks[req].push(job.title);
+  }
+});
 
 const CityCollegeContent = ({ state, actions }) => {
   const { player, economy } = state;
@@ -108,6 +119,11 @@ const CityCollegeContent = ({ state, actions }) => {
                   {itemReq && !itemOk ? <span className="text-red-500">Need {itemReq.replace(/_/g, ' ')}</span> : ''}
                   {!canAfford && !alreadyDone ? <span className="text-red-500">Need ${(course.cost - player.money).toFixed(0)} more</span> : ''}
                 </div>
+                {degreeUnlocks[course.degree] && (
+                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">
+                    → Unlocks: {degreeUnlocks[course.degree].join(', ')}
+                  </div>
+                )}
               </div>
               <div className="ml-2 shrink-0 text-right">
                 <div className="font-mono font-bold text-slate-700">${course.cost}</div>

@@ -25,9 +25,10 @@ const HOW_TO_WIN = [
 
 const StartScreen = () => {
   const { state, initGame, startGame, resetGame } = useGame();
+  const hasSave = !!localStorage.getItem('jones_v2_state');
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
   const [playerCount, setPlayerCount] = useState(1);
-  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(!hasSave);
   const [playerEmojis, setPlayerEmojis] = useState([...DEFAULT_EMOJIS]);
 
   const setPlayerEmoji = (playerIndex, emoji) => {
@@ -35,8 +36,6 @@ const StartScreen = () => {
   };
 
   if (state.gameStatus !== 'start') return null;
-
-  const hasSave = !!localStorage.getItem('jones_v2_state');
 
   const handleStart = () => {
     initGame(selectedDifficulty, playerCount, playerEmojis);
@@ -79,7 +78,7 @@ const StartScreen = () => {
         )}
 
         {/* Win conditions */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           {HOW_TO_WIN.map(g => (
             <div key={g.label} className="bg-gradient-to-b from-indigo-50 to-white p-3 rounded-2xl border border-indigo-100 text-center shadow-sm">
               <div className="text-xl sm:text-2xl mb-0.5">{g.icon}</div>
@@ -87,6 +86,9 @@ const StartScreen = () => {
               <div className="text-[9px] text-indigo-500 mt-1 leading-tight">{g.desc}</div>
             </div>
           ))}
+        </div>
+        <div className="text-center text-[10px] text-slate-500 mb-3 font-semibold">
+          Achieve <strong>all 4 goals simultaneously</strong> to win — then sleep at home to end the game.
         </div>
 
         {/* How to play toggle */}
@@ -128,7 +130,7 @@ const StartScreen = () => {
                 >
                   <div className="text-xl mb-0.5">{meta.icon}</div>
                   <div className="font-black text-xs">{preset.label}</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5 hidden sm:block leading-tight">{meta.flavor}</div>
+                  <div className="text-[9px] text-slate-500 mt-0.5 leading-tight">{meta.flavor}</div>
                   <div className="mt-1.5 space-y-0.5 text-[9px] text-slate-600">
                     <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
                     <div>😊 {preset.goals.happiness}</div>

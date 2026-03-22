@@ -86,6 +86,11 @@ const MegaMartContent = ({ state, actions }) => {
           const price = adjustedPrice(item.cost, economy);
           const upgrading = item.id === 'freezer' && hasFridge;
           const isRecommended = !hasStorage && (item.id === 'refrigerator');
+          const mechanic =
+            item.id === 'refrigerator' ? 'Lets you store groceries from Fresh Mart — buy in bulk & save' :
+            item.id === 'freezer' ? 'Stores up to 4 weeks of groceries at once — best bulk savings' :
+            item.id === 'hot_tub' ? 'Auto-restores +3 Relaxation/week — prevents exhaustion doctor visits' :
+            null;
           return (
             <button
               key={item.id}
@@ -104,6 +109,7 @@ const MegaMartContent = ({ state, actions }) => {
                 <span className="font-mono font-bold">{owned ? 'Owned' : `$${price}`}</span>
               </div>
               <div className="text-slate-400">{item.effect}</div>
+              {mechanic && <div className="text-blue-600 text-[9px] mt-0.5 font-medium">💡 {mechanic}</div>}
               {isRecommended && !owned && <div className="text-amber-600 font-bold text-[9px] mt-0.5">Recommended first purchase!</div>}
             </button>
           );

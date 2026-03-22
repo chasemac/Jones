@@ -9,6 +9,7 @@ import stocksData from '../../data/stocks.json';
 
 const NeoBankContent = ({ state, actions }) => {
   const { player } = state;
+  const [customRepay, setCustomRepay] = React.useState('');
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = calculateNetWorth(player);
   const wealthPct = Math.min(100, Math.max(0, (netWorth / goals.wealth) * 100));
@@ -99,6 +100,31 @@ const NeoBankContent = ({ state, actions }) => {
                 className="w-full bg-red-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-red-700 disabled:opacity-40 transition">
                 Repay All (${player.debt.toLocaleString()})
               </button>
+              {/* Custom repayment amount */}
+              <div className="flex gap-1 mt-1">
+                <input
+                  type="number"
+                  min="1"
+                  max={Math.min(player.money, player.debt)}
+                  value={customRepay}
+                  onChange={e => setCustomRepay(e.target.value)}
+                  placeholder="Custom $"
+                  className="flex-1 border border-slate-300 rounded px-2 py-1 text-[10px] font-mono focus:outline-none focus:border-indigo-400"
+                />
+                <button
+                  onClick={() => {
+                    const parsed = parseInt(customRepay, 10);
+                    if (!isNaN(parsed) && parsed > 0 && parsed <= Math.min(player.money, player.debt)) {
+                      actions.bankTransaction('repay', parsed);
+                      setCustomRepay('');
+                    }
+                  }}
+                  disabled={(() => { const p = parseInt(customRepay, 10); return isNaN(p) || p <= 0 || p > Math.min(player.money, player.debt); })()}
+                  className="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded hover:bg-red-700 disabled:opacity-40 transition"
+                >
+                  Pay
+                </button>
+              </div>
             </>
           )}
           <div className="text-[9px] text-red-500 mb-1 font-semibold uppercase tracking-wide mt-2">Borrow</div>
@@ -214,7 +240,19 @@ const NeoBankContent = ({ state, actions }) => {
                 </div>
                 <div className="flex justify-between text-slate-500 mb-1">
                   <span>×{owned} shares</span>
-                  <span className={ownedValue > 0 ? 'font-bold text-indigo-600' : ''}>{ownedValue > 0 ? `$${ownedValue}` : 'none held'}</span>
+                  <div className="flex items-center gap-1.5">
+                    {owned > 0 && (() => {
+                      const costBasis = owned * stock.basePrice;
+                      const pl = ownedValue - costBasis;
+                      const plPct = Math.round((pl / costBasis) * 100);
+                      return (
+                        <span className={`text-[9px] font-bold px-1 rounded ${pl >= 0 ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                          {pl >= 0 ? '+' : ''}{plPct}% P/L
+                        </span>
+                      );
+                    })()}
+                    <span className={ownedValue > 0 ? 'font-bold text-indigo-600' : ''}>{ownedValue > 0 ? `$${ownedValue}` : 'none held'}</span>
+                  </div>
                 </div>
                 <div className="flex gap-1">
                   <button onClick={() => actions.buyStock(stock.symbol, 1)} disabled={player.money < currentPrice} className="flex-1 bg-green-100 text-green-800 py-1 rounded hover:bg-green-200 disabled:opacity-40 text-xs font-bold active:scale-95 transition" title={`Buy 1 share for $${currentPrice}`}>Buy 1</button>

@@ -3,9 +3,10 @@ import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
 import { effectiveWage } from '../../engine/economyModel';
 import { hungerEmojiFill } from './hungerUtils';
 import stocksData from '../../data/stocks.json';
+import { isMuted as getSoundMuted } from '../../utils/sound';
 
 const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(getSoundMuted());
   const { player, week, economy, players } = state;
   const isMultiplayer = players && players.length > 1;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
@@ -204,8 +205,8 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             title={muted ? 'Unmute (M)' : 'Mute (M)'}
           ><span>{muted ? '🔇' : '🔊'}</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">{muted ? 'Mute' : 'Sound'}</span></button>
         </div>
-        <div className="hidden md:block text-[8px] text-slate-600 text-center" title="I=Inventory, G=Goals, L=Log, M=Mute, W=Work, E=End Week, R=Rest, S=Study, N=Network, Esc=Close">
-          I·G·L·M·W·E·R·S·N · Esc
+        <div className="hidden md:block text-[7px] text-slate-600 text-center" title="I=Inventory, G=Goals, L=Log, M=Mute, W=Work (or part-time), E=End Week at home, R=Rest, S=Study, N=Network, Esc=Close">
+          ⌨ I G L M W E R S N
         </div>
       </div>
       </div>

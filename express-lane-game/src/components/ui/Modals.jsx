@@ -44,10 +44,10 @@ export const GoalsModal = ({ state, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="goals-title" className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
           <div>
-            <h3 className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals</h3>
+            <h3 id="goals-title" className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals</h3>
             <div className="text-[10px] text-slate-400">{DIFFICULTY_PRESETS[difficulty].label} · Week {week} · {metCount}/4 complete</div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
@@ -98,10 +98,29 @@ export const GoalsModal = ({ state, onClose }) => {
           ))}
         </div>
         {/* Jones comparison */}
-        <div className={`mt-3 p-2.5 rounded-xl border text-xs flex justify-between items-center ${beatingJones ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-          <div className="font-bold text-slate-700">🤑 vs The Joneses (Net Worth)</div>
-          <div className={`font-mono font-black ${beatingJones ? 'text-green-600' : 'text-red-600'}`}>
-            {beatingJones ? `+$${(netWorth - jonesNetWorth).toLocaleString()} ahead` : `-$${(jonesNetWorth - netWorth).toLocaleString()} behind`}
+        <div className={`mt-3 p-2.5 rounded-xl border text-xs ${beatingJones ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className="font-bold text-slate-700 mb-1.5">🤑 vs The Joneses</div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span>💰 Net Worth</span>
+              <span className={`font-mono font-black ${beatingJones ? 'text-green-600' : 'text-red-600'}`}>
+                {beatingJones ? `+$${(netWorth - jonesNetWorth).toLocaleString()} ahead` : `-$${(jonesNetWorth - netWorth).toLocaleString()} behind`}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>😊 Happiness</span>
+              <span className={`font-mono font-black ${player.happiness >= (jones?.happiness ?? 0) ? 'text-green-600' : 'text-red-600'}`}>
+                {player.happiness} vs {jones?.happiness ?? 0}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>🎓 Education</span>
+              <span className="font-mono font-black text-slate-600">{jones?.education ?? '?'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>💼 Career</span>
+              <span className="font-mono font-bold text-slate-600 text-[9px]">{jones?.jobTitle ?? '?'}</span>
+            </div>
           </div>
         </div>
         <button onClick={onClose} className="mt-3 w-full bg-slate-800 text-white font-bold py-2.5 rounded-xl hover:bg-slate-700 transition text-sm active:scale-95 min-h-[44px]">
@@ -185,10 +204,10 @@ export const InventoryModal = ({ inventory, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-slate-800 rounded-[1.75rem] shadow-2xl p-5 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="inventory-title" className="bg-white border-4 border-slate-800 rounded-[1.75rem] shadow-2xl p-5 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3 border-b-2 border-slate-200 pb-2">
           <div>
-            <h3 className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
+            <h3 id="inventory-title" className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
             <div className="text-[10px] text-slate-400">{inventory.length} item{inventory.length !== 1 ? 's' : ''}{totalResaleValue > 0 ? ` · $${totalResaleValue} resale` : ''}</div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 flex items-center justify-center">✕</button>
@@ -246,7 +265,7 @@ export const HungerWarningModal = ({ warning, onClose }) => {
   const borderColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className={`bg-white border-4 ${borderColor} rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4`}>
+      <div role="dialog" aria-modal="true" className={`bg-white border-4 ${borderColor} rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4`}>
         <div className="text-center text-5xl mb-3">{emoji}</div>
         <h3 className="text-xl font-black text-center text-slate-800 mb-1">
           {hadSomeFood ? 'Still Hungry!' : 'You Went Hungry!'}
@@ -278,7 +297,7 @@ export const HungerWarningModal = ({ warning, onClose }) => {
 export const ClothingWarningModal = ({ warning, onClose }) => {
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white border-4 border-amber-400 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4">
+      <div role="dialog" aria-modal="true" className="bg-white border-4 border-amber-400 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4">
         <div className="text-center text-5xl mb-3">👔</div>
         <h3 className="text-xl font-black text-center text-slate-800 mb-1">Clothing Wore Out!</h3>
         <p className="text-slate-600 text-center text-sm mb-4">
@@ -310,7 +329,7 @@ export const EventModal = ({ event, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-[1.75rem] shadow-2xl max-w-sm w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" className="bg-white rounded-[1.75rem] shadow-2xl max-w-sm w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
         <div className={`bg-gradient-to-br ${headerBg} p-4 text-center`}>
           <div className="text-4xl mb-1">{icon}</div>
           <h3 className="text-lg font-black text-white">{event.title}</h3>
@@ -366,21 +385,48 @@ export const FullLogModal = ({ history, onClose }) => {
   };
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-slate-900 border-2 border-slate-600 rounded-[1.75rem] shadow-2xl p-4 max-w-xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="log-title" className="bg-slate-900 border-2 border-slate-600 rounded-[1.75rem] shadow-2xl p-4 max-w-xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-white font-black text-base">📋 Event Log</h3>
+          <h3 id="log-title" className="text-white font-black text-base">📋 Event Log</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">✕</button>
         </div>
         <div className="text-[9px] text-slate-500 mb-2 uppercase tracking-wide">{history.length} events · newest first</div>
         <div className="flex-grow overflow-y-auto space-y-0.5 pr-1">
           {history.length === 0
             ? <div className="text-slate-500 italic text-xs text-center py-4">No events yet.</div>
-            : history.map((entry, i) => (
-                <div key={i} className={`text-[11px] flex gap-1.5 items-start border-b border-slate-800 last:border-0 py-1 ${entryColor(entry)}`}>
-                  <span className="shrink-0 w-4 text-center">{entryIcon(entry)}</span>
-                  <span>{entry}</span>
-                </div>
-              ))}
+            : (() => {
+                // Group by week number (entries start with "Week X:")
+                const groups = [];
+                const groupMap = {};
+                history.forEach(entry => {
+                  const match = entry.match(/^Week (\d+):/);
+                  const weekNum = match ? parseInt(match[1]) : 0;
+                  if (!groupMap[weekNum]) {
+                    groupMap[weekNum] = { week: weekNum, entries: [] };
+                    groups.push(groupMap[weekNum]);
+                  }
+                  groupMap[weekNum].entries.push(entry);
+                });
+                // Sort by week descending (newest first, matches history order)
+                groups.sort((a, b) => b.week - a.week);
+                return groups.map(group => (
+                  <div key={group.week} className="mb-2">
+                    <div className="text-[9px] font-black uppercase text-slate-500 bg-slate-800 px-2 py-0.5 rounded sticky top-0">
+                      Week {group.week}
+                    </div>
+                    {group.entries.map((entry, i) => {
+                      // Strip "Week X: " prefix since it's shown in the header
+                      const stripped = entry.replace(/^Week \d+:\s*/, '');
+                      return (
+                        <div key={i} className={`text-[11px] flex gap-1.5 items-start border-b border-slate-800 last:border-0 py-1 ${entryColor(entry)}`}>
+                          <span className="shrink-0 w-4 text-center">{entryIcon(entry)}</span>
+                          <span>{stripped}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
         </div>
       </div>
     </div>
@@ -398,9 +444,9 @@ export const WeekSummaryModal = ({ summary, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white border-4 border-indigo-500 rounded-[1.75rem] shadow-2xl p-5 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="week-summary-title" className="bg-white border-4 border-indigo-500 rounded-[1.75rem] shadow-2xl p-5 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="text-center text-3xl mb-1">🌙</div>
-        <h3 className="text-lg font-black text-center text-indigo-800 mb-0.5">Week {summary.week} Complete!</h3>
+        <h3 id="week-summary-title" className="text-lg font-black text-center text-indigo-800 mb-0.5">Week {summary.week} Complete!</h3>
         <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in {Math.max(0, countdown)}s · tap to dismiss</p>
         <div className="h-1 bg-slate-200 rounded-full overflow-hidden mb-3">
           <div className="h-full bg-indigo-400 transition-all duration-1000" style={{ width: `${(countdown / 5) * 100}%` }} />
@@ -423,6 +469,11 @@ export const WeekSummaryModal = ({ summary, onClose }) => {
                 <span className="text-slate-500">🛁 <span className={`font-bold ${(p.relaxation ?? 50) <= 20 ? 'text-red-500' : 'text-teal-600'}`}>{p.relaxation ?? 50}</span></span>
                 <span className="text-slate-500">💵 <span className={`font-bold ${p.netWorth >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(p.netWorth).toLocaleString()}</span></span>
               </div>
+              {p.currentCourse && (
+                <div className="text-[9px] text-blue-500 font-bold mt-1">
+                  📚 Studying: {p.currentCourse.title} ({Math.round((p.currentCourse.progress / p.currentCourse.totalHours) * 100)}%)
+                </div>
+              )}
               {p.netWorthDelta > 100 && <div className="text-[9px] text-green-600 font-bold mt-1">🔥 Great week! Big gains!</div>}
               {p.netWorthDelta < -200 && <div className="text-[9px] text-red-500 font-bold mt-1">😰 Rough week — expenses piled up</div>}
               {(p.hunger ?? 0) >= 80 && <div className="text-[9px] text-red-500 font-bold mt-1 animate-pulse">🍽️ Starving! Buy food next week!</div>}

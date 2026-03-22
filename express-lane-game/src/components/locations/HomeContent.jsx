@@ -37,14 +37,7 @@ const HomeContent = ({ state, actions }) => {
         })()}
 
         <button
-          onClick={() => {
-            const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
-            const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
-            if (!hasFood && nextHunger >= 80 && player.timeRemaining > 4) {
-              if (!window.confirm(`⚠️ No food! Hunger will hit ${nextHunger} → -20h penalty next week. End week anyway?`)) return;
-            }
-            actions.endWeek();
-          }}
+          onClick={() => { actions.endWeek(); }}
           className={`w-full text-white font-black py-3.5 rounded-xl shadow-lg text-base flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95 min-h-[52px]
             ${player.timeRemaining <= 10 ? 'bg-indigo-500 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-500'}
           `}

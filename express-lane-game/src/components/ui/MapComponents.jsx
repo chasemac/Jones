@@ -39,6 +39,10 @@ export const MapBackground = ({ economy }) => {
 export const BuildingNode = ({ config, isCurrent, isTraveling, onClick, warningBadge, travelHours, isPromoReady, hasJob }) => (
   <div
     onClick={onClick}
+    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+    tabIndex={isTraveling ? -1 : 0}
+    role="button"
+    aria-label={`${config.label}${travelHours ? ` — ${travelHours} hour travel` : ' — current location'}`}
     className={`absolute flex flex-col items-center cursor-pointer transition-all duration-200 hover:scale-110 z-10 group
       ${isTraveling ? 'pointer-events-none opacity-60' : ''}
     `}
@@ -109,7 +113,7 @@ export const PlayerToken = ({ locationId, isMoving, label, emoji, colorClass, zI
     <>
       {trail && (
         <div
-          className="absolute w-10 h-10 rounded-full pointer-events-none opacity-0 transition-opacity duration-500"
+          className="absolute w-8 h-8 rounded-full pointer-events-none opacity-40 transition-opacity duration-500"
           style={{
             left: `${trail.x}%`,
             top: `${trail.y}%`,
@@ -190,9 +194,10 @@ export const LocationPanel = ({ locationId, player, children, onClose }) => {
         </div>
         <button
           onClick={onClose}
+          aria-label="Return to map"
           className="bg-yellow-400 hover:bg-yellow-300 text-black font-black px-3.5 py-2 rounded-full text-sm shadow transition hover:scale-105 active:scale-95 flex items-center gap-1 flex-shrink-0 ml-2 min-h-[40px] min-w-[72px] justify-center"
         >
-          MAP 🗺️
+          ← Map
         </button>
       </div>
       <div className="flex-grow p-3 sm:p-4 overflow-y-auto bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))]">

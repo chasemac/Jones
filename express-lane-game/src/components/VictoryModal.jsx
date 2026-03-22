@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGame } from '../context/GameContext';
-import { calculateNetWorth } from '../engine/constants';
+import { calculateNetWorth, DIFFICULTY_PRESETS, meetsEducation } from '../engine/constants';
 
 const GRADE_MESSAGES_WIN = [
   "Incredible. You crushed it!",
@@ -34,7 +34,8 @@ const VictoryModal = () => {
   const gradeColor = grade === 'S' ? 'text-yellow-500' : grade === 'A' ? 'text-green-500' : grade === 'B' ? 'text-blue-500' : grade === 'C' ? 'text-slate-500' : 'text-red-500';
 
   const handlePlayAgain = () => {
-    initGame(difficulty, state.playerCount || 1);
+    const emojis = state.players?.map(p => p.emoji) || null;
+    initGame(difficulty, state.playerCount || 1, emojis);
     setTimeout(() => startGame(), 0);
   };
   const handleNewGame = () => initGame(difficulty, state.playerCount || 1);
@@ -46,7 +47,9 @@ const VictoryModal = () => {
         <div className={`p-6 ${isWin ? 'bg-gradient-to-br from-yellow-400 to-amber-500' : 'bg-gradient-to-br from-slate-700 to-slate-900'}`}>
           <div className="text-5xl mb-2">{isWin ? '🏆' : '💀'}</div>
           <h2 className={`text-2xl font-black mb-1 ${isWin ? 'text-white' : 'text-white'}`}>
-            {isWin ? `${player.name} Wins!` : 'Game Over'}
+            {isWin
+              ? (state.playerCount === 1 || !state.playerCount ? '🎉 You Win!' : `${player.name} Wins!`)
+              : player.happiness <= 0 ? '💔 Burned Out' : '😰 Game Over'}
           </h2>
           <p className={`text-sm ${isWin ? 'text-yellow-900' : 'text-slate-300'}`}>{flavorText}</p>
         </div>
@@ -94,6 +97,29 @@ const VictoryModal = () => {
               : `❌ Jones is still richer. ($${jones?.netWorth?.toLocaleString()} vs your $${netWorth.toLocaleString()})`
             }
           </div>
+
+          {!isWin && (() => {
+            const goals = DIFFICULTY_PRESETS[difficulty].goals;
+            const goalItems = [
+              { label: 'Wealth', met: netWorth >= goals.wealth, detail: `$${Math.round(netWorth).toLocaleString()} / $${goals.wealth.toLocaleString()}` },
+              { label: 'Happiness', met: player.happiness >= goals.happiness, detail: `${player.happiness} / ${goals.happiness}` },
+              { label: 'Education', met: meetsEducation(player.education, goals.education), detail: `${player.education} (need ${goals.education})` },
+              { label: 'Career Dep.', met: (player.dependability ?? 0) >= goals.careerDependability, detail: `${player.dependability ?? 0} / ${goals.careerDependability}` },
+            ];
+            return (
+              <div className="mb-4">
+                <div className="text-xs font-bold text-slate-500 uppercase mb-1.5">Goals at Game Over</div>
+                <div className="grid grid-cols-2 gap-1">
+                  {goalItems.map(g => (
+                    <div key={g.label} className={`text-[10px] p-2 rounded-lg border ${g.met ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                      <div className="font-bold">{g.met ? '✅' : '❌'} {g.label}</div>
+                      <div className="opacity-75">{g.detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="flex gap-2">
             <button onClick={handlePlayAgain} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95 text-sm min-h-[44px]">

@@ -29,6 +29,8 @@ const Board = () => {
   const [floats, setFloats] = useState([]);
   const [weekFlash, setWeekFlash] = useState(false);
   const [lotteryResult, setLotteryResult] = useState(null); // {win: bool}
+  const [travelBlocked, setTravelBlocked] = useState(false);
+  const [endWeekHint, setEndWeekHint] = useState(false);
   const animTimers = useRef([]);
 
   const addFloat = (amount) => {
@@ -133,15 +135,23 @@ const Board = () => {
         }
         case 'w': {
           // Work if at work location and has time
-          if (player.job && player.timeRemaining >= 8) {
+          if (player.job) {
             const loc = getJobLocation(player.job);
-            if (loc === player.currentLocation) work();
+            if (loc === player.currentLocation) {
+              if (player.timeRemaining >= 8) work();
+              else if (player.timeRemaining >= 4) partTimeWork();
+            }
           }
           break;
         }
         case 'e': {
           // End week if at home
-          if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) endWeek();
+          if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) {
+            endWeek();
+          } else if (player.hasChosenHousing) {
+            setEndWeekHint(true);
+            setTimeout(() => setEndWeekHint(false), 2000);
+          }
           break;
         }
         case 'r': {
@@ -164,11 +174,20 @@ const Board = () => {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [endWeek, showGoals, showInventory, showLog, showPanel, state, toggleMute, work, rest, study, network]);
+  }, [endWeek, showGoals, showInventory, showLog, showPanel, state, toggleMute, work, partTimeWork, rest, study, network]);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
       setShowPanel(true);
+      return;
+    }
+
+    // Check if player can afford travel
+    const travelBonus = state.player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
+    const cost = Math.max(1, travelCost(state.player.currentLocation, id) - travelBonus);
+    if (state.player.timeRemaining < cost) {
+      setTravelBlocked(true);
+      setTimeout(() => setTravelBlocked(false), 1500);
       return;
     }
 
@@ -239,12 +258,23 @@ const Board = () => {
           0%   { opacity: 0.6; }
           100% { opacity: 0; }
         }
+        @keyframes borderPulse {
+          0%   { opacity: 0.8; }
+          100% { opacity: 0.2; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
       `}</style>
 
       {/* Week-end flash overlay */}
       {weekFlash && (
         <div
-          className="absolute inset-0 bg-white pointer-events-none z-40"
+          className="absolute inset-0 bg-indigo-100/80 pointer-events-none z-40"
           style={{ animation: 'weekFlash 0.6s ease-out forwards' }}
         />
       )}
@@ -252,7 +282,7 @@ const Board = () => {
       {/* Low time warning border pulse */}
       {state.player.timeRemaining > 0 && state.player.timeRemaining <= 8 && !isMoving && (
         <div className="absolute inset-0 pointer-events-none z-30 border-4 border-red-500 rounded-lg"
-          style={{ animation: 'weekFlash 1s ease-in-out infinite alternate' }} />
+          style={{ animation: 'borderPulse 1s ease-in-out infinite alternate' }} />
       )}
 
       {/* Lottery result splash */}
@@ -268,6 +298,26 @@ const Board = () => {
         </div>
       )}
 
+      {/* Travel blocked toast */}
+      {travelBlocked && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+          <div className="bg-red-600/90 text-white font-black text-sm px-4 py-2 rounded-full shadow-xl"
+            style={{ animation: 'weekFlash 1.5s ease-out forwards' }}>
+            ⚡ Not enough time!
+          </div>
+        </div>
+      )}
+
+      {/* End week hint toast */}
+      {endWeekHint && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+          <div className="bg-indigo-700/90 text-white font-black text-sm px-4 py-2 rounded-full shadow-xl"
+            style={{ animation: 'weekFlash 2s ease-out forwards' }}>
+            🏠 Go home first to end the week!
+          </div>
+        </div>
+      )}
+
       {/* Padded map area — keeps buildings away from container edges */}
       <div className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24">
         {/* Map background */}
@@ -279,7 +329,7 @@ const Board = () => {
           const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-600';
           const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '📊';
           return (
-            <div className={`absolute top-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 ${bg} text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg z-10 pointer-events-none border border-white/20`}>
+            <div className={`absolute top-1.5 ${state.players?.length > 1 ? 'left-2' : 'left-1/2 -translate-x-1/2'} flex items-center gap-1 ${bg} text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg z-10 pointer-events-none border border-white/20`}>
               <span>{icon}</span><span>{economy}</span><span className="opacity-50">·</span><span>Wk {week}</span>
               {economyTimer <= 2 ? (
                 <span className="opacity-90 animate-pulse bg-white/20 px-1 rounded">→shift in {economyTimer}wk</span>
@@ -443,6 +493,11 @@ const Board = () => {
           onClose={() => setNotification(null)}
         />
       )}
+
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {state.history?.[0] || ''}
+      </div>
     </div>
   );
 };

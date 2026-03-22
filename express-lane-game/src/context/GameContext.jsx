@@ -74,9 +74,13 @@ export const GameProvider = ({ children }) => {
     }
   );
 
-  // Persist state on every change (except while on start screen)
+  // Persist state on every change (except while on start screen) — debounced 500ms
+  const saveTimer = React.useRef(null);
   useEffect(() => {
-    if (state.gameStatus !== 'start') saveState(state);
+    if (state.gameStatus === 'start') return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => saveState(state), 500);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
   }, [state]);
 
   // ── Sound side-effects ──────────────────────────────────────────────────────

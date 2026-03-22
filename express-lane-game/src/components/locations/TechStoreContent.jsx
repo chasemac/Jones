@@ -18,6 +18,11 @@ const TechStoreContent = ({ state, actions }) => {
           const owned = player.inventory.some(i => i.id === item.id);
           const price = adjustedPrice(item.cost, economy);
           const isRecommended = item.id === 'smartphone' && !owned && !player.inventory.some(i => i.id === 'smartphone');
+          const mechanic = {
+            smartphone: '🚗 Unlocks gig delivery (+$60/run) · required for Quick Eats gig work',
+            laptop: '📚 +2h study bonus per session · required for some remote tech jobs',
+            smart_watch: '⏱ -1h travel time per trip · pays back quickly if you move often',
+          }[item.id];
           return (
             <button
               key={item.id}
@@ -31,7 +36,7 @@ const TechStoreContent = ({ state, actions }) => {
               <div className="text-left">
                 <div className="font-bold">{owned ? '✅ ' : isRecommended ? '⭐ ' : ''}{item.name}</div>
                 <div className="text-slate-400">{item.effect}</div>
-                {isRecommended && <div className="text-blue-600 text-[9px] font-bold mt-0.5">Unlocks gig work at Quick Eats!</div>}
+                {mechanic && <div className="text-blue-600 text-[9px] font-bold mt-0.5">{mechanic}</div>}
               </div>
               <span className="font-mono font-bold">{owned ? 'Owned' : `$${price}`}</span>
             </button>
