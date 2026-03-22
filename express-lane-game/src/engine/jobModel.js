@@ -104,7 +104,7 @@ export const getNextPromotion = (player) => {
  * @returns {{text: string, colorClass: string}}
  */
 export const difficultyLabel = (rejectionChance) => {
-  const chance = rejectionChance || 0.25;
+  const chance = rejectionChance ?? 0.25;
   if (chance <= 0.15) return { text: 'Easy', colorClass: 'bg-green-100 text-green-700' };
   if (chance <= 0.30) return { text: 'Moderate', colorClass: 'bg-yellow-100 text-yellow-700' };
   return { text: 'Competitive', colorClass: 'bg-red-100 text-red-600' };

@@ -227,7 +227,7 @@ export function tickMarket(currentMarket, economy) {
   const newMarket = { ...currentMarket };
   const economyBias = economy === 'Boom' ? 0.02 : economy === 'Depression' ? -0.02 : 0;
   stocksData.forEach(stock => {
-    const current = newMarket[stock.symbol];
+    const current = newMarket[stock.symbol] ?? stock.basePrice;
     const change = (Math.random() * stock.volatility * 2) - stock.volatility + economyBias;
     newMarket[stock.symbol] = Math.max(1, Math.floor(current * (1 + change)));
   });

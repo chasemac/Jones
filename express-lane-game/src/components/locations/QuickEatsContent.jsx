@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
 import JobsHereCard from '../ui/JobsHereCard';
