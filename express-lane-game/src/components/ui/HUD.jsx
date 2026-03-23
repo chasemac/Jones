@@ -40,7 +40,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
       <div className={`px-2 md:px-3 pt-2 ${isMultiplayer ? 'pb-[max(0.55rem,env(safe-area-inset-bottom))]' : 'pb-[max(0.65rem,env(safe-area-inset-bottom))]'}`}>
       <div className="mb-1.5 flex gap-1 flex-wrap md:hidden">
         <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[9px] font-black text-white">🎓 {player.education}</span>
-        <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${player.job ? 'bg-emerald-500/20 text-emerald-200' : 'bg-red-500/20 text-red-200'}`}>💼 {player.job ? player.job.title : 'Unemployed'}</span>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${player.job ? 'bg-emerald-500/20 text-emerald-200' : 'bg-red-500/20 text-red-200'}`}>💼 {player.job ? player.job.title : 'No job'}</span>
         <span className="shrink-0 rounded-full bg-sky-500/20 px-2 py-1 text-[9px] font-black text-sky-100">🎯 {player.dependability ?? 50}</span>
         <span className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black ${(player.relaxation ?? 50) <= 20 ? 'bg-amber-500/25 text-amber-100' : 'bg-teal-500/20 text-teal-100'}`}>🛁 {player.relaxation ?? 50}</span>
       </div>

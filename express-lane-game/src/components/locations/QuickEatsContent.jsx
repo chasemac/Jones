@@ -3,7 +3,6 @@ import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
-import { hungerEmojiFill } from '../ui/hungerUtils';
 import itemsData from '../../data/items.json';
 
 const QuickEatsContent = ({ state, actions }) => {
@@ -97,25 +96,6 @@ const QuickEatsContent = ({ state, actions }) => {
             </button>
           );
         })}
-        {/* Hunger meter */}
-        <div className="mt-3 p-2.5 rounded-xl border-2" style={{ background: player.hunger >= 80 ? '#fef2f2' : player.hunger >= 60 ? '#fff7ed' : '#f0fdf4', borderColor: player.hunger >= 80 ? '#fca5a5' : player.hunger >= 60 ? '#fdba74' : '#86efac' }}>
-          <div className="flex justify-between text-[10px] font-bold mb-1" style={{ color: player.hunger >= 80 ? '#dc2626' : player.hunger >= 60 ? '#ea580c' : '#16a34a' }}>
-            <span>🍽️ Hunger Level</span>
-            <span>{player.hunger >= 80 ? '🚨 STARVING!' : player.hunger >= 60 ? '😟 Getting bad' : player.hunger >= 30 ? '😐 OK' : '😊 Well fed'}</span>
-          </div>
-          <div className="text-center text-base mb-1 tracking-wide">
-            {hungerEmojiFill(player.hunger)} <span className="text-[10px] text-slate-500">{player.hunger}/100</span>
-          </div>
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all duration-500 ${player.hunger >= 80 ? 'bg-red-500 animate-pulse' : player.hunger >= 60 ? 'bg-orange-400' : player.hunger >= 30 ? 'bg-yellow-400' : 'bg-green-500'}`}
-              style={{ width: `${player.hunger}%` }} />
-          </div>
-        </div>
-        {player.hunger >= 50 && (
-          <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-lg text-[10px] text-red-700">
-            ⏱ Projected penalty if unfed: <strong>-{player.hunger >= 80 ? 20 : player.hunger >= 50 ? 10 : 5}hrs</strong> (half if you eat snacks)
-          </div>
-        )}
         <div className="mt-1 text-[10px] text-slate-400 italic">💡 Fresh Mart groceries save money — need a fridge from MegaMart</div>
       </div>
       <div className="space-y-3">

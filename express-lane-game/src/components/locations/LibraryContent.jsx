@@ -108,7 +108,7 @@ const LibraryContent = ({ state, actions }) => {
                 );
               })}
             </div>
-            <div className="mt-2 text-[9px] text-slate-400 italic text-center">Browse listings here, then visit the location to apply in person (or apply remotely for WFH jobs).</div>
+            <div className="mt-2 text-[9px] text-slate-400 italic text-center">Select a company to browse openings and apply. Then visit that location to work your shifts.</div>
             </div>
             )}
           </>
@@ -175,7 +175,7 @@ const LibraryContent = ({ state, actions }) => {
       </div>
 
       {/* Right: Trade Dispatch */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 sm:overflow-y-auto sm:max-h-full">
         <div>
           <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">
             🔧 Trade Dispatch <EconomyWageBadge economy={state.economy} />

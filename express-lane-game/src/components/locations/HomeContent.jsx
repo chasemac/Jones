@@ -86,9 +86,20 @@ const HomeContent = ({ state, actions }) => {
             <span className="text-slate-500">⏱ Time left:</span>
             <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
             <span className="text-slate-500">🍕 Hunger:</span>
-            <span className={`font-bold ${(player.hunger ?? 0) >= 80 ? 'text-red-500 animate-pulse' : (player.hunger ?? 0) >= 60 ? 'text-orange-500' : 'text-green-600'}`}>
-              {player.hunger ?? 0} → {Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25))} next wk{(player.hunger ?? 0) >= 55 ? ' ⚠️' : ''}
-            </span>
+            {(() => {
+              const hunger = player.hunger ?? 0;
+              const hungerInc = player.housing?.homeType === 'luxury_condo' ? 20 : 25;
+              const meal = player.inventory.find(i => i.type === 'weekly_meal');
+              const coffee = player.inventory.find(i => i.type === 'weekly_coffee');
+              const restore = (meal?.weeklyHungerRestore ?? 0) + (coffee?.weeklyHungerRestore ?? 0);
+              const nextHunger = Math.max(0, Math.min(100, hunger + hungerInc - restore));
+              const hasFood = restore > 0;
+              return (
+                <span className={`font-bold ${nextHunger >= 80 ? 'text-red-500 animate-pulse' : nextHunger >= 60 ? 'text-orange-500' : 'text-green-600'}`}>
+                  {hunger} → {nextHunger} next wk{hasFood ? ' ✅' : nextHunger >= 55 ? ' ⚠️' : ''}
+                </span>
+              );
+            })()}
           </div>
           {(() => {
             const rent = player.housing?.rent ?? 0;
