@@ -123,7 +123,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
           <div className="font-bold text-blue-800 mb-1.5">✅ Home sweet home! What's next?</div>
           <div className="space-y-1 text-blue-700">
             {!player.job && <div>📚 Visit the <strong>Library</strong> to browse job listings and apply</div>}
-            {!player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage') && <div>🍔 Visit <strong>Quick Eats</strong> to buy a weekly meal plan</div>}
+            {!player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee') && <div>🍔 Visit <strong>Quick Eats</strong> to buy a weekly meal plan</div>}
             <div>💰 Work shifts at your job to earn money</div>
             <div>🎓 City College offers courses to advance your career</div>
           </div>

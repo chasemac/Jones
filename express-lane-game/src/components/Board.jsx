@@ -97,11 +97,12 @@ const Board = () => {
     }
   }, [state.week]);
 
-  // Track money changes for floating text
+  // Track money changes for floating text — only show positive gains (earnings)
+  // Negative changes (rent, purchases) have their own UI feedback (week summary, button labels)
   const prevMoney = useRef(state.player.money);
   useEffect(() => {
     const diff = Math.round(state.player.money - prevMoney.current);
-    if (Math.abs(diff) >= 1) addFloat(diff);
+    if (diff >= 1) addFloat(diff);
     prevMoney.current = state.player.money;
   }, [state.player.money]);
 
@@ -145,8 +146,8 @@ const Board = () => {
           break;
         }
         case 'e': {
-          // End week if at home
-          if ((player.currentLocation === 'home' || player.currentLocation === 'leasing_office') && player.hasChosenHousing) {
+          // End week only from home
+          if (player.currentLocation === 'home' && player.hasChosenHousing) {
             endWeek();
           } else if (player.hasChosenHousing) {
             setEndWeekHint(true);

@@ -28,7 +28,7 @@ export const buildPlayer = (index, startingMoney, emoji) => ({
   timeRemaining: 60,
   education: 'High School',
   job: null,
-  housing: { id: 'shared_apt', title: 'Shared Apartment', rent: 200, happiness: 0, security: 'Low' },
+  housing: { id: 'shared_apt', title: 'Shared Apartment', homeType: 'apartment', rent: 200, happiness: 0, security: 'Low' },
   hasChosenHousing: false, // flips true after player explicitly picks housing for the first time
   currentLocation: 'leasing_office',
   savings: 0,

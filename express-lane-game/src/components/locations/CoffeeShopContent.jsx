@@ -136,7 +136,7 @@ const CoffeeShopContent = ({ state, actions }) => {
           >
             <div className="flex justify-between items-center">
               <div className="font-bold">🤝 Meet & Greet (1h)</div>
-              <div className="text-blue-700 font-bold text-xs">+{player.job ? ((player.dependability ?? 50) >= 70 ? 2 : 4) : ((player.dependability ?? 50) >= 70 ? 1 : 3)} dep, +2 😊</div>
+              <div className="text-blue-700 font-bold text-xs">+{(() => { const dep = player.dependability ?? 50; const base = player.job ? 4 : 3; return dep >= 90 ? 1 : dep >= 70 ? Math.max(1, Math.floor(base / 2)) : base; })()} dep, +2 😊</div>
             </div>
             <div className="text-slate-500 mt-0.5">
               Higher dep = lower job rejection rate

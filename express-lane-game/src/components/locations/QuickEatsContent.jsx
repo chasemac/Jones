@@ -34,14 +34,21 @@ const QuickEatsContent = ({ state, actions }) => {
         {/* Hunger projection for next week */}
         {!storedMeal && (
           <div className="mt-2 text-[9px] text-slate-500 grid grid-cols-2 gap-1">
-            <div className={`p-1.5 rounded border ${Math.max(0, Math.min(100, player.hunger + 25 - 55)) <= 30 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-amber-600'}`}>
-              <div className="font-bold">With meal plan:</div>
-              <div>{Math.max(0, Math.min(100, player.hunger + 25 - 55))} hunger next wk</div>
-            </div>
-            <div className={`p-1.5 rounded border ${player.hunger + 25 >= 80 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
-              <div className="font-bold">Without food:</div>
-              <div>{Math.min(100, player.hunger + 25)} hunger → {player.hunger + 25 >= 80 ? '-20h penalty!' : player.hunger + 25 >= 50 ? '-10h penalty' : 'OK'}</div>
-            </div>
+            {(() => {
+              const hungerInc = player.housing?.homeType === 'luxury_condo' ? 20 : 25;
+              const withMeal = Math.max(0, Math.min(100, player.hunger + hungerInc - 55));
+              const withoutFood = Math.min(100, player.hunger + hungerInc);
+              return (<>
+                <div className={`p-1.5 rounded border ${withMeal <= 30 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-amber-50 border-amber-200 text-amber-600'}`}>
+                  <div className="font-bold">With meal plan:</div>
+                  <div>{withMeal} hunger next wk</div>
+                </div>
+                <div className={`p-1.5 rounded border ${withoutFood >= 80 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                  <div className="font-bold">Without food:</div>
+                  <div>{withoutFood} hunger → {withoutFood >= 80 ? '-20h penalty!' : withoutFood >= 50 ? '-10h penalty' : 'OK'}</div>
+                </div>
+              </>);
+            })()}
           </div>
         )}
       </div>

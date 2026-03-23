@@ -154,7 +154,7 @@ export function processPlayerWeekEnd(player) {
       ateThisWeek = true;
     } else {
       np.inventory = np.inventory.filter(i => i.id !== 'groceries');
-      np.hunger = 100;
+      np.hunger = Math.min(100, np.hunger + 50);
       logEntries.push(`${np.name}: groceries spoiled (no fridge)! Food poisoning — sick next week.`);
     }
   }

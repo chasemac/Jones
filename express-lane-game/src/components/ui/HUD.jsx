@@ -127,7 +127,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           <div className="flex gap-2 text-[8px] lg:text-[10px] flex-wrap items-center">
             <span className="text-slate-400">🎓 {player.education}</span>
             <span className={`${player.job ? 'text-slate-400' : 'text-red-400 animate-pulse font-bold'}`}>
-              💼 {player.job ? `${player.job.title} (${player.job.weeksWorked || 0}wk)` : '⚠️ Unemployed — visit Library!'}
+              💼 {player.job ? `${player.job.title} (${player.job.weeksWorked || 0}wk)` : '⚠️ No job — find work at 📚 Library'}
             </span>
             {(() => {
               const v = player.inventory?.find(i => i.type === 'vehicle');
