@@ -23,12 +23,15 @@ const HOW_TO_WIN = [
   { icon: '🎯', label: 'Career',    desc: 'Build dependability' },
 ];
 
+const STEPS = ['Goals', 'Difficulty', 'Players', 'Avatars'];
+
 const StartScreen = () => {
   const { state, initGame, startGame, resetGame } = useGame();
   const hasSave = !!localStorage.getItem('jones_v2_state');
+  const [step, setStep] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
   const [playerCount, setPlayerCount] = useState(1);
-  const [showHowToPlay, setShowHowToPlay] = useState(!hasSave);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [playerEmojis, setPlayerEmojis] = useState([...DEFAULT_EMOJIS]);
 
   const setPlayerEmoji = (playerIndex, emoji) => {
@@ -67,160 +70,227 @@ const StartScreen = () => {
           <p className="text-slate-500 text-sm sm:text-base mt-2 max-w-md mx-auto">Outwork the city, outlearn the grind, and finally beat The Joneses at their own game.</p>
         </div>
 
-        {hasSave && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left shadow-sm">
-            <div>
-              <div className="text-xs font-black uppercase tracking-wide text-emerald-700">Save Found</div>
-              <div className="text-sm text-emerald-900">Jump back into your last run or start fresh with a new setup.</div>
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {STEPS.map((label, i) => {
+            const n = i + 1;
+            const active = step === n;
+            const done = step > n;
+            return (
+              <React.Fragment key={label}>
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all ${
+                    active ? 'bg-indigo-600 text-white shadow-md scale-110' :
+                    done   ? 'bg-indigo-200 text-indigo-700' :
+                             'bg-slate-100 text-slate-400'
+                  }`}>{done ? '✓' : n}</div>
+                  <span className={`text-[9px] font-bold uppercase tracking-wide ${active ? 'text-indigo-600' : done ? 'text-indigo-400' : 'text-slate-400'}`}>{label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={`h-0.5 w-6 sm:w-10 rounded-full mb-3 transition-all ${step > n ? 'bg-indigo-300' : 'bg-slate-200'}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+
+        {/* ── Step 1: Goals ── */}
+        {step === 1 && (
+          <div>
+            {hasSave && (
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left shadow-sm">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-wide text-emerald-700">Save Found</div>
+                  <div className="text-sm text-emerald-900">Jump back into your last run or start fresh below.</div>
+                </div>
+                <div className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-emerald-700 shadow-sm">Ready</div>
+              </div>
+            )}
+
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Win by achieving all 4 goals simultaneously</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {HOW_TO_WIN.map(g => (
+                <div key={g.label} className="bg-gradient-to-b from-indigo-50 to-white p-3 rounded-2xl border border-indigo-100 text-center shadow-sm">
+                  <div className="text-2xl sm:text-3xl mb-1">{g.icon}</div>
+                  <div className="font-black text-indigo-900 text-xs sm:text-sm leading-tight">{g.label}</div>
+                  <div className="text-[9px] text-indigo-500 mt-1 leading-tight">{g.desc}</div>
+                </div>
+              ))}
             </div>
-            <div className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-emerald-700 shadow-sm">Ready</div>
+            <div className="text-center text-[10px] text-slate-500 mb-4 font-semibold">
+              Hit all 4 targets, then <strong>sleep at Home</strong> to end the game — before Jones does!
+            </div>
+
+            <button
+              onClick={() => setShowHowToPlay(v => !v)}
+              className="w-full text-xs text-slate-500 border border-slate-200 rounded-xl py-2 mb-1 hover:bg-slate-50 transition flex items-center justify-center gap-1.5 shadow-sm"
+            >
+              <span>{showHowToPlay ? '▼' : '▶'}</span>
+              <span>How to Play</span>
+            </button>
+            {showHowToPlay && (
+              <div className="bg-slate-50 rounded-2xl p-3.5 text-xs text-slate-600 border border-slate-200 space-y-1.5 shadow-inner">
+                <div className="font-bold text-slate-700 mb-1">📋 Quick Start Guide</div>
+                <div>🏠 <strong>Leasing Office</strong> — choose your first home</div>
+                <div>📚 <strong>Library</strong> — browse job listings and apply</div>
+                <div>🍔 <strong>Quick Eats</strong> — buy weekly meals (or starve!)</div>
+                <div>💼 <strong>Work</strong> at your job location to earn money</div>
+                <div>🎓 <strong>City College</strong> — take courses to advance your career</div>
+                <div>🏦 <strong>NeoBank</strong> — save money, earn interest, trade stocks</div>
+                <div className="mt-1 text-slate-400">⏱ You have 60 hours/week. When time runs out, the week ends automatically.</div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Win conditions */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
-          {HOW_TO_WIN.map(g => (
-            <div key={g.label} className="bg-gradient-to-b from-indigo-50 to-white p-3 rounded-2xl border border-indigo-100 text-center shadow-sm">
-              <div className="text-xl sm:text-2xl mb-0.5">{g.icon}</div>
-              <div className="font-black text-indigo-900 text-[11px] sm:text-xs leading-tight">{g.label}</div>
-              <div className="text-[9px] text-indigo-500 mt-1 leading-tight">{g.desc}</div>
+        {/* ── Step 2: Difficulty ── */}
+        {step === 2 && (
+          <div>
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">Choose Difficulty</div>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(DIFFICULTY_PRESETS).map(([key, preset]) => {
+                const meta = DIFFICULTY_DESCRIPTIONS[key];
+                const isSelected = selectedDifficulty === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedDifficulty(key)}
+                    className={`p-3 rounded-2xl border-2 text-left transition-all min-h-[48px] active:scale-95 ${isSelected
+                      ? `${meta.selectedColor} shadow-lg scale-[1.03]`
+                      : `${meta.color} hover:scale-[1.01] shadow-sm`
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">{meta.icon}</div>
+                    <div className="font-black text-sm">{preset.label}</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5 leading-tight">{meta.flavor}</div>
+                    <div className="mt-2 space-y-0.5 text-[9px] text-slate-600">
+                      <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
+                      <div>😊 {preset.goals.happiness} happiness</div>
+                      <div>🎓 {preset.goals.education}</div>
+                      <div>🎯 {preset.goals.careerDependability} dep</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          ))}
-        </div>
-        <div className="text-center text-[10px] text-slate-500 mb-3 font-semibold">
-          Achieve <strong>all 4 goals simultaneously</strong> to win — then sleep at home to end the game.
-        </div>
-
-        {/* How to play toggle */}
-        <button
-          onClick={() => setShowHowToPlay(v => !v)}
-          className="w-full text-xs text-slate-500 border border-slate-200 rounded-xl py-2 mb-3 hover:bg-slate-50 transition flex items-center justify-center gap-1.5 shadow-sm"
-        >
-          <span>{showHowToPlay ? '▼' : '▶'}</span>
-          <span>How to Play</span>
-        </button>
-        {showHowToPlay && (
-          <div className="bg-slate-50 rounded-2xl p-3.5 mb-3 text-xs text-slate-600 border border-slate-200 space-y-1.5 shadow-inner">
-            <div className="font-bold text-slate-700 mb-1">📋 Quick Start Guide</div>
-            <div>🏠 <strong>Leasing Office</strong> — choose your first home</div>
-            <div>📚 <strong>Library</strong> — browse job listings and apply</div>
-            <div>🍔 <strong>Quick Eats</strong> — buy weekly meals (or starve!)</div>
-            <div>💼 <strong>Work</strong> at your job location to earn money</div>
-            <div>🎓 <strong>City College</strong> — take courses to advance your career</div>
-            <div>🏦 <strong>NeoBank</strong> — save money, earn interest, trade stocks</div>
-            <div className="mt-1 text-slate-400">⏱ You have 60 hours/week. When time runs out, the week ends automatically.</div>
           </div>
         )}
 
-        {/* Difficulty selection */}
-        <div className="mb-4">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Choose Difficulty</div>
-          <div className="grid grid-cols-3 gap-2">
-            {Object.entries(DIFFICULTY_PRESETS).map(([key, preset]) => {
-              const meta = DIFFICULTY_DESCRIPTIONS[key];
-              const isSelected = selectedDifficulty === key;
-              return (
+        {/* ── Step 3: Players ── */}
+        {step === 3 && (
+          <div>
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">How many players?</div>
+            <div className="grid grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map(n => (
                 <button
-                  key={key}
-                  onClick={() => setSelectedDifficulty(key)}
-                  className={`p-3 rounded-2xl border-2 text-left transition-all min-h-[48px] active:scale-95 ${isSelected
-                    ? `${meta.selectedColor} shadow-lg scale-[1.03]`
-                    : `${meta.color} hover:scale-[1.01] shadow-sm`
+                  key={n}
+                  onClick={() => setPlayerCount(n)}
+                  className={`h-20 sm:h-24 rounded-2xl border-2 font-black text-lg sm:text-xl transition-all active:scale-95 flex flex-col items-center justify-center gap-1 ${playerCount === n
+                    ? 'border-indigo-500 bg-indigo-50 shadow-md scale-[1.04]'
+                    : 'border-slate-200 bg-white hover:border-slate-400'
                   }`}
                 >
-                  <div className="text-xl mb-0.5">{meta.icon}</div>
-                  <div className="font-black text-xs">{preset.label}</div>
-                  <div className="text-[9px] text-slate-500 mt-0.5 leading-tight">{meta.flavor}</div>
-                  <div className="mt-1.5 space-y-0.5 text-[9px] text-slate-600">
-                    <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
-                    <div>😊 {preset.goals.happiness}</div>
-                    <div>🎓 {preset.goals.education}</div>
-                    <div>🎯 {preset.goals.careerDependability} dep</div>
-                  </div>
+                  <div className="text-2xl">{playerEmojis[n - 1]}</div>
+                  <div className={`text-[10px] font-bold ${playerCount === n ? 'text-indigo-600' : 'text-slate-500'}`}>{n} {n === 1 ? 'Player' : 'Players'}</div>
                 </button>
-              );
-            })}
+              ))}
+            </div>
+            <p className="text-center text-[10px] text-slate-400 mt-4">Each player takes turns on the same device.</p>
           </div>
-        </div>
+        )}
 
-        {/* Player count + emoji picker */}
-        <div className="mb-5 rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Players</div>
-          <div className="flex gap-2 mb-3">
-            {[1, 2, 3, 4].map(n => (
-              <button
-                key={n}
-                onClick={() => setPlayerCount(n)}
-                className={`flex-1 h-14 sm:h-16 rounded-2xl border-2 font-black text-base sm:text-lg transition-all active:scale-95 flex flex-col items-center justify-center ${playerCount === n
-                  ? 'border-indigo-500 bg-white shadow-md'
-                  : 'border-slate-200 bg-white hover:border-slate-400'
-                }`}
-              >
-                <div>{playerEmojis[n - 1]}</div>
-                <div className="text-[9px] font-bold text-slate-500">{n}P</div>
-              </button>
-            ))}
-          </div>
-
-          {/* Emoji pickers per player */}
-          <div className="space-y-2">
-            {Array.from({ length: playerCount }, (_, i) => (
-              <div key={i}>
-                {playerCount > 1 && (
-                  <div className="text-[10px] font-bold text-slate-400 mb-1">Player {i + 1} avatar</div>
-                )}
-                {playerCount === 1 && (
-                  <div className="text-[10px] font-bold text-slate-400 mb-1">Choose your avatar</div>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {EMOJI_OPTIONS.map(emoji => (
-                    <button
-                      key={emoji}
-                      onClick={() => setPlayerEmoji(i, emoji)}
-                      className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all active:scale-90 shadow-sm ${
-                        playerEmojis[i] === emoji
-                          ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
-                          : 'bg-white border-2 border-transparent hover:border-slate-300'
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+        {/* ── Step 4: Avatars ── */}
+        {step === 4 && (
+          <div>
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
+              {playerCount === 1 ? 'Choose your avatar' : 'Choose avatars'}
+            </div>
+            <div className="space-y-4">
+              {Array.from({ length: playerCount }, (_, i) => (
+                <div key={i} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+                  {playerCount > 1 && (
+                    <div className="text-[10px] font-bold text-slate-500 mb-2">Player {i + 1}</div>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {EMOJI_OPTIONS.map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => setPlayerEmoji(i, emoji)}
+                        className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all active:scale-90 shadow-sm ${
+                          playerEmojis[i] === emoji
+                            ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
+                            : 'bg-white border-2 border-transparent hover:border-slate-300'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Action buttons */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-7 mt-2 border-t border-slate-200 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-7">
-          <div className="mb-2 text-[10px] text-center font-semibold uppercase tracking-[0.18em] text-slate-400">Ready To Roll</div>
-          <div className="flex flex-col gap-2">
-          <button
-            onClick={handleStart}
-            className="bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base sm:text-lg py-3.5 sm:py-4 rounded-2xl shadow-[0_16px_35px_rgba(79,70,229,0.35)] transition active:scale-95 min-h-[52px]"
-          >
-            🚀 New Game — {DIFFICULTY_PRESETS[selectedDifficulty].label}{playerCount > 1 ? ` (${playerCount}P)` : ''}
-          </button>
-
-          {hasSave && (
-            <button
-              onClick={handleResume}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl shadow transition active:scale-95 min-h-[48px]"
-            >
-              ▶ Resume Saved Game
-            </button>
+        {/* ── Footer navigation ── */}
+        <div className="sticky bottom-0 -mx-4 sm:-mx-7 mt-4 border-t border-slate-200 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-7">
+          {step === 1 ? (
+            <div className="flex flex-col gap-2">
+              <div className="mb-1 text-[10px] text-center font-semibold uppercase tracking-[0.18em] text-slate-400">New Game Setup</div>
+              <button
+                onClick={() => setStep(2)}
+                className="bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base sm:text-lg py-3.5 rounded-2xl shadow-[0_16px_35px_rgba(79,70,229,0.35)] transition active:scale-95 min-h-[52px]"
+              >
+                Next: Choose Difficulty →
+              </button>
+              {hasSave && (
+                <>
+                  <button
+                    onClick={handleResume}
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl shadow transition active:scale-95 min-h-[48px]"
+                  >
+                    ▶ Resume Saved Game
+                  </button>
+                  <button
+                    onClick={resetGame}
+                    className="text-slate-400 hover:text-red-500 text-xs underline py-1"
+                  >
+                    Delete Save Data
+                  </button>
+                </>
+              )}
+            </div>
+          ) : step < 4 ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep(s => s - 1)}
+                className="flex-none px-5 py-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 font-bold text-sm hover:border-slate-400 transition active:scale-95 min-h-[48px]"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => setStep(s => s + 1)}
+                className="flex-1 bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base py-3 rounded-2xl shadow-[0_8px_20px_rgba(79,70,229,0.3)] transition active:scale-95 min-h-[48px]"
+              >
+                {step === 2 ? 'Next: Choose Players →' : 'Next: Choose Avatars →'}
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep(3)}
+                className="flex-none px-5 py-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-600 font-bold text-sm hover:border-slate-400 transition active:scale-95 min-h-[48px]"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={handleStart}
+                className="flex-1 bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base py-3 rounded-2xl shadow-[0_8px_20px_rgba(79,70,229,0.3)] transition active:scale-95 min-h-[48px]"
+              >
+                🚀 Start — {DIFFICULTY_PRESETS[selectedDifficulty].label}{playerCount > 1 ? ` (${playerCount}P)` : ''}
+              </button>
+            </div>
           )}
-
-          {hasSave && (
-            <button
-              onClick={resetGame}
-              className="text-slate-400 hover:text-red-500 text-xs underline py-1"
-            >
-              Delete Save Data
-            </button>
-          )}
-          </div>
         </div>
 
         <p className="mt-4 text-[10px] text-center text-slate-400">
