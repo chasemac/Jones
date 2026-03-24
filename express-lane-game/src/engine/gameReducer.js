@@ -8,6 +8,7 @@ import {
   LOCATION_EMPLOYER_NAME,
 } from './constants';
 import { calcShiftEarnings } from './economyModel';
+import { ringPath } from './boardModel';
 import { processPlayerWeekEnd, advanceEconomy, tickMarket, rollRandomEvent, advanceJones, buildWeekSummary } from './weekEndModel';
 import stocksData from '../data/stocks.json';
 
@@ -146,11 +147,20 @@ export const gameReducer = (state, action) => {
       const player = activePlayer(state);
       if (player.currentLocation === locationId) return state;
 
+      const path = ringPath(player.currentLocation, locationId);
       const cost = travelCost(player.currentLocation, locationId);
       const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
       const effectiveCost = Math.max(1, cost - travelBonus);
+      if (player.timeRemaining <= 0) return state;
       if (player.timeRemaining < effectiveCost) {
-        return log(state, `Not enough time to travel there (need ${effectiveCost}h, have ${player.timeRemaining}h).`);
+        const reachableSteps = Math.min(path.length, Math.max(0, player.timeRemaining + travelBonus));
+        const partialDestination = reachableSteps > 0 ? path[reachableSteps - 1] : player.currentLocation;
+        const s = updateActivePlayer(state, p => ({
+          ...p,
+          currentLocation: partialDestination,
+          timeRemaining: 0,
+        }));
+        return { ...s, awaitingEndWeek: true };
       }
 
       let s = state;

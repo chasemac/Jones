@@ -29,7 +29,6 @@ const Board = () => {
   const [floats, setFloats] = useState([]);
   const [weekFlash, setWeekFlash] = useState(false);
   const [lotteryResult, setLotteryResult] = useState(null); // {win: bool}
-  const [travelBlocked, setTravelBlocked] = useState(false);
   const [endWeekHint, setEndWeekHint] = useState(false);
   const animTimers = useRef([]);
 
@@ -183,20 +182,21 @@ const Board = () => {
       return;
     }
 
-    // Check if player can afford travel
     const travelBonus = state.player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
+    const pathToTarget = ringPath(state.player.currentLocation, id);
     const cost = Math.max(1, travelCost(state.player.currentLocation, id) - travelBonus);
-    if (state.player.timeRemaining < cost) {
-      setTravelBlocked(true);
-      setTimeout(() => setTravelBlocked(false), 1500);
-      return;
-    }
+    const canReachDestination = state.player.timeRemaining >= cost;
+    const reachableSteps = canReachDestination
+      ? pathToTarget.length
+      : Math.min(pathToTarget.length, Math.max(0, state.player.timeRemaining + travelBonus));
+    const path = pathToTarget.slice(0, reachableSteps);
+    const endsTurnAfterTravel = canReachDestination
+      ? state.player.timeRemaining - cost <= 0
+      : reachableSteps > 0;
 
-    // Clear any in-flight animation
     animTimers.current.forEach(clearTimeout);
     animTimers.current = [];
 
-    const path = ringPath(state.player.currentLocation, id);
     const STEP_MS = 300; // ms per stop
 
     setShowPanel(false);
@@ -211,14 +211,12 @@ const Board = () => {
       animTimers.current.push(t);
     });
 
-    // Dispatch actual state change immediately (reducer handles time cost)
-    travel(id);
-
-    // After animation finishes, clear override and open panel
+    // Dispatch after the animation so partial travel visually matches where the turn ends.
     const total = setTimeout(() => {
+      travel(id);
       setAnimLocation(null);
       setIsMoving(false);
-      setShowPanel(true);
+      if (!endsTurnAfterTravel) setShowPanel(true);
     }, (path.length + 1) * STEP_MS);
     animTimers.current.push(total);
   };
@@ -295,16 +293,6 @@ const Board = () => {
             <div className={`text-2xl font-black ${lotteryResult.win ? 'text-yellow-900' : 'text-white'}`}>
               {lotteryResult.win ? 'JACKPOT! +50 Happiness!' : 'Better luck next time!'}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Travel blocked toast */}
-      {travelBlocked && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-          <div className="bg-red-600/90 text-white font-black text-sm px-4 py-2 rounded-full shadow-xl"
-            style={{ animation: 'weekFlash 1.5s ease-out forwards' }}>
-            ⚡ Not enough time!
           </div>
         </div>
       )}
