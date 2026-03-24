@@ -413,7 +413,7 @@ const Board = () => {
           style={{ background: state.player?.color || '#6366f1' }}
         >
           {state.player?.emoji} {state.player?.name}'s Turn
-          <span className="text-xs font-normal opacity-75">Wk {state.week}</span>
+          <span className="text-xs font-normal opacity-75">({(state.activePlayerIndex ?? 0) + 1}/{state.players.length}) · Wk {state.week}</span>
         </div>
       )}
 
