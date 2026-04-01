@@ -5,8 +5,11 @@ export const EDUCATION_RANK = {
   'Bootcamp Certificate': 1,
   'Electrician License': 1,
   'Plumbing License': 1,
-  'Engineering Certificate': 2,
   "Associate's": 2,
+  // Top-tier trade certifications are rank 3 — equivalent to a Bachelor's.
+  // This means completing the trade path fully satisfies the Normal education goal.
+  'Engineering Certificate': 3,
+  'Master Plumber Certification': 3,
   "Bachelor's": 3,
   "Master's": 4,
   'Graduate Degree': 5,

@@ -52,6 +52,10 @@ export function processPlayerWeekEnd(player) {
       logEntries.push(`${np.name}: ${item.name} -$${item.weeklyFee}.`);
     }
   }
+  // Financial security bonus: having savings reduces stress and boosts happiness.
+  if (np.savings >= 5000) happinessDelta += 3;
+  else if (np.savings >= 2500) happinessDelta += 2;
+  else if (np.savings >= 1000) happinessDelta += 1;
   np.happiness = Math.min(100, Math.max(0, np.happiness + happinessDelta));
 
   // 3b. Dependability decay
@@ -113,11 +117,11 @@ export function processPlayerWeekEnd(player) {
     logEntries.push(`${np.name}: debt interest -$${interest}.`);
   }
 
-  // 5. Savings interest
+  // 5. Savings interest (1.5% weekly, compounding)
   if (np.savings > 0) {
-    const interest = Math.floor(np.savings * 0.01);
+    const interest = Math.floor(np.savings * 0.015);
     np.savings += interest;
-    if (interest > 0) logEntries.push(`${np.name}: savings +$${interest}.`);
+    if (interest > 0) logEntries.push(`${np.name}: savings +$${interest} interest.`);
   }
 
   // 6a. Weekly meal plans
@@ -312,7 +316,22 @@ export function rollRandomEvent(players) {
 export function advanceJones(jones, economy, currentWeek) {
   const jonesSpending = 50 + Math.floor(Math.random() * 100);
   const jonesIncome = Math.floor(jones.jobWage * 40 * (ECONOMY_WAGE_MULTIPLIER[economy] || 1));
-  const jonesMoney = jones.money + jonesIncome - jones.rent - jonesSpending;
+  const grossSurplus = jonesIncome - jones.rent - jonesSpending;
+
+  // Jones deposits 40% of any weekly surplus into savings, like a savvy competitor.
+  let jonesSavings = jones.savings ?? 0;
+  let jonesMoney = jones.money;
+  if (grossSurplus > 0) {
+    const deposit = Math.floor(grossSurplus * 0.4);
+    jonesSavings += deposit;
+    jonesMoney = jonesMoney + grossSurplus - deposit;
+  } else {
+    jonesMoney = Math.max(0, jonesMoney + grossSurplus);
+  }
+
+  // Jones earns 1.5% savings interest weekly (same rate as players)
+  const savingsInterest = Math.floor(jonesSavings * 0.015);
+  jonesSavings += savingsInterest;
 
   let newJobIndex = jones.jobIndex;
   let newWeeksAtJob = jones.weeksAtJob + 1;
@@ -330,8 +349,9 @@ export function advanceJones(jones, economy, currentWeek) {
 
   const updatedJones = {
     ...jones,
-    money: Math.max(0, jonesMoney),
-    netWorth: Math.max(0, jonesMoney),
+    money: jonesMoney,
+    savings: jonesSavings,
+    netWorth: jonesMoney + jonesSavings,
     currentLocation: LOCATION_ORDER[Math.floor(Math.random() * LOCATION_ORDER.length)],
     happiness: Math.min(100, Math.max(10, jones.happiness + jonesHappyDelta)),
     education: nextEdu ? nextEdu.degree : jones.education,

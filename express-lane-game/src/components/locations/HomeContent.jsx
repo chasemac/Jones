@@ -105,7 +105,7 @@ const HomeContent = ({ state, actions }) => {
             const rent = player.housing?.rent ?? 0;
             const weeklyFees = player.inventory.reduce((sum, i) => sum + (i.weeklyFee || 0), 0);
             const debtInterest = player.debt > 0 ? Math.floor(player.debt * 0.05) : 0;
-            const savingsInterest = player.savings > 0 ? Math.floor(player.savings * 0.01) : 0;
+            const savingsInterest = player.savings > 0 ? Math.floor(player.savings * 0.015) : 0;
             const totalOut = rent + weeklyFees + debtInterest;
             const totalIn = savingsInterest;
             return (
