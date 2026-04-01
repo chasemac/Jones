@@ -11,9 +11,9 @@ const EMOJI_OPTIONS = [
 const DEFAULT_EMOJIS = ['😎', '🤠', '🥸', '🧑‍🚀'];
 
 const DIFFICULTY_DESCRIPTIONS = {
-  easy:   { icon: '🌱', flavor: 'Chill grind. Good for learning the ropes.', color: 'border-green-400 bg-green-50', selectedColor: 'border-green-500 bg-green-100 shadow-green-200' },
-  normal: { icon: '⚡', flavor: 'The classic experience. Work hard, study harder.', color: 'border-indigo-300 bg-indigo-50', selectedColor: 'border-indigo-500 bg-indigo-100 shadow-indigo-200' },
-  hard:   { icon: '🔥', flavor: "Brutal. You need a Master's and a corner office.", color: 'border-red-300 bg-red-50', selectedColor: 'border-red-500 bg-red-100 shadow-red-200' },
+  easy:   { icon: '🌱', flavor: 'Chill grind. Good for learning the ropes.', color: 'border-green-400 bg-green-50', selectedColor: 'border-green-500 bg-green-100 shadow-green-200', educationLabel: "Associate's" },
+  normal: { icon: '⚡', flavor: 'The classic experience. Work hard, study harder.', color: 'border-indigo-300 bg-indigo-50', selectedColor: 'border-indigo-500 bg-indigo-100 shadow-indigo-200', educationLabel: "Bachelor's or Master Trade" },
+  hard:   { icon: '🔥', flavor: "Brutal. You need a Master's and a corner office.", color: 'border-red-300 bg-red-50', selectedColor: 'border-red-500 bg-red-100 shadow-red-200', educationLabel: "Master's Degree" },
 };
 
 const HOW_TO_WIN = [
@@ -166,7 +166,7 @@ const StartScreen = () => {
                     <div className="mt-2 space-y-0.5 text-[9px] text-slate-600">
                       <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
                       <div>😊 {preset.goals.happiness} happiness</div>
-                      <div>🎓 {preset.goals.education}</div>
+                      <div>🎓 {meta.educationLabel}</div>
                       <div>🎯 {preset.goals.careerDependability} dep</div>
                     </div>
                   </button>

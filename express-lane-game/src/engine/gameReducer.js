@@ -61,6 +61,7 @@ export const buildInitialState = (difficulty = 'normal', playerCount = 1, player
     players,
     jones: {
       money: preset.startingMoney + 4000,
+      savings: 0,
       happiness: 55,
       education: 'High School',
       jobIndex: 0,

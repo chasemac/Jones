@@ -30,15 +30,15 @@ const NeoBankContent = ({ state, actions }) => {
           </div>
         </div>
         <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
-          <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1%/wk)</div>
+          <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1.5%/wk)</div>
           <div className="text-2xl font-mono">${player.savings.toLocaleString()}</div>
           {player.savings > 0 ? (
             <div>
-              <div className="text-[10px] text-green-600 font-semibold">+${Math.round(player.savings * 0.01).toLocaleString()} next week</div>
-              <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * Math.pow(1.01, 52) - player.savings).toLocaleString()} interest in 52 wks</div>
+              <div className="text-[10px] text-green-600 font-semibold">+${Math.round(player.savings * 0.015).toLocaleString()} next week</div>
+              <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * Math.pow(1.015, 52) - player.savings).toLocaleString()} interest in 52 wks</div>
             </div>
           ) : (
-            <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1%/wk interest — compounds weekly!</div>
+            <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1.5%/wk — Jones banks his surplus every week!</div>
           )}
           <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Deposit</div>
           <div className="grid grid-cols-4 gap-1 mb-1">

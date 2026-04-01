@@ -68,12 +68,22 @@
   },
   {
     "id": "engineering_cert",
-    "title": "Engineering Certificate",
+    "title": "Master Electrician Cert",
     "type": "trade",
     "cost": 3000,
     "totalHours": 100,
     "degree": "Engineering Certificate",
-    "description": "Advanced trade skills. Unlocks high-wage trade jobs.",
+    "description": "Top-tier trade credential. Equivalent to a Bachelor's for licensing and career goals. Unlocks Master Electrician.",
     "requirements": { "education": "Electrician License" }
+  },
+  {
+    "id": "master_plumber_cert",
+    "title": "Master Plumber Cert",
+    "type": "trade",
+    "cost": 2500,
+    "totalHours": 90,
+    "degree": "Master Plumber Certification",
+    "description": "Top-tier plumbing credential. Equivalent to a Bachelor's for licensing and career goals. Unlocks Master Plumber.",
+    "requirements": { "education": "Plumbing License" }
   }
 ]
