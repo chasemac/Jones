@@ -15,9 +15,9 @@ import {
 } from './locations';
 
 const Board = () => {
-  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, dismissEvent, dismissWeekSummary, dismissHungerWarning, dismissClothingWarning, toggleMute, rest, readBook } = useGame();
+  const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, rideHome, dismissEvent, dismissWeekSummary, dismissHungerWarning, dismissClothingWarning, toggleMute, rest, readBook } = useGame();
 
-  const actions = { travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, toggleMute, rest, readBook };
+  const actions = { travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, rideHome, toggleMute, rest, readBook };
 
   const [showPanel, setShowPanel] = useState(true);
   const [notification, setNotification] = useState(null);
@@ -423,11 +423,28 @@ const Board = () => {
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
       {/* Location panel */}
-      {showPanel && !isMoving && (
-        <LocationPanel locationId={state.player.currentLocation} player={state.player} onClose={() => setShowPanel(false)}>
-          {renderPanelContent(state.player.currentLocation)}
-        </LocationPanel>
-      )}
+      {showPanel && !isMoving && (() => {
+        const { player } = state;
+        const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
+        const isAtHomeBase = ['home', 'leasing_office'].includes(player.currentLocation);
+        const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
+        const rawStepsToHome = travelCost(player.currentLocation, homeTarget);
+        const effectiveStepsToHome = Math.max(1, rawStepsToHome - travelBonus);
+        const isStranded = !isAtHomeBase && player.timeRemaining < effectiveStepsToHome && !state.awaitingEndWeek;
+        const rideFare = 15 + rawStepsToHome * 8;
+        return (
+          <LocationPanel
+            locationId={player.currentLocation}
+            player={player}
+            onClose={() => setShowPanel(false)}
+            isStranded={isStranded}
+            rideFare={rideFare}
+            onRideHome={() => { rideHome(); setShowPanel(false); }}
+          >
+            {renderPanelContent(player.currentLocation)}
+          </LocationPanel>
+        );
+      })()}
 
       {/* Floating money popups */}
       {floats.map(f => (

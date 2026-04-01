@@ -128,6 +128,7 @@ export const GameProvider = ({ children }) => {
     buyStock: (symbol, quantity) => { playSound('coin'); dispatch({ type: 'BUY_STOCK', symbol, quantity }); },
     sellStock: (symbol, quantity) => dispatch({ type: 'SELL_STOCK', symbol, quantity }),
     sellStockAll: (symbol) => dispatch({ type: 'SELL_STOCK_ALL', symbol }),
+    rideHome: () => { playSound('error'); dispatch({ type: 'RIDE_HOME' }); },
     endWeek: () => dispatch({ type: 'END_WEEK' }),
     dismissEvent: () => dispatch({ type: 'DISMISS_EVENT' }),
     dismissWeekSummary: () => dispatch({ type: 'DISMISS_WEEK_SUMMARY' }),
