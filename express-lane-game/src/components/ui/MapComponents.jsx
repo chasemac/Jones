@@ -164,7 +164,7 @@ export const FloatingMoney = ({ amount, onDone }) => {
   );
 };
 
-export const LocationPanel = ({ locationId, player, children, onClose }) => {
+export const LocationPanel = ({ locationId, player, children, onClose, isStranded, rideFare, onRideHome }) => {
   const config = LOCATIONS_CONFIG[locationId];
   if (!config) return null;
   const isWorkplace = player?.job?.location === locationId;
@@ -173,7 +173,26 @@ export const LocationPanel = ({ locationId, player, children, onClose }) => {
   return (
     <div className="absolute inset-x-2 sm:inset-x-4 top-3 bottom-[8.5rem] sm:bottom-[8rem] bg-white/96 border-4 rounded-[1.75rem] shadow-[0_24px_60px_rgba(15,23,42,0.35)] z-20 flex flex-col overflow-hidden backdrop-blur"
       style={{ borderColor: config.color }}>
-      {isLowTime && !isAtHome && (
+      {isStranded && !isAtHome && (
+        <div className="bg-amber-500 text-white px-3 py-2 flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="text-[10px] font-black">
+              🚖 Stranded! Only {player.timeRemaining}h left — not enough to walk home.
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={onRideHome}
+                className="bg-white text-amber-700 font-black text-[10px] px-3 py-1.5 rounded-full shadow active:scale-95 transition whitespace-nowrap"
+              >
+                🚗 Ride Home — ${rideFare}
+              </button>
+              <button onClick={onClose} className="text-white/80 underline text-[9px] whitespace-nowrap">walk it →</button>
+            </div>
+          </div>
+          <div className="text-[9px] text-amber-100 mt-0.5">−3 dependability · −2 happiness · ends your week</div>
+        </div>
+      )}
+      {!isStranded && isLowTime && !isAtHome && (
         <div className="bg-red-600 text-white text-[10px] font-black text-center py-1.5 px-2 animate-pulse flex items-center justify-center gap-2 flex-shrink-0">
           ⚡ Only {player.timeRemaining}h left — go home and sleep!
           <button onClick={onClose} className="underline font-black ml-1">Back to map →</button>

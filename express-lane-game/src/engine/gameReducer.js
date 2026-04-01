@@ -715,6 +715,24 @@ export const gameReducer = (state, action) => {
       return s;
     }
 
+    // ── Ride Home (stranded escape hatch) ────────────────────────────────────
+    case 'RIDE_HOME': {
+      const player = activePlayer(state);
+      const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
+      const steps = travelCost(player.currentLocation, homeTarget);
+      const fare = 15 + steps * 8;
+      let s = log(state, `🚗 Called a ride home — $${fare} fare. -3 dependability, -2 happiness.`);
+      s = updateActivePlayer(s, p => ({
+        ...p,
+        money: Math.max(0, p.money - fare),
+        dependability: Math.max(0, p.dependability - 3),
+        happiness: Math.max(0, p.happiness - 2),
+        currentLocation: homeTarget,
+        timeRemaining: 0,
+      }));
+      return { ...s, awaitingEndWeek: true };
+    }
+
     // ── End Week ──────────────────────────────────────────────────────────────
     case 'END_WEEK': {
       let s = { ...state, awaitingEndWeek: false };
