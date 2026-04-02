@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
+import React, { Component, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { LOCATION_ORDER, travelCost } from '../engine/constants';
 import { getNextPromotion, getJobLocation } from '../engine/jobModel';
@@ -13,6 +13,26 @@ import {
   BlacksMarketContent, CityCollegeContent, TechStoreContent,
   NeoBankContent, HomeContent, LeasingOfficeContent,
 } from './locations';
+
+class BoardErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/95 p-6">
+          <div className="text-center max-w-sm">
+            <div className="text-4xl mb-2">😵</div>
+            <h2 className="text-lg font-black text-red-600 mb-2">Something went wrong</h2>
+            <p className="text-sm text-slate-600 mb-4">{this.state.error?.message}</p>
+            <button onClick={() => this.setState({ error: null })} className="bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl text-sm">Try Again</button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const Board = () => {
   const { state, travel, applyForJob, work, workOvertime, partTimeWork, gigWork, network, buyItem, sellItem, enroll, study, rentApartment, bankTransaction, buyStock, sellStock, sellStockAll, endWeek, rideHome, dismissEvent, dismissWeekSummary, dismissHungerWarning, dismissClothingWarning, toggleMute, rest, readBook } = useGame();
@@ -52,7 +72,11 @@ const Board = () => {
 
   const animateEndWeek = useEffectEvent((from, home) => {
     if (from === home) {
+      // Already at home — end week immediately and ensure panel shows
       endWeek();
+      setShowPanel(true);
+      setIsMoving(false);
+      setAnimLocation(null);
       return;
     }
 
@@ -73,6 +97,7 @@ const Board = () => {
     const done = setTimeout(() => {
       setAnimLocation(null);
       setIsMoving(false);
+      setShowPanel(true);
       endWeek();
     }, (path.length + 1) * STEP_MS);
     animTimers.current.push(done);
@@ -87,11 +112,16 @@ const Board = () => {
     }
   }, [state.lastJobResult]);
 
-  // Flash on end week
+  // Flash on end week and fully reset UI for the new week
   const prevWeek = useRef(state.week);
   useEffect(() => {
     if (state.week !== prevWeek.current) {
       flashWeekChange();
+      setShowPanel(true);
+      setIsMoving(false);
+      setAnimLocation(null);
+      animTimers.current.forEach(clearTimeout);
+      animTimers.current = [];
       prevWeek.current = state.week;
     }
   }, [state.week]);
@@ -112,6 +142,11 @@ const Board = () => {
     const from = state.player.currentLocation;
     const home = state.player.hasChosenHousing ? 'home' : 'leasing_office';
     animateEndWeek(from, home);
+
+    return () => {
+      animTimers.current.forEach(clearTimeout);
+      animTimers.current = [];
+    };
   }, [state.awaitingEndWeek, state.player.currentLocation, state.player.hasChosenHousing]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
@@ -241,6 +276,7 @@ const Board = () => {
 
   return (
     <div className="relative w-full flex-1 lg:flex-none overflow-hidden border-[3px] border-slate-900/90 bg-[linear-gradient(180deg,#cdeeff_0%,#dff7ff_32%,#eefbf5_100%)] shadow-[0_30px_80px_rgba(15,23,42,0.45)] select-none lg:h-[min(720px,_calc(100dvh-2rem))] xl:h-[min(780px,_calc(100dvh-2rem))] lg:rounded-[1.75rem]">
+      <BoardErrorBoundary>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.7),transparent_32%),linear-gradient(180deg,transparent,rgba(15,23,42,0.08))]" />
 
       {/* CSS keyframes injected once */}
@@ -422,8 +458,8 @@ const Board = () => {
       <RingTips player={state.player} week={state.week} />
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
-      {/* Location panel */}
-      {showPanel && !isMoving && (() => {
+      {/* Location panel — hidden during end-week animation */}
+      {showPanel && !isMoving && !state.awaitingEndWeek && (() => {
         const { player } = state;
         const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
         const isAtHomeBase = ['home', 'leasing_office'].includes(player.currentLocation);
@@ -439,7 +475,7 @@ const Board = () => {
             onClose={() => setShowPanel(false)}
             isStranded={isStranded}
             rideFare={rideFare}
-            onRideHome={() => { rideHome(); setShowPanel(false); }}
+            onRideHome={() => { rideHome(); endWeek(); }}
           >
             {renderPanelContent(player.currentLocation)}
           </LocationPanel>
@@ -504,6 +540,7 @@ const Board = () => {
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {state.history?.[0] || ''}
       </div>
+      </BoardErrorBoundary>
     </div>
   );
 };
