@@ -30,7 +30,7 @@ export const getEducationProgress = (playerEdu, goalEdu) => {
 };
 
 // Shared net-worth formula used across HUD, Goals, Victory, Header
-export const calculateNetWorth = (player) => player.money + player.savings - player.debt;
+export const calculateNetWorth = (player) => player.money + player.savings - player.debt + (player.housingEquity || 0);
 
 // Deposit required when upgrading housing (2 weeks of new rent; 0 for downgrades)
 export const calculateDeposit = (newRent, currentRent) => (newRent > currentRent ? newRent * 2 : 0);

@@ -35,6 +35,7 @@ export const buildPlayer = (index, startingMoney, emoji) => ({
   savings: 0,
   debt: 0,
   hunger: 0,
+  housingEquity: 0,
   portfolio: {},
   currentCourse: null,
   inventory: [],
@@ -134,12 +135,12 @@ export const gameReducer = (state, action) => {
     // ── Game lifecycle ────────────────────────────────────────────────────────
     case 'INIT_GAME': {
       const s = buildInitialState(action.difficulty, action.playerCount || 1, action.playerEmojis);
-      return { ...s, weekStartSnapshot: s.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt })) };
+      return { ...s, weekStartSnapshot: s.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt, housingEquity: p.housingEquity || 0 })) };
     }
 
     case 'START_GAME': {
       // Snapshot player state at week start for accurate weekly net-worth delta
-      return { ...state, gameStatus: 'playing', weekStartSnapshot: state.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt })) };
+      return { ...state, gameStatus: 'playing', weekStartSnapshot: state.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt, housingEquity: p.housingEquity || 0 })) };
     }
 
     // ── Travel ────────────────────────────────────────────────────────────────
@@ -748,7 +749,7 @@ export const gameReducer = (state, action) => {
 
       // ── All players done — process the week for everyone ──────────────────
       const updatedPlayers = s.players.map((p) => {
-        const { player: np, logEntries } = processPlayerWeekEnd(p);
+        const { player: np, logEntries } = processPlayerWeekEnd(p, s.week);
         logEntries.forEach(msg => { s = log(s, msg); });
         return np;
       });
@@ -806,7 +807,7 @@ export const gameReducer = (state, action) => {
     // ── Dismiss week summary modal ────────────────────────────────────────────
     case 'DISMISS_WEEK_SUMMARY': {
       // Snapshot current player state as the new week's baseline for net-worth delta
-      const snapshot = state.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt }));
+      const snapshot = state.players.map(p => ({ name: p.name, money: p.money, savings: p.savings, debt: p.debt, housingEquity: p.housingEquity || 0 }));
       return { ...state, weekSummary: null, weekStartSnapshot: snapshot };
     }
 

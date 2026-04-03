@@ -47,6 +47,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
               {deposit > 0 && <div className="flex justify-between text-orange-600 font-bold"><span>Security deposit:</span><span className="font-mono">-${deposit}</span></div>}
               <div className="flex justify-between"><span>Happiness effect:</span><span className="font-bold">{h.happiness > 0 ? `+${h.happiness}/wk` : h.happiness < 0 ? `${h.happiness}/wk` : 'None'}</span></div>
               <div className="flex justify-between"><span>Security:</span><span className="font-bold">{h.security}</span></div>
+              {(h.equityPerWeek || 0) > 0 && <div className="flex justify-between text-emerald-600"><span>Equity built:</span><span className="font-bold">+${h.equityPerWeek}/wk</span></div>}
             </div>
             <div className="flex gap-2">
               <button
@@ -93,6 +94,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
                     {h.title}
                     {isCurrent && <span className="text-[9px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-black">CURRENT</span>}
                     {h.happiness > 0 && <span className="text-[9px] bg-yellow-100 text-yellow-700 px-1 rounded">+{h.happiness} 😊/wk</span>}
+                    {(h.equityPerWeek || 0) > 0 && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1 rounded">+${h.equityPerWeek} 🏠/wk</span>}
                     {!isCurrent && (() => {
                       const currentHappy = player.housing?.happiness ?? 0;
                       const delta = h.happiness - currentHappy;
@@ -101,6 +103,7 @@ const LeasingOfficeContent = ({ state, actions, onMoveIn }) => {
                     })()}
                   </div>
                   <div className="text-[10px] text-slate-400 mt-0.5">{h.description}</div>
+                  {h.id === 'moms_basement' && <div className="text-[10px] text-red-400 mt-0.5 font-bold">⚠️ Happiness penalty grows each week!</div>}
                   {deposit > 0 && !isCurrent && (
                     <div className={`text-[10px] mt-0.5 font-bold ${canAfford ? 'text-orange-600' : 'text-red-600'}`}>
                       {canAfford ? `Deposit: $${deposit}` : `Need $${(deposit - player.money).toFixed(0)} more for deposit`}

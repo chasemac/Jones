@@ -6,6 +6,7 @@
     "rent": 0,
     "happiness": -5,
     "security": "High",
+    "equityPerWeek": 0,
     "description": "Free, but your soul dies a little every day."
   },
   {
@@ -13,8 +14,9 @@
     "title": "Shared Apartment",
     "homeType": "apartment",
     "rent": 200,
-    "happiness": 0,
+    "happiness": 2,
     "security": "Low",
+    "equityPerWeek": 0,
     "description": "Cheap, but your roommate eats your food."
   },
   {
@@ -22,17 +24,19 @@
     "title": "Studio Apartment",
     "homeType": "apartment",
     "rent": 500,
-    "happiness": 5,
+    "happiness": 8,
     "security": "Medium",
-    "description": "Your own space. Finally."
+    "equityPerWeek": 50,
+    "description": "Your own space. Finally. Builds equity!"
   },
   {
     "id": "luxury_condo",
     "title": "Luxury Condo",
     "homeType": "luxury_condo",
     "rent": 1200,
-    "happiness": 15,
+    "happiness": 18,
     "security": "High",
-    "description": "Doorman, gym, and no rats."
+    "equityPerWeek": 150,
+    "description": "Doorman, gym, and no rats. Premium equity."
   }
 ]

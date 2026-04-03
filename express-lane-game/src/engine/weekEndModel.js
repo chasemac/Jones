@@ -20,7 +20,7 @@ const BASE_MAX_TIME = 60;
  * Process a single player's end-of-week upkeep.
  * Returns { player, logEntries } with the mutated player copy and log messages.
  */
-export function processPlayerWeekEnd(player) {
+export function processPlayerWeekEnd(player, currentWeek) {
   const np = { ...player };
   const logEntries = [];
 
@@ -44,6 +44,16 @@ export function processPlayerWeekEnd(player) {
   // 3. Happiness
   let happinessDelta = -3;
   happinessDelta += np.housing.happiness || 0;
+
+  // Mom's Basement penalty grows over time — staying too long gets more depressing
+  if (np.housing.id === 'moms_basement' && currentWeek > 1) {
+    const extraPenalty = Math.min(10, Math.floor((currentWeek - 1) / 3));
+    if (extraPenalty > 0) {
+      happinessDelta -= extraPenalty;
+      logEntries.push(`${np.name}: living at Mom's is getting old... (-${extraPenalty} extra happiness)`);
+    }
+  }
+
   if (np.job) happinessDelta += 2; else happinessDelta -= 3;
   for (const item of np.inventory) {
     if (item.weeklyHappinessBoost) happinessDelta += item.weeklyHappinessBoost;
@@ -57,6 +67,13 @@ export function processPlayerWeekEnd(player) {
   else if (np.savings >= 2500) happinessDelta += 2;
   else if (np.savings >= 1000) happinessDelta += 1;
   np.happiness = Math.min(100, Math.max(0, np.happiness + happinessDelta));
+
+  // 3f. Housing equity — paid housing builds equity over time
+  const equityGain = np.housing.equityPerWeek || 0;
+  if (equityGain > 0) {
+    np.housingEquity = (np.housingEquity || 0) + equityGain;
+    logEntries.push(`${np.name}: housing equity +$${equityGain} (total: $${np.housingEquity}).`);
+  }
 
   // 3b. Dependability decay
   let depDelta = -3;
@@ -372,8 +389,8 @@ export function buildWeekSummary(week, updatedPlayers, weekStartSnapshot, fallba
     week,
     lines: updatedPlayers.map(p => {
       const old = (weekStartSnapshot || []).find(op => op.name === p.name) || fallbackPlayers.find(op => op.name === p.name);
-      const oldNetWorth = (old?.money ?? 0) + (old?.savings ?? 0) - (old?.debt ?? 0);
-      const newNetWorth = p.money + p.savings - p.debt;
+      const oldNetWorth = (old?.money ?? 0) + (old?.savings ?? 0) - (old?.debt ?? 0) + (old?.housingEquity ?? 0);
+      const newNetWorth = p.money + p.savings - p.debt + (p.housingEquity || 0);
       return {
         emoji: p.emoji,
         name: p.name,

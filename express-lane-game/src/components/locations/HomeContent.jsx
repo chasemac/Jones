@@ -72,6 +72,8 @@ const HomeContent = ({ state, actions }) => {
             <span>🔒 {player.housing?.security ?? 'High'} security</span>
             {hasHotTub && <span>🛁 Hot tub</span>}
             {player.job && <span className="text-green-600 font-bold">💰 ~${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}/shift</span>}
+            {(player.housing?.equityPerWeek || 0) > 0 && <span className="text-emerald-600 font-bold">🏠 +${player.housing.equityPerWeek}/wk equity</span>}
+            {(player.housingEquity || 0) > 0 && <span className="text-emerald-700 font-bold">📈 ${player.housingEquity} equity</span>}
           </div>
         </div>
 
@@ -82,6 +84,7 @@ const HomeContent = ({ state, actions }) => {
             <span className={`font-bold ${player.money >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(player.money).toLocaleString()}</span>
             <span className="text-slate-500">💾 Saved:</span>
             <span className="font-bold text-indigo-600">${Math.round(player.savings).toLocaleString()}</span>
+            {(player.housingEquity || 0) > 0 && <><span className="text-slate-500">🏠 Equity:</span><span className="font-bold text-emerald-600">${Math.round(player.housingEquity).toLocaleString()}</span></>}
             {player.debt > 0 && <><span className="text-slate-500">⚠️ Debt:</span><span className="font-bold text-red-500">-${Math.round(player.debt).toLocaleString()}</span></>}
             <span className="text-slate-500">⏱ Time left:</span>
             <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
