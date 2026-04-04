@@ -1,7 +1,7 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
-import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth, CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
@@ -9,6 +9,7 @@ import stocksData from '../../data/stocks.json';
 
 const NeoBankContent = ({ state, actions }) => {
   const { player } = state;
+  const perk = CAREER_PERKS.neobank;
   const [customRepay, setCustomRepay] = React.useState('');
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = calculateNetWorth(player);
@@ -18,6 +19,13 @@ const NeoBankContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="sm:col-span-2"><JobsHereCard locationId="neobank" player={player} actions={actions} /></div>
+      {isBankEmployee && (
+        <div className="sm:col-span-2 bg-indigo-50 border border-indigo-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
+          <span>{perk.icon}</span>
+          <span className="font-bold text-indigo-800">{perk.label}:</span>
+          <span className="text-indigo-700">{perk.desc}</span>
+        </div>
+      )}
       <div className="space-y-3">
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1">Banking</h3>
         <div className="bg-slate-50 rounded p-2 border border-slate-200">
@@ -30,16 +38,22 @@ const NeoBankContent = ({ state, actions }) => {
           </div>
         </div>
         <div className="bg-indigo-50 p-3 rounded border border-indigo-100">
-          <div className="text-xs font-bold text-indigo-700 mb-1">Savings (1.5%/wk)</div>
-          <div className="text-2xl font-mono">${player.savings.toLocaleString()}</div>
-          {player.savings > 0 ? (
-            <div>
-              <div className="text-[10px] text-green-600 font-semibold">+${Math.round(player.savings * 0.015).toLocaleString()} next week</div>
-              <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * Math.pow(1.015, 52) - player.savings).toLocaleString()} interest in 52 wks</div>
-            </div>
-          ) : (
-            <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn 1.5%/wk — Jones banks his surplus every week!</div>
-          )}
+          {(() => {
+            const rate = isBankEmployee ? perk.savingsRate : 0.015;
+            const ratePct = (rate * 100).toFixed(1);
+            return (<>
+              <div className="text-xs font-bold text-indigo-700 mb-1">Savings ({ratePct}%/wk){isBankEmployee ? <span className="text-emerald-600 ml-1">Insider rate!</span> : ''}</div>
+              <div className="text-2xl font-mono">${player.savings.toLocaleString()}</div>
+              {player.savings > 0 ? (
+                <div>
+                  <div className="text-[10px] text-green-600 font-semibold">+${Math.round(player.savings * rate).toLocaleString()} next week</div>
+                  <div className="text-[9px] text-indigo-400 mb-2">≈ ${Math.round(player.savings * Math.pow(1 + rate, 52) - player.savings).toLocaleString()} interest in 52 wks</div>
+                </div>
+              ) : (
+                <div className="text-[10px] text-indigo-400 mb-2 italic">Deposit to earn {ratePct}%/wk — Jones banks his surplus every week!</div>
+              )}
+            </>);
+          })()}
           <div className="text-[9px] text-indigo-500 mb-1 font-semibold uppercase tracking-wide">Deposit</div>
           <div className="grid grid-cols-4 gap-1 mb-1">
             {AMOUNTS.map(amt => (

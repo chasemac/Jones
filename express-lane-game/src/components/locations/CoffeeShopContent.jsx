@@ -1,6 +1,7 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
+import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
@@ -8,6 +9,7 @@ import itemsData from '../../data/items.json';
 const CoffeeShopContent = ({ state, actions }) => {
   const { player, economy } = state;
   const isServiceEmployee = player.job?.location === 'coffee_shop';
+  const perk = CAREER_PERKS.coffee_shop;
   const espressoPrice = adjustedPrice(5, economy);
   const pastryPrice = adjustedPrice(8, economy);
   const coffeeWeeklyPlans = itemsData.filter(i => i.type === 'weekly_coffee');
@@ -15,6 +17,13 @@ const CoffeeShopContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="sm:col-span-2"><JobsHereCard locationId="coffee_shop" player={player} actions={actions} /></div>
+      {isServiceEmployee && (
+        <div className="sm:col-span-2 bg-amber-50 border border-amber-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
+          <span>{perk.icon}</span>
+          <span className="font-bold text-amber-800">{perk.label}:</span>
+          <span className="text-amber-700">{perk.desc}</span>
+        </div>
+      )}
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">☕ Weekly Plans</h3>
         <p className="text-[10px] text-slate-500 mb-2">Covers your coffee for the whole week — auto-applied at week's end. Reduces hunger by 12.</p>

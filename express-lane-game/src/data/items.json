@@ -78,8 +78,9 @@
     "name": "Smart Watch",
     "cost": 300,
     "type": "electronics",
+    "travelBonus": 1,
     "weeklyHappinessBoost": 5,
-    "effect": "+5 Happiness/week"
+    "effect": "-1h travel time, +5 Happiness/week"
   },
   {
     "id": "streaming_sub",
@@ -163,5 +164,14 @@
     "travelBonus": 2,
     "weeklyFee": 60,
     "effect": "Travel costs 2 fewer hours; -$60/week gas"
+  },
+  {
+    "id": "reliable_car",
+    "name": "Reliable Car",
+    "cost": 5000,
+    "type": "vehicle",
+    "travelBonus": 3,
+    "weeklyFee": 80,
+    "effect": "Travel costs 3 fewer hours; -$80/week gas & insurance"
   }
 ]

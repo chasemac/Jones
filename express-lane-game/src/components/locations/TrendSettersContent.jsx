@@ -1,6 +1,7 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
+import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
@@ -8,6 +9,7 @@ import itemsData from '../../data/items.json';
 const TrendSettersContent = ({ state, actions }) => {
   const { player, economy } = state;
   const isTrendsettersEmployee = player.job?.location === 'trendsetters';
+  const perk = CAREER_PERKS.trendsetters;
   const clothing = itemsData.filter(i => i.type === 'clothing');
   const ownedClothing = clothing.filter(c => player.inventory.find(i => i.id === c.id));
   const wornItems = ownedClothing.map(c => ({ ...c, ...player.inventory.find(i => i.id === c.id) }));
@@ -16,6 +18,13 @@ const TrendSettersContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="sm:col-span-2"><JobsHereCard locationId="trendsetters" player={player} actions={actions} /></div>
+      {isTrendsettersEmployee && (
+        <div className="sm:col-span-2 bg-pink-50 border border-pink-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
+          <span>{perk.icon}</span>
+          <span className="font-bold text-pink-800">{perk.label}:</span>
+          <span className="text-pink-700">{perk.desc}</span>
+        </div>
+      )}
       {isTrendsettersEmployee && (
         <div className="sm:col-span-2">
           <h3 className="font-bold text-sm border-b border-pink-300 pb-1 mb-2">👗 Staff Shift <EconomyWageBadge economy={economy} /></h3>
@@ -79,10 +88,11 @@ const TrendSettersContent = ({ state, actions }) => {
         </div>
       )}
       <div>
-        <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">👗 Clothing</h3>
+        <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">👗 Clothing{isTrendsettersEmployee ? <span className="text-[9px] bg-pink-100 text-pink-600 px-1 rounded ml-1 font-normal">20% staff discount!</span> : ''}</h3>
         {clothing.map(item => {
           const owned = player.inventory.find(i => i.id === item.id);
-          const price = adjustedPrice(item.cost, economy);
+          const basePrice = adjustedPrice(item.cost, economy);
+          const price = isTrendsettersEmployee ? Math.floor(basePrice * (1 - perk.clothingDiscount)) : basePrice;
           const wear = owned?.clothingWear;
           return (
             <button
@@ -117,11 +127,12 @@ const TrendSettersContent = ({ state, actions }) => {
         })}
       </div>
       <div>
-        <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">🚗 Vehicles</h3>
+        <h3 className="font-bold text-sm border-b border-pink-200 pb-1 mb-2">🚗 Vehicles{isTrendsettersEmployee ? <span className="text-[9px] bg-pink-100 text-pink-600 px-1 rounded ml-1 font-normal">20% off!</span> : ''}</h3>
         {itemsData.filter(i => i.type === 'vehicle').map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
           const hasVehicle = player.inventory.some(i => i.type === 'vehicle');
-          const price = adjustedPrice(item.cost, economy);
+          const basePrice = adjustedPrice(item.cost, economy);
+          const price = isTrendsettersEmployee ? Math.floor(basePrice * (1 - perk.clothingDiscount)) : basePrice;
           return (
             <button
               key={item.id}

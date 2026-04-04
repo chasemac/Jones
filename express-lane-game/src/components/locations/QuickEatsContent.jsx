@@ -1,18 +1,27 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
+import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
 
 const QuickEatsContent = ({ state, actions }) => {
   const { player, economy } = state;
+  const perk = CAREER_PERKS.quick_eats;
   const hasPhone = player.inventory.some(i => i.id === 'smartphone');
   const weeklyMeals = itemsData.filter(i => i.type === 'weekly_meal');
   const storedMeal = player.inventory.find(i => i.type === 'weekly_meal');
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       <div className="sm:col-span-2"><JobsHereCard locationId="quick_eats" player={player} actions={actions} /></div>
+      {player.job?.location === 'quick_eats' && (
+        <div className="sm:col-span-2 bg-orange-50 border border-orange-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
+          <span>{perk.icon}</span>
+          <span className="font-bold text-orange-800">{perk.label}:</span>
+          <span className="text-orange-700">{perk.desc}</span>
+        </div>
+      )}
       {/* Hunger status bar */}
       <div className="sm:col-span-2">
         <div className="flex items-center gap-2 p-2 rounded-xl border bg-orange-50 border-orange-200">

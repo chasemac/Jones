@@ -10,6 +10,7 @@ import {
   LOCATION_ORDER,
   JONES_CAREER_TRACK,
   JONES_EDUCATION_TRACK,
+  CAREER_PERKS,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
@@ -66,17 +67,31 @@ export function processPlayerWeekEnd(player, currentWeek) {
   if (np.savings >= 5000) happinessDelta += 3;
   else if (np.savings >= 2500) happinessDelta += 2;
   else if (np.savings >= 1000) happinessDelta += 1;
+
+  // Career perk: Coffee Shop networking gives weekly happiness + dependability
+  const jobLoc = np.job?.location;
+  const perk = jobLoc ? CAREER_PERKS[jobLoc] : null;
+  if (perk?.weeklyHappiness) {
+    happinessDelta += perk.weeklyHappiness;
+  }
+
   np.happiness = Math.min(100, Math.max(0, np.happiness + happinessDelta));
 
   // 3f. Housing equity — paid housing builds equity over time
-  const equityGain = np.housing.equityPerWeek || 0;
+  const baseEquity = np.housing.equityPerWeek || 0;
+  // Trade worker perk: handy skills boost equity growth
+  const equityMult = (jobLoc === 'public_library' && perk?.equityMultiplier) ? perk.equityMultiplier : 1;
+  const equityGain = Math.floor(baseEquity * equityMult);
   if (equityGain > 0) {
     np.housingEquity = (np.housingEquity || 0) + equityGain;
-    logEntries.push(`${np.name}: housing equity +$${equityGain} (total: $${np.housingEquity}).`);
+    const bonusNote = equityMult > 1 ? ` (${perk.label} bonus!)` : '';
+    logEntries.push(`${np.name}: housing equity +$${equityGain}${bonusNote} (total: $${np.housingEquity}).`);
   }
 
   // 3b. Dependability decay
   let depDelta = -3;
+  // Career perk: Coffee Shop networking gives weekly dependability
+  if (perk?.weeklyDependability) depDelta += perk.weeklyDependability;
   if (!np.job) {
     depDelta -= 5;
     if (np.dependability < 30) np.happiness = Math.max(0, np.happiness - 2);
@@ -134,11 +149,13 @@ export function processPlayerWeekEnd(player, currentWeek) {
     logEntries.push(`${np.name}: debt interest -$${interest}.`);
   }
 
-  // 5. Savings interest (1.5% weekly, compounding)
+  // 5. Savings interest (1.5% weekly, compounding; NeoBank perk: 2.5%)
   if (np.savings > 0) {
-    const interest = Math.floor(np.savings * 0.015);
+    const savingsRate = (jobLoc === 'neobank' && perk?.savingsRate) ? perk.savingsRate : 0.015;
+    const interest = Math.floor(np.savings * savingsRate);
     np.savings += interest;
-    if (interest > 0) logEntries.push(`${np.name}: savings +$${interest} interest.`);
+    const rateNote = savingsRate > 0.015 ? ' (Financial Insider bonus!)' : '';
+    if (interest > 0) logEntries.push(`${np.name}: savings +$${interest} interest.${rateNote}`);
   }
 
   // 6a. Weekly meal plans
@@ -181,27 +198,29 @@ export function processPlayerWeekEnd(player, currentWeek) {
   }
 
   // 7. Hunger → time penalty
+  // Quick Eats perk: Kitchen Resilience raises hunger thresholds
+  const hungerBonus = (jobLoc === 'quick_eats' && perk?.hungerThresholdBonus) ? perk.hungerThresholdBonus : 0;
   const ateImmediateFood = np.ateFoodThisWeek || false;
   np.ateFoodThisWeek = false;
   np.hungerWarning = null;
   let hungryPenalty = 0;
 
   if (ateThisWeek) {
-    if (np.hunger >= 80) {
+    if (np.hunger >= 80 + hungerBonus) {
       hungryPenalty = 20;
       logEntries.push(`${np.name}: starving despite eating! -20h next week.`);
     }
   } else if (ateImmediateFood) {
-    if (np.hunger >= 80)      hungryPenalty = 10;
-    else if (np.hunger >= 50) hungryPenalty = 5;
+    if (np.hunger >= 80 + hungerBonus)      hungryPenalty = 10;
+    else if (np.hunger >= 50 + hungerBonus) hungryPenalty = 5;
     if (hungryPenalty > 0) {
       np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: true, playerName: np.name };
       logEntries.push(`${np.name}: only had snacks — still hungry! -${hungryPenalty}h next week.`);
     }
   } else {
-    if (np.hunger >= 80)      hungryPenalty = 20;
-    else if (np.hunger >= 50) hungryPenalty = 10;
-    else if (np.hunger >= 25) hungryPenalty = 5;
+    if (np.hunger >= 80 + hungerBonus)      hungryPenalty = 20;
+    else if (np.hunger >= 50 + hungerBonus) hungryPenalty = 10;
+    else if (np.hunger >= 25 + hungerBonus) hungryPenalty = 5;
     if (hungryPenalty > 0) {
       np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: false, playerName: np.name };
       logEntries.push(`${np.name}: went hungry (no food bought)! -${hungryPenalty}h next week.`);

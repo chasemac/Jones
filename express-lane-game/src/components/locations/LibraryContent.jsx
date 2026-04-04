@@ -3,7 +3,7 @@ import { effectiveWage } from '../../engine/economyModel';
 import { CAREER_TRACKS, checkJobRequirements, isEntryLevel, difficultyLabel, getNextPromotion } from '../../engine/jobModel';
 import { LOCATIONS_CONFIG, LIBRARY_LOCATION_GROUPS } from '../../engine/boardModel';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
-import { meetsEducation } from '../../engine/constants';
+import { meetsEducation, CAREER_PERKS } from '../../engine/constants';
 import jobsData from '../../data/jobs.json';
 
 const SalaryTransparencyView = ({ player, economy }) => {
@@ -42,6 +42,7 @@ const SalaryTransparencyView = ({ player, economy }) => {
 const LibraryContent = ({ state, actions }) => {
   const { player, economy } = state;
   const isTradeEmployee = player.job?.type === 'trade';
+  const tradePerk = CAREER_PERKS.public_library;
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [viewMode, setViewMode] = useState('browse');
 
@@ -180,6 +181,13 @@ const LibraryContent = ({ state, actions }) => {
           <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">
             🔧 Trade Dispatch <EconomyWageBadge economy={state.economy} />
           </h3>
+          {isTradeEmployee && (
+            <div className="bg-yellow-50 border border-yellow-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2 mb-2">
+              <span>{tradePerk.icon}</span>
+              <span className="font-bold text-yellow-800">{tradePerk.label}:</span>
+              <span className="text-yellow-700">{tradePerk.desc}</span>
+            </div>
+          )}
           {isTradeEmployee ? (
             <>
               <div className="grid grid-cols-2 gap-1.5 mb-1.5">

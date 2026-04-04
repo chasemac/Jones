@@ -1,6 +1,7 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
+import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
@@ -8,10 +9,18 @@ import itemsData from '../../data/items.json';
 const TechStoreContent = ({ state, actions }) => {
   const { player, economy } = state;
   const isTechEmployee = player.job?.location === 'tech_store';
+  const perk = CAREER_PERKS.tech_store;
   const electronics = itemsData.filter(i => i.type === 'electronics');
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div className="sm:col-span-2"><JobsHereCard locationId="tech_store" player={player} actions={actions} /></div>
+      {isTechEmployee && (
+        <div className="sm:col-span-2 bg-blue-50 border border-blue-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
+          <span>{perk.icon}</span>
+          <span className="font-bold text-blue-800">{perk.label}:</span>
+          <span className="text-blue-700">{perk.desc}</span>
+        </div>
+      )}
       <div>
         <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📱 Products</h3>
         {electronics.map(item => {
@@ -21,7 +30,7 @@ const TechStoreContent = ({ state, actions }) => {
           const mechanic = {
             smartphone: '🚗 Unlocks gig delivery (+$60/run) · required for Quick Eats gig work',
             laptop: '📚 +2h study bonus per session · required for some remote tech jobs',
-            smart_watch: '⏱ -1h travel time per trip · pays back quickly if you move often',
+            smart_watch: '⏱ -1h travel time + 5 happiness/wk · stacks with vehicle bonus',
           }[item.id];
           return (
             <button

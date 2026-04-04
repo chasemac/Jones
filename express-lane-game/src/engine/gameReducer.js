@@ -6,6 +6,7 @@ import {
   travelCost,
   calculateDeposit,
   LOCATION_EMPLOYER_NAME,
+  CAREER_PERKS,
 } from './constants';
 import { calcShiftEarnings } from './economyModel';
 import { ringPath } from './boardModel';
@@ -151,7 +152,10 @@ export const gameReducer = (state, action) => {
 
       const path = ringPath(player.currentLocation, locationId);
       const cost = travelCost(player.currentLocation, locationId);
-      const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
+      // Vehicle bonus = best vehicle; smartwatch bonus stacks on top
+      const vehicleBonus = player.inventory.reduce((max, item) => item.type === 'vehicle' ? Math.max(max, item.travelBonus || 0) : max, 0);
+      const watchBonus = player.inventory.some(i => i.id === 'smart_watch') ? 1 : 0;
+      const travelBonus = vehicleBonus + watchBonus;
       const effectiveCost = Math.max(1, cost - travelBonus);
       if (player.timeRemaining <= 0) return state;
       if (player.timeRemaining < effectiveCost) {
@@ -311,7 +315,9 @@ export const gameReducer = (state, action) => {
         // Higher dependability improves your odds.
         const baseChance = job.rejectionChance || 0.25;
         const depBonus = Math.min(0.7, player.dependability / 150); // max 70% reduction at high dep
-        const finalRejectionChance = baseChance * (1 - depBonus);
+        // Coffee shop perk: networking reduces rejection chance further
+        const coffeeNetworking = player.job?.location === 'coffee_shop' ? (CAREER_PERKS.coffee_shop.rejectionReduction || 0) : 0;
+        const finalRejectionChance = baseChance * (1 - depBonus) * (1 - coffeeNetworking);
         if (Math.random() < finalRejectionChance) {
           const rejectionMessages = [
             `${employer} went with another candidate.`,
@@ -425,8 +431,17 @@ export const gameReducer = (state, action) => {
 
     // ── Buy item ──────────────────────────────────────────────────────────────
     case 'BUY_ITEM': {
-      const { item } = action;
+      const { item: rawItem } = action;
       const player = activePlayer(state);
+
+      // Employee discounts: MegaMart staff get 25% off appliances, TrendSetters staff get 20% off clothing/vehicles
+      let discount = 0;
+      if (player.job?.location === 'megamart' && rawItem.type === 'appliance') {
+        discount = CAREER_PERKS.megamart.applianceDiscount || 0;
+      } else if (player.job?.location === 'trendsetters' && (rawItem.type === 'clothing' || rawItem.type === 'vehicle')) {
+        discount = CAREER_PERKS.trendsetters.clothingDiscount || 0;
+      }
+      const item = discount > 0 ? { ...rawItem, cost: Math.floor(rawItem.cost * (1 - discount)) } : rawItem;
 
       if (player.money < item.cost) return log(state, `Not enough money for ${item.name}.`);
 
@@ -596,7 +611,8 @@ export const gameReducer = (state, action) => {
       }
       if (player.money < course.cost) return log(state, "Not enough money for tuition.");
 
-      const sessionsNeeded = Math.ceil(course.totalHours / (10 + player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0)));
+      const techBonus = player.job?.location === 'tech_store' ? (CAREER_PERKS.tech_store.studyBonus || 0) : 0;
+      const sessionsNeeded = Math.ceil(course.totalHours / (10 + player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0) + techBonus));
       let s = log(state, `${player.name} enrolled in ${course.title}. Tuition: $${course.cost}. ~${sessionsNeeded} study sessions needed.`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money - course.cost, currentCourse: { ...course, progress: 0 } }));
       return s;
@@ -610,7 +626,9 @@ export const gameReducer = (state, action) => {
 
       // Extra credit: laptop and textbooks each add bonus progress
       const studyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
-      const newProgress = player.currentCourse.progress + 10 + studyBonus;
+      // Tech store perk: tech savvy adds extra study progress
+      const techBonus = player.job?.location === 'tech_store' ? (CAREER_PERKS.tech_store.studyBonus || 0) : 0;
+      const newProgress = player.currentCourse.progress + 10 + studyBonus + techBonus;
 
       if (newProgress >= player.currentCourse.totalHours) {
         let s = log(state, `🎓 ${player.name} completed ${player.currentCourse.title}! Earned: ${player.currentCourse.degree}. +10 happiness!`);

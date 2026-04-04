@@ -133,6 +133,62 @@ export const JOB_WORK_LOCATION = {
   trade: 'public_library',
 };
 
+// ─── Career Perks ────────────────────────────────────────────────────────────
+// Passive bonuses from working at specific locations
+export const CAREER_PERKS = {
+  quick_eats: {
+    label: 'Kitchen Resilience',
+    icon: '🍔',
+    desc: 'Hunger penalties delayed — thresholds raised by 15',
+    hungerThresholdBonus: 15,
+  },
+  coffee_shop: {
+    label: 'Networking Pro',
+    icon: '☕',
+    desc: 'Job rejection chance reduced by 30%; +2 happiness & +2 dependability/wk',
+    rejectionReduction: 0.30,
+    weeklyHappiness: 2,
+    weeklyDependability: 2,
+  },
+  tech_store: {
+    label: 'Tech Savvy',
+    icon: '💻',
+    desc: '+5 bonus progress per study session',
+    studyBonus: 5,
+  },
+  neobank: {
+    label: 'Financial Insider',
+    icon: '🏦',
+    desc: 'Savings interest 2.5% (vs 1.5%); +1 happiness from financial security',
+    savingsRate: 0.025,
+    weeklyHappiness: 1,
+  },
+  megamart: {
+    label: 'Employee Discount',
+    icon: '🛒',
+    desc: '25% off appliances at MegaMart',
+    applianceDiscount: 0.25,
+  },
+  trendsetters: {
+    label: 'Style Perk',
+    icon: '👗',
+    desc: '20% off clothing & vehicles at TrendSetters',
+    clothingDiscount: 0.20,
+  },
+  public_library: {
+    label: 'Handy Worker',
+    icon: '🔧',
+    desc: 'Housing equity grows 50% faster from DIY improvements',
+    equityMultiplier: 1.5,
+  },
+};
+
+// Helper: get perk for a player's current job location
+export const getCareerPerk = (player) => {
+  const loc = player.job?.location;
+  return loc ? CAREER_PERKS[loc] || null : null;
+};
+
 // ─── Jones AI Data ────────────────────────────────────────────────────────────
 // Jones levels up through this career path each N weeks
 export const JONES_CAREER_TRACK = [

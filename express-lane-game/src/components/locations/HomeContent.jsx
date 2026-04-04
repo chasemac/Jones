@@ -2,7 +2,7 @@ import React from 'react';
 import { effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion, getJobLocation } from '../../engine/jobModel';
 import { homeEmoji } from '../../engine/boardModel';
-import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation } from '../../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getCareerPerk } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 
@@ -18,6 +18,7 @@ const HomeContent = ({ state, actions }) => {
   const requiresLaptopForHomeWork = isWFH && player.job?.requirements?.item === 'laptop';
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
   const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
+  const careerPerk = getCareerPerk(player);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -77,6 +78,13 @@ const HomeContent = ({ state, actions }) => {
           </div>
         </div>
 
+        {careerPerk && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-1.5 text-[10px] flex items-center gap-1.5">
+            <span>{careerPerk.icon}</span>
+            <span className="font-bold text-emerald-800">{careerPerk.label}</span>
+            <span className="text-emerald-600">— {careerPerk.desc}</span>
+          </div>
+        )}
         <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-[10px]">
           <div className="font-bold text-slate-600 mb-1.5 text-xs">📊 This Week at a Glance</div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono">

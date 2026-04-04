@@ -1,12 +1,14 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
+import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
 
 const MegaMartContent = ({ state, actions }) => {
   const { player, economy } = state;
+  const perk = CAREER_PERKS.megamart;
   const appliances = itemsData.filter(i => i.type === 'appliance');
   const hasFridge = player.inventory.some(i => i.id === 'refrigerator');
   const hasFreezer = player.inventory.some(i => i.id === 'freezer');
@@ -17,6 +19,13 @@ const MegaMartContent = ({ state, actions }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
       <div className="sm:col-span-2"><JobsHereCard locationId="megamart" player={player} actions={actions} /></div>
+      {isRetailEmployee && (
+        <div className="sm:col-span-2 bg-red-50 border border-red-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2">
+          <span>{perk.icon}</span>
+          <span className="font-bold text-red-800">{perk.label}:</span>
+          <span className="text-red-700">{perk.desc}</span>
+        </div>
+      )}
       <div className="space-y-2">
         <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏠 Your Home Setup</h3>
         <div className={`p-2.5 rounded-lg border text-xs ${hasStorage ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
@@ -80,10 +89,11 @@ const MegaMartContent = ({ state, actions }) => {
             })()}
           </div>
         )}
-        <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances{isRetailEmployee ? <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded ml-1 font-normal">Staff picks!</span> : ''}</h3>
+        <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances{isRetailEmployee ? <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded ml-1 font-normal">25% staff discount!</span> : ''}</h3>
         {appliances.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
-          const price = adjustedPrice(item.cost, economy);
+          const basePrice = adjustedPrice(item.cost, economy);
+          const price = isRetailEmployee ? Math.floor(basePrice * (1 - perk.applianceDiscount)) : basePrice;
           const upgrading = item.id === 'freezer' && hasFridge;
           const isRecommended = !hasStorage && (item.id === 'refrigerator');
           const mechanic =
