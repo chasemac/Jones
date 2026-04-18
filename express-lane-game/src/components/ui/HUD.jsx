@@ -26,12 +26,20 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           {players.map((p, i) => {
             const isActive = i === state.activePlayerIndex;
             const pNetWorth = calculateNetWorth(p);
+            const isHungry = (p.hunger ?? 0) >= 70;
+            const isLowHappy = p.happiness < 25;
+            const isLowRelax = (p.relaxation ?? 50) <= 20;
+            const isDone = p.weekDone && !isActive;
             return (
-              <div key={p.name} className={`flex items-center gap-1 px-2 py-1 text-[9px] font-bold shrink-0 border-r border-slate-700 ${isActive ? 'bg-slate-700 text-white' : 'text-slate-500'}`}>
+              <div key={p.name} className={`flex items-center gap-1 px-2 py-1 text-[9px] font-bold shrink-0 border-r border-slate-700 ${isActive ? 'bg-slate-700 text-white' : isDone ? 'text-slate-600 bg-slate-800/40' : 'text-slate-500'}`}>
                 <span>{p.emoji}</span>
-                <span>{p.name}</span>
+                <span className="hidden sm:inline">{p.name}</span>
                 {isActive && <span className="text-yellow-400">◀</span>}
+                {isDone && <span className="text-slate-500 text-[8px]">✓</span>}
                 <span className={`font-mono ${pNetWorth >= 0 ? 'text-green-400' : 'text-red-400'}`}>${Math.round(pNetWorth).toLocaleString()}</span>
+                {isHungry && <span title="Hungry">🍕</span>}
+                {isLowHappy && <span title="Unhappy">💔</span>}
+                {isLowRelax && <span title="Exhausted">😴</span>}
               </div>
             );
           })}

@@ -784,7 +784,8 @@ export const gameReducer = (state, action) => {
       const newMarket = tickMarket(s.market, economy);
 
       // 10. Random event
-      const { pendingEvent } = rollRandomEvent(updatedPlayers);
+      const { pendingEvent: rawEvent } = rollRandomEvent(updatedPlayers);
+      const pendingEvent = rawEvent && s.players.length > 1 ? { ...rawEvent, isMultiplayer: true } : rawEvent;
 
       // 11. Jones AI
       const { jones: updatedJones, logEntry: jonesLog } = advanceJones(s.jones, economy, s.week);
@@ -815,14 +816,23 @@ export const gameReducer = (state, action) => {
       return { ...state, pendingEvent: null };
     }
 
-    // ── Dismiss hunger warning dialog ────────────────────────────────────────
+    // ── Dismiss hunger warning dialog — clears only the first player's warning ──
     case 'DISMISS_HUNGER_WARNING': {
-      const cleared = state.players.map(p => p.hungerWarning ? { ...p, hungerWarning: null } : p);
+      let dismissed = false;
+      const cleared = state.players.map(p => {
+        if (!dismissed && p.hungerWarning) { dismissed = true; return { ...p, hungerWarning: null }; }
+        return p;
+      });
       return { ...state, players: cleared };
     }
 
+    // ── Dismiss clothing warning dialog — clears only the first player's warning ─
     case 'DISMISS_CLOTHING_WARNING': {
-      const cleared = state.players.map(p => p.clothingWarning ? { ...p, clothingWarning: null } : p);
+      let dismissed = false;
+      const cleared = state.players.map(p => {
+        if (!dismissed && p.clothingWarning) { dismissed = true; return { ...p, clothingWarning: null }; }
+        return p;
+      });
       return { ...state, players: cleared };
     }
 

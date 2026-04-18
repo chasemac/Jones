@@ -47,7 +47,12 @@ export const GoalsModal = ({ state, onClose }) => {
       <div role="dialog" aria-modal="true" aria-labelledby="goals-title" className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
           <div>
-            <h3 id="goals-title" className="text-xl font-black uppercase flex items-center gap-2">🎯 Goals</h3>
+            <h3 id="goals-title" className="text-xl font-black uppercase flex items-center gap-2">
+              🎯 Goals
+              {state.players?.length > 1 && (
+                <span className="text-sm font-bold normal-case text-slate-500">— {player.emoji} {player.name}</span>
+              )}
+            </h3>
             <div className="text-[10px] text-slate-400">{DIFFICULTY_PRESETS[difficulty].label} · Week {week} · {metCount}/4 complete</div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none w-8 h-8 flex items-center justify-center">✕</button>
@@ -258,22 +263,28 @@ export const InventoryModal = ({ inventory, onClose }) => {
   );
 };
 
-export const HungerWarningModal = ({ warning, onClose }) => {
-  const { hunger, penalty, hadSomeFood } = warning;
+export const HungerWarningModal = ({ warning, onClose, playerCount }) => {
+  const { hunger, penalty, hadSomeFood, playerName } = warning;
   const severity = hunger >= 80 ? 'starving' : hunger >= 50 ? 'very hungry' : 'hungry';
   const emoji = hunger >= 80 ? '😵' : hunger >= 50 ? '😫' : '😟';
   const borderColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
+  const showPlayerName = playerCount > 1 && playerName;
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div role="dialog" aria-modal="true" className={`bg-white border-4 ${borderColor} rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4`}>
         <div className="text-center text-5xl mb-3">{emoji}</div>
+        {showPlayerName && (
+          <div className="text-center text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1 mb-2 mx-auto w-fit">
+            {playerName}
+          </div>
+        )}
         <h3 className="text-xl font-black text-center text-slate-800 mb-1">
-          {hadSomeFood ? 'Still Hungry!' : 'You Went Hungry!'}
+          {hadSomeFood ? 'Still Hungry!' : `${showPlayerName ? playerName + ' Went' : 'You Went'} Hungry!`}
         </h3>
         <p className="text-slate-600 text-center text-sm mb-4">
           {hadSomeFood
-            ? `Snacks helped a little, but you ended the week ${severity} (${hunger}/100). A weekly meal plan covers you properly.`
-            : `You didn't buy any food last week. You're ${severity} (${hunger}/100 hunger).`}
+            ? `Snacks helped a little, but ${showPlayerName ? playerName + ' ended' : 'you ended'} the week ${severity} (${hunger}/100). A weekly meal plan covers properly.`
+            : `${showPlayerName ? playerName + " didn't" : "You didn't"} buy any food last week. ${showPlayerName ? 'They\'re' : 'You\'re'} ${severity} (${hunger}/100 hunger).`}
         </p>
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-4">
           <div className="text-2xl font-black text-red-600">-{penalty} hours</div>
@@ -294,14 +305,20 @@ export const HungerWarningModal = ({ warning, onClose }) => {
   );
 };
 
-export const ClothingWarningModal = ({ warning, onClose }) => {
+export const ClothingWarningModal = ({ warning, onClose, playerCount }) => {
+  const showPlayerName = playerCount > 1 && warning.playerName;
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div role="dialog" aria-modal="true" className="bg-white border-4 border-amber-400 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4">
         <div className="text-center text-5xl mb-3">👔</div>
+        {showPlayerName && (
+          <div className="text-center text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1 mb-2 mx-auto w-fit">
+            {warning.playerName}
+          </div>
+        )}
         <h3 className="text-xl font-black text-center text-slate-800 mb-1">Clothing Wore Out!</h3>
         <p className="text-slate-600 text-center text-sm mb-4">
-          Your <strong>{warning.itemName}</strong> fell apart — it was required for your job as <strong>{warning.jobTitle}</strong>.
+          {showPlayerName ? `${warning.playerName}'s` : 'Your'} <strong>{warning.itemName}</strong> fell apart — it was required for {showPlayerName ? 'their' : 'your'} job as <strong>{warning.jobTitle}</strong>.
         </p>
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-4">
           <div className="text-lg font-black text-red-600">Job Lost</div>
@@ -336,7 +353,7 @@ export const EventModal = ({ event, onClose }) => {
         </div>
         <div className="p-5">
           <p className="text-slate-600 text-center text-sm mb-3">{event.description}</p>
-          {event.playerName && event.playerName !== 'Player 1' && (
+          {event.playerName && event.isMultiplayer && (
             <div className="text-[10px] text-slate-500 text-center mb-2 bg-slate-50 rounded px-2 py-1">Affects: {event.playerName}</div>
           )}
           {event.effectDesc && (
@@ -434,13 +451,15 @@ export const FullLogModal = ({ history, onClose }) => {
 };
 
 export const WeekSummaryModal = ({ summary, onClose }) => {
-  const [countdown, setCountdown] = React.useState(5);
+  const playerCount = summary.lines?.length ?? 1;
+  const totalSeconds = Math.min(20, playerCount * 5);
+  const [countdown, setCountdown] = React.useState(totalSeconds);
   const onCloseRef = React.useRef(onClose);
   React.useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     const interval = setInterval(() => setCountdown(c => c - 1), 1000);
-    const t = setTimeout(() => onCloseRef.current(), 5000);
+    const t = setTimeout(() => onCloseRef.current(), totalSeconds * 1000);
     return () => { clearTimeout(t); clearInterval(interval); };
   }, []); // run once on mount — onCloseRef keeps the latest callback
 
@@ -451,7 +470,7 @@ export const WeekSummaryModal = ({ summary, onClose }) => {
         <h3 id="week-summary-title" className="text-lg font-black text-center text-indigo-800 mb-0.5">Week {summary.week} Complete!</h3>
         <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in {Math.max(0, countdown)}s · tap to dismiss</p>
         <div className="h-1 bg-slate-200 rounded-full overflow-hidden mb-3">
-          <div className="h-full bg-indigo-400 transition-all duration-1000" style={{ width: `${(countdown / 5) * 100}%` }} />
+          <div className="h-full bg-indigo-400 transition-all duration-1000" style={{ width: `${(countdown / totalSeconds) * 100}%` }} />
         </div>
         <div className="space-y-2 mb-4 overflow-y-auto max-h-[50vh]">
           {summary.lines.map((p, i) => (

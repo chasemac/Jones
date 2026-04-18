@@ -512,12 +512,14 @@ const Board = () => {
       {!state.weekSummary && !state.pendingEvent && state.players?.some(p => p.hungerWarning) && (
         <HungerWarningModal
           warning={state.players.find(p => p.hungerWarning).hungerWarning}
+          playerCount={state.players.length}
           onClose={dismissHungerWarning}
         />
       )}
       {!state.weekSummary && !state.pendingEvent && !state.players?.some(p => p.hungerWarning) && state.players?.some(p => p.clothingWarning) && (
         <ClothingWarningModal
           warning={state.players.find(p => p.clothingWarning).clothingWarning}
+          playerCount={state.players.length}
           onClose={dismissClothingWarning}
         />
       )}
