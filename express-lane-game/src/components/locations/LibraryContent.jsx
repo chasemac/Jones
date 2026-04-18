@@ -45,6 +45,7 @@ const LibraryContent = ({ state, actions }) => {
   const tradePerk = CAREER_PERKS.public_library;
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [viewMode, setViewMode] = useState('browse');
+  const [showTracks, setShowTracks] = useState(false);
 
   const locationJobs = selectedLocation
     ? jobsData.filter(j => j.location === selectedLocation.id)
@@ -225,11 +226,17 @@ const LibraryContent = ({ state, actions }) => {
             );
           })()}
         </div>
-        {/* Career track overview */}
+        {/* Career track overview — collapsed by default */}
         {!isTradeEmployee && (
           <div className="mb-3">
-            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🗺️ Career Tracks</h3>
-            <div className="space-y-2">
+            <button
+              onClick={() => setShowTracks(s => !s)}
+              className="w-full font-bold text-sm border-b border-slate-300 pb-1 mb-2 text-left flex justify-between items-center hover:text-slate-700 transition"
+            >
+              <span>🗺️ Career Tracks</span>
+              <span className="text-[10px] font-normal text-slate-400">{showTracks ? '▾ hide' : '› show'}</span>
+            </button>
+            {showTracks && <div className="space-y-2">
               {CAREER_TRACKS.slice(0, 4).map((track, ti) => {
                 const entryJob = jobsData.find(j => j.id === track.jobs[0]);
                 const canEnter = entryJob && (!entryJob.requirements?.education || meetsEducation(player.education, entryJob.requirements.education));
@@ -257,7 +264,7 @@ const LibraryContent = ({ state, actions }) => {
                 </div>
                 );
               })}
-            </div>
+            </div>}
           </div>
         )}
         {/* Books section */}

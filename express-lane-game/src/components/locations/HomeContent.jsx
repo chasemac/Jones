@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion, getJobLocation } from '../../engine/jobModel';
 import { homeEmoji } from '../../engine/boardModel';
@@ -8,6 +8,7 @@ import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 
 const HomeContent = ({ state, actions }) => {
   const { player } = state;
+  const [showWeekStats, setShowWeekStats] = useState(false);
   const relax = player.relaxation ?? 50;
   const isLowRelax = relax <= 20;
   const homeType = player.housing?.homeType;
@@ -19,6 +20,22 @@ const HomeContent = ({ state, actions }) => {
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
   const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
   const careerPerk = getCareerPerk(player);
+
+  // Precompute hunger forecast for the collapsed summary line
+  const hunger = player.hunger ?? 0;
+  const hungerInc = homeType === 'luxury_condo' ? 20 : 25;
+  const meal = player.inventory.find(i => i.type === 'weekly_meal');
+  const coffee = player.inventory.find(i => i.type === 'weekly_coffee');
+  const hungerRestore = (meal?.weeklyHungerRestore ?? 0) + (coffee?.weeklyHungerRestore ?? 0);
+  const nextHunger = Math.max(0, Math.min(100, hunger + hungerInc - hungerRestore));
+  const hasFood = hungerRestore > 0;
+
+  // Forecast numbers for summary
+  const rent = player.housing?.rent ?? 0;
+  const weeklyFees = player.inventory.reduce((sum, i) => sum + (i.weeklyFee || 0), 0);
+  const debtInterest = player.debt > 0 ? Math.floor(player.debt * 0.05) : 0;
+  const savingsInterest = player.savings > 0 ? Math.floor(player.savings * 0.015) : 0;
+  const netForecast = savingsInterest - rent - weeklyFees - debtInterest;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -48,14 +65,14 @@ const HomeContent = ({ state, actions }) => {
           </div>
           <div className="text-[9px] font-normal opacity-70">
             {(() => {
-              const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
-              const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
-              if (!hasFood && nextHunger >= 80)
+              const hasAnyFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
+              const nextH = Math.min(100, (player.hunger ?? 0) + hungerInc);
+              if (!hasAnyFood && nextH >= 80)
                 return `⚠️ STARVING next week — -20h penalty! Buy food!`;
-              if (!hasFood && nextHunger >= 50)
-                return `⚠️ No food — hunger hits ${nextHunger}, -10h penalty!`;
-              if (!hasFood && player.hunger >= 25)
-                return `⚠️ No food bought — hunger will rise to ${nextHunger}`;
+              if (!hasAnyFood && nextH >= 50)
+                return `⚠️ No food — hunger hits ${nextH}, -10h penalty!`;
+              if (!hasAnyFood && player.hunger >= 25)
+                return `⚠️ No food bought — hunger will rise to ${nextH}`;
               return 'Rent, interest, hunger & happiness resolve at week end';
             })()}
           </div>
@@ -85,41 +102,42 @@ const HomeContent = ({ state, actions }) => {
             <span className="text-emerald-600">— {careerPerk.desc}</span>
           </div>
         )}
-        <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-[10px]">
-          <div className="font-bold text-slate-600 mb-1.5 text-xs">📊 This Week at a Glance</div>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono">
-            <span className="text-slate-500">💰 Cash:</span>
-            <span className={`font-bold ${player.money >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(player.money).toLocaleString()}</span>
-            <span className="text-slate-500">💾 Saved:</span>
-            <span className="font-bold text-indigo-600">${Math.round(player.savings).toLocaleString()}</span>
-            {(player.housingEquity || 0) > 0 && <><span className="text-slate-500">🏠 Equity:</span><span className="font-bold text-emerald-600">${Math.round(player.housingEquity).toLocaleString()}</span></>}
-            {player.debt > 0 && <><span className="text-slate-500">⚠️ Debt:</span><span className="font-bold text-red-500">-${Math.round(player.debt).toLocaleString()}</span></>}
-            <span className="text-slate-500">⏱ Time left:</span>
-            <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
-            <span className="text-slate-500">🍕 Hunger:</span>
-            {(() => {
-              const hunger = player.hunger ?? 0;
-              const hungerInc = player.housing?.homeType === 'luxury_condo' ? 20 : 25;
-              const meal = player.inventory.find(i => i.type === 'weekly_meal');
-              const coffee = player.inventory.find(i => i.type === 'weekly_coffee');
-              const restore = (meal?.weeklyHungerRestore ?? 0) + (coffee?.weeklyHungerRestore ?? 0);
-              const nextHunger = Math.max(0, Math.min(100, hunger + hungerInc - restore));
-              const hasFood = restore > 0;
-              return (
+
+        {/* Collapsible week stats panel */}
+        <div className="bg-slate-50 rounded-xl border border-slate-200 text-[10px]">
+          <button
+            onClick={() => setShowWeekStats(s => !s)}
+            className="w-full px-3 py-2 flex items-center justify-between gap-2 hover:bg-slate-100 rounded-xl transition"
+          >
+            <span className="font-bold text-slate-600 text-xs">📊 Week Stats</span>
+            <div className="flex items-center gap-1.5 font-mono text-[9px] text-slate-500">
+              <span className={player.money < 0 ? 'text-red-500' : 'text-green-600'}>${Math.round(player.money).toLocaleString()}</span>
+              <span>·</span>
+              <span>{player.timeRemaining}h</span>
+              <span>·</span>
+              <span className={nextHunger >= 80 ? 'text-red-500' : nextHunger >= 55 ? 'text-orange-500' : 'text-green-600'}>
+                🍕{hunger}→{nextHunger}{hasFood ? '✅' : nextHunger >= 55 ? '⚠️' : ''}
+              </span>
+              <span className="text-slate-400 ml-0.5">{showWeekStats ? '▾' : '›'}</span>
+            </div>
+          </button>
+
+          {showWeekStats && (
+            <div className="px-2.5 pb-2.5 border-t border-slate-200">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-mono mt-1.5">
+                <span className="text-slate-500">💰 Cash:</span>
+                <span className={`font-bold ${player.money >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(player.money).toLocaleString()}</span>
+                <span className="text-slate-500">💾 Saved:</span>
+                <span className="font-bold text-indigo-600">${Math.round(player.savings).toLocaleString()}</span>
+                {(player.housingEquity || 0) > 0 && <><span className="text-slate-500">🏠 Equity:</span><span className="font-bold text-emerald-600">${Math.round(player.housingEquity).toLocaleString()}</span></>}
+                {player.debt > 0 && <><span className="text-slate-500">⚠️ Debt:</span><span className="font-bold text-red-500">-${Math.round(player.debt).toLocaleString()}</span></>}
+                <span className="text-slate-500">⏱ Time left:</span>
+                <span className={`font-bold ${player.timeRemaining <= 8 ? 'text-red-500 animate-pulse' : 'text-slate-700'}`}>{player.timeRemaining}h</span>
+                <span className="text-slate-500">🍕 Hunger:</span>
                 <span className={`font-bold ${nextHunger >= 80 ? 'text-red-500 animate-pulse' : nextHunger >= 60 ? 'text-orange-500' : 'text-green-600'}`}>
                   {hunger} → {nextHunger} next wk{hasFood ? ' ✅' : nextHunger >= 55 ? ' ⚠️' : ''}
                 </span>
-              );
-            })()}
-          </div>
-          {(() => {
-            const rent = player.housing?.rent ?? 0;
-            const weeklyFees = player.inventory.reduce((sum, i) => sum + (i.weeklyFee || 0), 0);
-            const debtInterest = player.debt > 0 ? Math.floor(player.debt * 0.05) : 0;
-            const savingsInterest = player.savings > 0 ? Math.floor(player.savings * 0.015) : 0;
-            const totalOut = rent + weeklyFees + debtInterest;
-            const totalIn = savingsInterest;
-            return (
+              </div>
               <div className="mt-1.5 pt-1.5 border-t border-slate-200">
                 <div className="font-bold text-slate-500 mb-0.5">💸 End-of-Week Forecast</div>
                 <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 font-mono">
@@ -128,11 +146,11 @@ const HomeContent = ({ state, actions }) => {
                   {debtInterest > 0 && <><span className="text-slate-400">💳 Interest:</span><span className="text-red-500">-${debtInterest}</span></>}
                   {savingsInterest > 0 && <><span className="text-slate-400">💾 Interest:</span><span className="text-green-500">+${savingsInterest}</span></>}
                   <span className="text-slate-500 font-bold">Net:</span>
-                  <span className={`font-bold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-500'}`}>{totalIn - totalOut >= 0 ? '+' : ''}${totalIn - totalOut}</span>
+                  <span className={`font-bold ${netForecast >= 0 ? 'text-green-600' : 'text-red-500'}`}>{netForecast >= 0 ? '+' : ''}${netForecast}</span>
                 </div>
               </div>
-            );
-          })()}
+            </div>
+          )}
         </div>
 
         <div>

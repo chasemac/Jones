@@ -171,7 +171,7 @@ export const LocationPanel = ({ locationId, player, children, onClose, isStrande
   const isLowTime = (player?.timeRemaining ?? 99) < 6;
   const isAtHome = locationId === 'home' || locationId === 'leasing_office';
   return (
-    <div className="absolute inset-x-2 sm:inset-x-4 top-3 bottom-[8.5rem] sm:bottom-[8rem] bg-white/96 border-4 rounded-[1.75rem] shadow-[0_24px_60px_rgba(15,23,42,0.35)] z-20 flex flex-col overflow-hidden backdrop-blur"
+    <div className="absolute inset-x-2 sm:inset-x-4 top-3 bottom-[7rem] sm:bottom-[6.5rem] bg-white/96 border-4 rounded-[1.75rem] shadow-[0_24px_60px_rgba(15,23,42,0.35)] z-20 flex flex-col overflow-hidden backdrop-blur"
       style={{ borderColor: config.color }}>
       {isStranded && !isAtHome && (
         <div className="bg-amber-500 text-white px-3 py-2 flex-shrink-0">

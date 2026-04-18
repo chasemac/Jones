@@ -344,7 +344,7 @@ const Board = () => {
       )}
 
       {/* Padded map area — keeps buildings away from container edges */}
-      <div className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24">
+      <div className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[4rem] sm:bottom-[4.5rem]">
         {/* Map background */}
         <MapBackground economy={state.economy} />
 

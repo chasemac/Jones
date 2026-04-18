@@ -67,7 +67,7 @@ export const RingTips = ({ player, week }) => {
   return (
     <>
       {open && (
-        <div className="absolute bottom-24 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-4 sm:w-60 bg-amber-50/95 backdrop-blur border-t-2 sm:border-2 border-amber-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
+        <div className="absolute bottom-20 sm:bottom-32 left-0 right-0 sm:left-auto sm:right-4 sm:w-60 bg-amber-50/95 backdrop-blur border-t-2 sm:border-2 border-amber-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] font-black uppercase text-amber-600">💡 What to do next</div>
             <button onClick={() => setOpen(false)} className="text-amber-500 hover:text-amber-800 text-lg leading-none font-bold px-1">×</button>
@@ -84,7 +84,7 @@ export const RingTips = ({ player, week }) => {
       )}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-[5rem] sm:bottom-28 right-[4.75rem] h-11 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 border-2 px-3 ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/90 border-amber-500 hover:bg-amber-300'}`}
+        className={`absolute bottom-[3.75rem] sm:bottom-20 right-[4.75rem] h-11 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 border-2 px-3 ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/90 border-amber-500 hover:bg-amber-300'}`}
         title="Hints"
       >
         <span className="text-lg leading-none">💡</span>
@@ -106,7 +106,7 @@ export const JonesSidebar = ({ jones, player }) => {
   return (
     <>
       {open && (
-        <div className="absolute bottom-24 sm:bottom-40 left-0 right-0 sm:left-auto sm:right-[15rem] sm:w-60 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
+        <div className="absolute bottom-20 sm:bottom-32 left-0 right-0 sm:left-auto sm:right-[15rem] sm:w-60 bg-white/95 backdrop-blur border-t-2 sm:border-2 border-red-300 sm:rounded-2xl p-3 shadow-xl z-40 max-h-56 overflow-y-auto">
           <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
             <div className="flex items-center gap-2">
               <div className="text-2xl">🤑</div>
@@ -146,7 +146,7 @@ export const JonesSidebar = ({ jones, player }) => {
       )}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-[5rem] sm:bottom-28 right-[9.5rem] h-11 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 px-3 ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
+        className={`absolute bottom-[3.75rem] sm:bottom-20 right-[9.5rem] h-11 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 px-3 ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
         title="The Joneses"
       >
         <span className="text-lg leading-none">🤑</span>
@@ -171,7 +171,7 @@ export const NotificationFeed = ({ history, onOpenLog }) => {
 
   return (
     <button
-      className="absolute bottom-[5rem] sm:bottom-28 right-4 h-11 rounded-full bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg gap-1 px-3"
+      className="absolute bottom-[3.75rem] sm:bottom-20 right-4 h-11 rounded-full bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg gap-1 px-3"
       onClick={handleOpen}
       title="Open event log"
     >
