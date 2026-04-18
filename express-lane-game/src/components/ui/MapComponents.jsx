@@ -149,7 +149,7 @@ export const FloatingMoney = ({ amount, onDone }) => {
   }, [onDone]);
   return (
     <div
-      className={`fixed pointer-events-none font-black text-lg z-50 select-none`}
+      className={`absolute pointer-events-none font-black text-lg z-50 select-none`}
       style={{
         left: '50%',
         bottom: '80px',

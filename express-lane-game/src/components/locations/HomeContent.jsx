@@ -102,7 +102,10 @@ const HomeContent = ({ state, actions }) => {
               const hungerInc = player.housing?.homeType === 'luxury_condo' ? 20 : 25;
               const meal = player.inventory.find(i => i.type === 'weekly_meal');
               const coffee = player.inventory.find(i => i.type === 'weekly_coffee');
-              const restore = (meal?.weeklyHungerRestore ?? 0) + (coffee?.weeklyHungerRestore ?? 0);
+              const hasFridge = player.inventory.some(i => i.id === 'refrigerator' || i.id === 'freezer');
+              const hasGroceries = player.inventory.some(i => i.id === 'groceries');
+              const groceryRestore = hasFridge && hasGroceries ? 60 : 0;
+              const restore = (meal?.weeklyHungerRestore ?? 0) + (coffee?.weeklyHungerRestore ?? 0) + groceryRestore;
               const nextHunger = Math.max(0, Math.min(100, hunger + hungerInc - restore));
               const hasFood = restore > 0;
               return (

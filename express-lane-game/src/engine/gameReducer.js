@@ -2,6 +2,7 @@ import {
   DIFFICULTY_PRESETS,
   ECONOMY_WAGE_MULTIPLIER,
   meetsEducation,
+  calculateNetWorth,
   JONES_CAREER_TRACK,
   travelCost,
   calculateDeposit,
@@ -105,7 +106,7 @@ const checkEndConditions = (state) => {
 
   // Any player wins → game won (first to hit all 4 goals)
   for (const p of state.players) {
-    const netWorth = p.money + p.savings - p.debt;
+    const netWorth = calculateNetWorth(p);
     if (
       netWorth >= goals.wealth &&
       p.happiness >= goals.happiness &&
@@ -517,7 +518,7 @@ export const gameReducer = (state, action) => {
           ...p,
           money: Math.max(0, p.money - item.cost),
           happiness: Math.min(100, p.happiness + hBoost),
-          relaxation: Math.min(100, p.relaxation + rBoost),
+          relaxation: Math.min(100, (p.relaxation ?? 50) + rBoost),
           timeRemaining: Math.max(0, p.timeRemaining - timeCost),
         }));
         return autoEndIfNeeded(s);
@@ -593,7 +594,10 @@ export const gameReducer = (state, action) => {
       const profitLoss = earnings - costBasis;
       const plText = profitLoss >= 0 ? `+$${profitLoss} profit` : `-$${Math.abs(profitLoss)} loss`;
       let s = log(state, `Sold all ${qty} shares of ${symbol} for $${earnings}. (${plText})`);
-      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: 0 } }));
+      s = updateActivePlayer(s, p => {
+        const { [symbol]: _removed, ...rest } = p.portfolio;
+        return { ...p, money: p.money + earnings, portfolio: rest };
+      });
       return s;
     }
 

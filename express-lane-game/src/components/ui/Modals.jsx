@@ -278,7 +278,7 @@ export const HungerWarningModal = ({ warning, onClose }) => {
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center mb-4">
           <div className="text-2xl font-black text-red-600">-{penalty} hours</div>
           <div className="text-xs text-red-400">
-            {hadSomeFood ? 'reduced penalty — snacks helped a bit' : 'deducted from this week\'s time'}
+            {hadSomeFood ? 'reduced penalty — snacks helped a bit' : 'deducted from next week\'s available time'}
           </div>
         </div>
         <p className="text-[11px] text-slate-400 text-center mb-4">
@@ -435,12 +435,14 @@ export const FullLogModal = ({ history, onClose }) => {
 
 export const WeekSummaryModal = ({ summary, onClose }) => {
   const [countdown, setCountdown] = React.useState(5);
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => { onCloseRef.current = onClose; });
 
   useEffect(() => {
     const interval = setInterval(() => setCountdown(c => c - 1), 1000);
-    const t = setTimeout(onClose, 5000);
+    const t = setTimeout(() => onCloseRef.current(), 5000);
     return () => { clearTimeout(t); clearInterval(interval); };
-  }, [onClose]);
+  }, []); // run once on mount — onCloseRef keeps the latest callback
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>

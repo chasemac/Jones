@@ -47,7 +47,7 @@ export const RingTips = ({ player, week }) => {
     if (!player.job) {
       tutorialTips.push({ emoji: '📚', text: 'Visit the Library to browse jobs and get hired' });
     }
-    const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage');
+    const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
     if (!hasFood) {
       tutorialTips.push({ emoji: '🍔', text: "Visit Quick Eats and grab a week's worth of meals" });
     }
