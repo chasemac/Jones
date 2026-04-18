@@ -1,9 +1,9 @@
 import React from 'react';
-import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
-import { getNextPromotion } from '../../engine/jobModel';
-import { CAREER_PERKS } from '../../engine/constants';
+import { adjustedPrice } from '../../engine/economyModel';
+import { CAREER_PERKS, ECONOMY_WAGE_MULTIPLIER } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
-import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
+import { EconomyWageBadge } from '../ui/GameWidgets';
+import WorkShiftPanel from '../ui/WorkShiftPanel';
 import itemsData from '../../data/items.json';
 
 const QuickEatsContent = ({ state, actions }) => {
@@ -114,46 +114,16 @@ const QuickEatsContent = ({ state, actions }) => {
             <h3 className="font-bold text-sm border-b border-orange-200 pb-1 mb-2">
               💼 Your Shift <EconomyWageBadge economy={economy} />
             </h3>
-            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-              <button
-                onClick={actions.partTimeWork}
-                disabled={player.timeRemaining < 4}
-                className="p-2 bg-orange-50 border-2 border-orange-200 rounded-xl hover:bg-orange-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
-              >
-                <div className="font-bold">⏱ Part-Time (4h)</div>
-                <div className="font-mono font-black text-green-600 text-sm">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
-              </button>
-              <button
-                onClick={actions.work}
-                disabled={player.timeRemaining < 8}
-                className="p-2 bg-orange-100 border-2 border-orange-300 rounded-xl hover:bg-orange-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]"
-              >
-                <div className="font-bold">🍔 Full Shift (8h)</div>
-                <div className="font-mono font-black text-green-600 text-sm">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
-              </button>
-            </div>
-            <button
-              onClick={actions.workOvertime}
-              disabled={player.timeRemaining < 12}
-              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]"
-            >
-              <div className="flex justify-between items-center">
-                <div className="font-bold">⚡ Overtime (12h · 1.5x pay)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 12 * 1.5)}</div>
-              </div>
-              <div className="text-amber-700 mt-0.5">-10 happiness · great for fast cash</div>
-            </button>
-            <div className="text-[9px] text-orange-600 text-center">{player.job.title} · ${effectiveWage(player.job.wage, economy)}/hr (economy-adjusted)</div>
-            <ExpProgressBar player={player} />
-            {(() => {
-              const nextJob = getNextPromotion(player);
-              if (!nextJob) return null;
-              return (
-                <button onClick={() => actions.applyForJob(nextJob, true)} className="mt-2 w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
-                  🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-                </button>
-              );
-            })()}
+            <WorkShiftPanel
+              player={player}
+              economy={economy}
+              actions={actions}
+              partClass="bg-orange-50 border-orange-200 hover:bg-orange-100"
+              fullClass="bg-orange-100 border-orange-300 hover:bg-orange-200"
+              partLabel="⏱ Part-Time (4h)"
+              fullLabel="🍔 Full Shift (8h)"
+              overtimeSubtitle="-10 happiness · great for fast cash"
+            />
           </div>
         )}
 
@@ -168,7 +138,7 @@ const QuickEatsContent = ({ state, actions }) => {
             >
               <div className="flex justify-between items-center">
                 <div className="font-bold">🚗 Delivery Run (4h)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(60 * (state.economy === 'Boom' ? 1.3 : state.economy === 'Depression' ? 0.8 : 1.0))}</div>
+                <div className="font-mono font-black text-green-600">+${Math.floor(60 * (ECONOMY_WAGE_MULTIPLIER[state.economy] ?? 1.0))}</div>
               </div>
               <div className="text-xs text-green-700 mt-0.5">Economy: {state.economy} · flexible hours</div>
             </button>

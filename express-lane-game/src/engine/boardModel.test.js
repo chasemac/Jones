@@ -43,23 +43,48 @@ describe('effectiveTravelCost', () => {
   });
 
   it('reduces cost by vehicle travelBonus', () => {
-    const inventory = [{ id: 'bike', travelBonus: 1 }];
+    const inventory = [{ id: 'bicycle', type: 'vehicle', travelBonus: 1 }];
     // base = 2, bonus = 1, effective = 1
     expect(effectiveTravelCost('leasing_office', 'public_library', inventory)).toBe(1);
   });
 
-  it('uses the best travelBonus from inventory', () => {
+  it('uses the best vehicle travelBonus from inventory', () => {
     const inventory = [
-      { id: 'bike', travelBonus: 1 },
-      { id: 'car', travelBonus: 3 },
+      { id: 'bicycle', type: 'vehicle', travelBonus: 1 },
+      { id: 'reliable_car', type: 'vehicle', travelBonus: 3 },
     ];
-    // base = 2, bonus = 3, but min 1
+    // base = 2, vehicleBonus = 3, but min 1
     expect(effectiveTravelCost('leasing_office', 'public_library', inventory)).toBe(1);
   });
 
   it('never returns less than 1', () => {
-    const inventory = [{ id: 'car', travelBonus: 10 }];
+    const inventory = [{ id: 'reliable_car', type: 'vehicle', travelBonus: 10 }];
     expect(effectiveTravelCost('home', 'neobank', inventory)).toBe(1);
+  });
+
+  it('smartwatch bonus stacks additively with vehicle bonus', () => {
+    const inventory = [
+      { id: 'car', type: 'vehicle', travelBonus: 2 },
+      { id: 'smart_watch', type: 'electronics', travelBonus: 1 },
+    ];
+    // leasing_office(0) → trendsetters(3) = 3 steps CW
+    // vehicleBonus=2, watchBonus=1, effective = max(1, 3-2-1) = 1
+    expect(effectiveTravelCost('leasing_office', 'trendsetters', inventory)).toBe(1);
+    // leasing_office(0) → megamart(5) = 5 steps CW
+    // vehicleBonus=2, watchBonus=1, effective = max(1, 5-2-1) = 2
+    expect(effectiveTravelCost('leasing_office', 'megamart', inventory)).toBe(2);
+  });
+
+  it('smartwatch alone reduces cost by 1', () => {
+    const inventory = [{ id: 'smart_watch', type: 'electronics', travelBonus: 1 }];
+    // leasing_office → public_library = 2 base, watchBonus=1, effective=1
+    expect(effectiveTravelCost('leasing_office', 'public_library', inventory)).toBe(1);
+  });
+
+  it('non-vehicle non-watch items with travelBonus are ignored', () => {
+    // Ensure items without type:'vehicle' and id!='smart_watch' don't contribute
+    const inventory = [{ id: 'some_gadget', type: 'electronics', travelBonus: 5 }];
+    expect(effectiveTravelCost('leasing_office', 'public_library', inventory)).toBe(2);
   });
 });
 

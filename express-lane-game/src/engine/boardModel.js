@@ -49,11 +49,14 @@ export const ringPath = (fromId, toId) => {
  */
 export const effectiveTravelCost = (fromId, toId, inventory) => {
   const baseCost = travelCost(fromId, toId);
-  const travelBonus = inventory.reduce(
-    (max, item) => Math.max(max, item.travelBonus || 0),
+  // Vehicle bonus: best vehicle only (not additive between vehicles)
+  const vehicleBonus = inventory.reduce(
+    (max, item) => item.type === 'vehicle' ? Math.max(max, item.travelBonus || 0) : max,
     0
   );
-  return Math.max(1, baseCost - travelBonus);
+  // Smartwatch stacks additively on top of vehicle bonus
+  const watchBonus = inventory.some(i => i.id === 'smart_watch') ? 1 : 0;
+  return Math.max(1, baseCost - vehicleBonus - watchBonus);
 };
 
 /**

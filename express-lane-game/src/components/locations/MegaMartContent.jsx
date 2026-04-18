@@ -1,9 +1,9 @@
 import React from 'react';
-import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
-import { getNextPromotion } from '../../engine/jobModel';
+import { adjustedPrice } from '../../engine/economyModel';
 import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
-import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
+import { EconomyWageBadge } from '../ui/GameWidgets';
+import WorkShiftPanel from '../ui/WorkShiftPanel';
 import itemsData from '../../data/items.json';
 
 const MegaMartContent = ({ state, actions }) => {
@@ -57,36 +57,14 @@ const MegaMartContent = ({ state, actions }) => {
         {isRetailEmployee && (
           <div className="mb-3">
             <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🏪 Staff Only <EconomyWageBadge economy={economy} /></h3>
-            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
-                className="p-2 bg-red-50 border-2 border-red-200 rounded-xl hover:bg-red-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
-                <div className="font-bold">⏱ Part (4h)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 4)}</div>
-              </button>
-              <button onClick={actions.work} disabled={player.timeRemaining < 8}
-                className="p-2 bg-red-100 border-2 border-red-300 rounded-xl hover:bg-red-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
-                <div className="font-bold">🛒 Full (8h)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 8)}</div>
-              </button>
-            </div>
-            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
-              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]">
-              <div className="flex justify-between items-center">
-                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
-                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, economy) * 12 * 1.5)}</span>
-              </div>
-              <div className="text-amber-700">-10 happiness</div>
-            </button>
-            <ExpProgressBar player={player} />
-            {(() => {
-              const nextJob = getNextPromotion(player);
-              if (!nextJob) return null;
-              return (
-                <button onClick={() => actions.applyForJob(nextJob, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
-                  🆙 Promote → {nextJob.title} (${nextJob.wage}/hr)
-                </button>
-              );
-            })()}
+            <WorkShiftPanel
+              player={player}
+              economy={economy}
+              actions={actions}
+              partClass="bg-red-50 border-red-200 hover:bg-red-100"
+              fullClass="bg-red-100 border-red-300 hover:bg-red-200"
+              fullLabel="🛒 Full (8h)"
+            />
           </div>
         )}
         <h3 className="font-bold text-sm border-b border-red-200 pb-1 mb-2">🛒 Appliances{isRetailEmployee ? <span className="text-[9px] bg-red-100 text-red-600 px-1 rounded ml-1 font-normal">25% staff discount!</span> : ''}</h3>

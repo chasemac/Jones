@@ -11,6 +11,7 @@ import {
   JONES_CAREER_TRACK,
   JONES_EDUCATION_TRACK,
   CAREER_PERKS,
+  calculateNetWorth,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
@@ -408,8 +409,8 @@ export function buildWeekSummary(week, updatedPlayers, weekStartSnapshot, fallba
     week,
     lines: updatedPlayers.map(p => {
       const old = (weekStartSnapshot || []).find(op => op.name === p.name) || fallbackPlayers.find(op => op.name === p.name);
-      const oldNetWorth = (old?.money ?? 0) + (old?.savings ?? 0) - (old?.debt ?? 0) + (old?.housingEquity ?? 0);
-      const newNetWorth = p.money + p.savings - p.debt + (p.housingEquity || 0);
+      const oldNetWorth = old ? calculateNetWorth(old) : 0;
+      const newNetWorth = calculateNetWorth(p);
       return {
         emoji: p.emoji,
         name: p.name,
