@@ -1,6 +1,7 @@
 import {
   DIFFICULTY_PRESETS,
   ECONOMY_WAGE_MULTIPLIER,
+  ECONOMY_PAWN_MULTIPLIER,
   meetsEducation,
   calculateNetWorth,
   JONES_CAREER_TRACK,
@@ -567,8 +568,7 @@ export const gameReducer = (state, action) => {
     case 'SELL_ITEM': {
       const { item } = action;
       const player = activePlayer(state);
-      // Pawn shop prices scale with economy: Boom = 60%, Normal = 50%, Depression = 40%
-      const economyPawnMultiplier = state.economy === 'Boom' ? 0.60 : state.economy === 'Depression' ? 0.40 : 0.50;
+      const economyPawnMultiplier = ECONOMY_PAWN_MULTIPLIER[state.economy] ?? 0.50;
       const sellPrice = Math.floor(item.cost * economyPawnMultiplier);
       const idx = player.inventory.findIndex(i => i.id === item.id);
       if (idx === -1) return state;

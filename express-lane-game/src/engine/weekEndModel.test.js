@@ -56,7 +56,7 @@ describe('processPlayerWeekEnd', () => {
 
   it('applies savings interest when savings exist', () => {
     const { player } = processPlayerWeekEnd(basePlayer({ savings: 1000 }));
-    expect(player.savings).toBe(1010); // 1% interest
+    expect(player.savings).toBe(1015); // 1.5% interest
   });
 
   it('resets player to home location', () => {

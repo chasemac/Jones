@@ -38,6 +38,16 @@ export const calculateDeposit = (newRent, currentRent) => (newRent > currentRent
 // ─── Economy States ───────────────────────────────────────────────────────────
 export const ECONOMY_STATES = ['Depression', 'Normal', 'Boom'];
 
+// Item types that cannot be pawned/sold at Black's Market
+export const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
+
+// Pawn shop sell prices as fraction of item cost, by economy state
+export const ECONOMY_PAWN_MULTIPLIER = {
+  Boom: 0.60,
+  Normal: 0.50,
+  Depression: 0.40,
+};
+
 export const ECONOMY_WAGE_MULTIPLIER = {
   Depression: 0.8,
   Normal: 1.0,

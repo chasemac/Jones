@@ -134,7 +134,6 @@ export const GameProvider = ({ children }) => {
     dismissWeekSummary: () => dispatch({ type: 'DISMISS_WEEK_SUMMARY' }),
     dismissHungerWarning: () => dispatch({ type: 'DISMISS_HUNGER_WARNING' }),
     dismissClothingWarning: () => dispatch({ type: 'DISMISS_CLOTHING_WARNING' }),
-    applyForJobWithSound: (job, success) => { playSound(success ? 'success' : 'error'); dispatch({ type: 'APPLY_FOR_JOB', job }); },
     toggleMute: () => { toggleMute(); },
     getMuted: () => isMuted,
   };

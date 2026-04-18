@@ -1,5 +1,6 @@
 import React from 'react';
 import { adjustedPrice } from '../../engine/economyModel';
+import { UNSELLABLE_TYPES, ECONOMY_PAWN_MULTIPLIER } from '../../engine/constants';
 import itemsData from '../../data/items.json';
 
 const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
@@ -8,10 +9,8 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
   const [confirmId, setConfirmId] = React.useState(null);
 
-  const pawnMultiplier = economy === 'Boom' ? 0.60 : economy === 'Depression' ? 0.40 : 0.50;
+  const pawnMultiplier = ECONOMY_PAWN_MULTIPLIER[economy] ?? 0.50;
   const pawnLabel = economy === 'Boom' ? '🟢 Boom prices!' : economy === 'Depression' ? '🔴 Low market' : '⚪ Normal rates';
-
-  const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
   const pawnable = player.inventory.filter(item => !UNSELLABLE_TYPES.has(item.type));
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">

@@ -1,10 +1,11 @@
 import React from 'react';
 import { effectiveWage } from '../../engine/economyModel';
-import { getNextPromotion, getJobLocation } from '../../engine/jobModel';
+import { getJobLocation } from '../../engine/jobModel';
 import { homeEmoji } from '../../engine/boardModel';
 import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getCareerPerk } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
-import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
+import { EconomyWageBadge } from '../ui/GameWidgets';
+import WorkShiftPanel from '../ui/WorkShiftPanel';
 
 const HomeContent = ({ state, actions }) => {
   const { player } = state;
@@ -169,29 +170,15 @@ const HomeContent = ({ state, actions }) => {
         </h3>
 
         {isWFH && (!requiresLaptopForHomeWork || hasLaptop) && (
-          <>
-            <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-              <button onClick={actions.partTimeWork} disabled={player.timeRemaining < 4}
-                className="p-2 bg-violet-50 border-2 border-violet-200 rounded-xl hover:bg-violet-100 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
-                <div className="font-bold">⏱ Part (4h)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
-              </button>
-              <button onClick={actions.work} disabled={player.timeRemaining < 8}
-                className="p-2 bg-violet-100 border-2 border-violet-300 rounded-xl hover:bg-violet-200 disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px]">
-                <div className="font-bold">🖥️ Full (8h)</div>
-                <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
-              </button>
-            </div>
-            <button onClick={actions.workOvertime} disabled={player.timeRemaining < 12}
-              className="w-full p-2 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 disabled:opacity-50 text-xs transition active:scale-95 mb-1.5 min-h-[44px]">
-              <div className="flex justify-between items-center">
-                <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
-                <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
-              </div>
-              <div className="text-amber-700">-10 happiness · WFH — no commute!</div>
-            </button>
-            <ExpProgressBar player={player} />
-          </>
+          <WorkShiftPanel
+            player={player}
+            economy={state.economy}
+            actions={actions}
+            partClass="bg-violet-50 border-violet-200 hover:bg-violet-100"
+            fullClass="bg-violet-100 border-violet-300 hover:bg-violet-200"
+            fullLabel="🖥️ Full (8h)"
+            overtimeSubtitle="-10 happiness · WFH — no commute!"
+          />
         )}
 
         {isWFH && requiresLaptopForHomeWork && !hasLaptop && (
@@ -203,16 +190,6 @@ const HomeContent = ({ state, actions }) => {
             {player.job ? `${player.job.title}s report in-person — head to your work location.` : 'Get a remote job to work from home.'}
           </div>
         )}
-
-        {isWFH && (() => {
-          const nextJob = getNextPromotion(player);
-          if (!nextJob) return null;
-          return (
-            <button onClick={() => actions.applyForJob(nextJob, true)} className="w-full p-2 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 text-xs font-bold text-green-800 transition active:scale-95">
-              🆙 Get Promoted → {nextJob.title} (${nextJob.wage}/hr)
-            </button>
-          );
-        })()}
       </div>
     </div>
   );

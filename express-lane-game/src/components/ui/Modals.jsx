@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getEducationProgress } from '../../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getEducationProgress, UNSELLABLE_TYPES } from '../../engine/constants';
 
 export const GoalsModal = ({ state, onClose }) => {
   const { player, difficulty, week, jones } = state;
@@ -202,7 +202,6 @@ export const InventoryModal = ({ inventory, onClose }) => {
     i.id !== 'groceries'
   );
 
-  const UNSELLABLE_TYPES = new Set(['food', 'weekly_meal', 'weekly_coffee', 'food_storage', 'entertainment']);
   const totalResaleValue = inventory
     .filter(i => !UNSELLABLE_TYPES.has(i.type))
     .reduce((sum, i) => sum + Math.floor((i.cost || 0) * 0.5), 0);
