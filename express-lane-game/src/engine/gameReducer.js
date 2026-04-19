@@ -11,7 +11,7 @@ import {
   CAREER_PERKS,
 } from './constants';
 import { calcShiftEarnings } from './economyModel';
-import { ringPath } from './boardModel';
+import { getTravelBonus, ringPath } from './boardModel';
 import { processPlayerWeekEnd, advanceEconomy, tickMarket, rollRandomEvent, advanceJones, buildWeekSummary } from './weekEndModel';
 import stocksData from '../data/stocks.json';
 
@@ -155,9 +155,7 @@ export const gameReducer = (state, action) => {
       const path = ringPath(player.currentLocation, locationId);
       const cost = travelCost(player.currentLocation, locationId);
       // Vehicle bonus = best vehicle; smartwatch bonus stacks on top
-      const vehicleBonus = player.inventory.reduce((max, item) => item.type === 'vehicle' ? Math.max(max, item.travelBonus || 0) : max, 0);
-      const watchBonus = player.inventory.some(i => i.id === 'smart_watch') ? 1 : 0;
-      const travelBonus = vehicleBonus + watchBonus;
+      const travelBonus = getTravelBonus(player.inventory);
       const effectiveCost = Math.max(1, cost - travelBonus);
       if (player.timeRemaining <= 0) return state;
       if (player.timeRemaining < effectiveCost) {

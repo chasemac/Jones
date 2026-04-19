@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ringPath, effectiveTravelCost, LOCATIONS_CONFIG, homeEmoji, LIBRARY_LOCATION_GROUPS } from './boardModel';
+import { ringPath, effectiveTravelCost, getTravelBonus, LOCATIONS_CONFIG, homeEmoji, LIBRARY_LOCATION_GROUPS } from './boardModel';
 
 describe('ringPath', () => {
   it('returns empty array for same location', () => {
@@ -85,6 +85,22 @@ describe('effectiveTravelCost', () => {
     // Ensure items without type:'vehicle' and id!='smart_watch' don't contribute
     const inventory = [{ id: 'some_gadget', type: 'electronics', travelBonus: 5 }];
     expect(effectiveTravelCost('leasing_office', 'public_library', inventory)).toBe(2);
+  });
+});
+
+describe('getTravelBonus', () => {
+  it('stacks the best vehicle bonus with a smartwatch', () => {
+    const inventory = [
+      { id: 'bicycle', type: 'vehicle', travelBonus: 1 },
+      { id: 'car', type: 'vehicle', travelBonus: 2 },
+      { id: 'smart_watch', type: 'electronics', travelBonus: 1 },
+    ];
+    expect(getTravelBonus(inventory)).toBe(3);
+  });
+
+  it('ignores non-travel items', () => {
+    const inventory = [{ id: 'streaming_bundle', type: 'subscription' }];
+    expect(getTravelBonus(inventory)).toBe(0);
   });
 });
 

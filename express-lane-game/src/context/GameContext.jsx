@@ -64,6 +64,7 @@ const saveState = (state) => {
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export const GameProvider = ({ children }) => {
+  const [muted, setMutedState] = React.useState(isMuted);
   const [state, dispatch] = useReducer(
     gameReducer,
     null,
@@ -134,13 +135,13 @@ export const GameProvider = ({ children }) => {
     dismissWeekSummary: () => dispatch({ type: 'DISMISS_WEEK_SUMMARY' }),
     dismissHungerWarning: () => dispatch({ type: 'DISMISS_HUNGER_WARNING' }),
     dismissClothingWarning: () => dispatch({ type: 'DISMISS_CLOTHING_WARNING' }),
-    toggleMute: () => { toggleMute(); },
-    getMuted: () => isMuted,
+    toggleMute: () => { setMutedState(toggleMute()); },
+    getMuted: () => muted,
   };
 
   // Derived helpers consumed by UI
   const activePlayer = state.players?.[state.activePlayerIndex] ?? state.players?.[0];
-  const enrichedState = { ...state, player: activePlayer };
+  const enrichedState = { ...state, player: activePlayer, muted };
 
   const value = { state: enrichedState, dispatch, ...actions };
 

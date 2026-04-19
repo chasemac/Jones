@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
 import { effectiveWage } from '../../engine/economyModel';
 import { hungerEmojiFill } from './hungerUtils';
 import stocksData from '../../data/stocks.json';
-import { isMuted } from '../../utils/sound';
 
 const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
-  const [muted, setMuted] = useState(isMuted);
-  const { player, week, economy, players } = state;
+  const { player, week, economy, players, muted } = state;
   const isMultiplayer = players && players.length > 1;
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = calculateNetWorth(player);
@@ -208,10 +206,10 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             title="Goals (G)"
           ><span>🎯</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">Goals</span></button>
           <button
-            onClick={() => { onToggleMute(); setMuted(m => !m); }}
+            onClick={onToggleMute}
             className="bg-slate-700 hover:bg-slate-600 active:scale-95 text-white min-w-[3rem] h-11 rounded-xl text-sm border border-slate-600 transition flex items-center justify-center gap-1 px-2"
             title={muted ? 'Unmute (M)' : 'Mute (M)'}
-          ><span>{muted ? '🔇' : '🔊'}</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">{muted ? 'Mute' : 'Sound'}</span></button>
+          ><span>{muted ? '🔇' : '🔊'}</span><span className="hidden sm:inline text-[10px] font-black uppercase tracking-wide">{muted ? 'Unmute' : 'Sound'}</span></button>
         </div>
         <div className="hidden md:block text-[8px] text-slate-600 text-center" title="I=Inventory, G=Goals, L=Log, M=Mute, W=Work (or part-time), E=End Week at home, R=Rest, S=Study, N=Network, Esc=Close">
           ⌨ I G L M W E R S N

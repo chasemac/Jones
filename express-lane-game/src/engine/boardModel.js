@@ -49,14 +49,23 @@ export const ringPath = (fromId, toId) => {
  */
 export const effectiveTravelCost = (fromId, toId, inventory) => {
   const baseCost = travelCost(fromId, toId);
-  // Vehicle bonus: best vehicle only (not additive between vehicles)
+  return Math.max(1, baseCost - getTravelBonus(inventory));
+};
+
+/**
+ * Calculate the total travel bonus granted by inventory.
+ * Best vehicle bonus applies, and a smartwatch stacks on top.
+ *
+ * @param {Array} inventory - Player's inventory items.
+ * @returns {number} Total travel bonus in hours.
+ */
+export const getTravelBonus = (inventory = []) => {
   const vehicleBonus = inventory.reduce(
     (max, item) => item.type === 'vehicle' ? Math.max(max, item.travelBonus || 0) : max,
     0
   );
-  // Smartwatch stacks additively on top of vehicle bonus
   const watchBonus = inventory.some(i => i.id === 'smart_watch') ? 1 : 0;
-  return Math.max(1, baseCost - vehicleBonus - watchBonus);
+  return vehicleBonus + watchBonus;
 };
 
 /**
