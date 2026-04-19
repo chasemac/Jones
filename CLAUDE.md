@@ -73,7 +73,14 @@ Claude runs three specialized sub-agents **in parallel** for the audit phase, th
 - Effort estimate (S / M / L)
 - Expected impact (low / med / high)
 
-Do **not** implement — this agent only designs.
+**Prototype in Claude Design, not in prose.** For every improvement scored med/high impact, this agent must build the redesign in [Claude Design](https://claude.com/design) and paste the prototype URL alongside the written problem/solution. Suggested flow:
+
+1. Seed Claude Design with the repo on first run so it ingests colors, typography, and existing components into a design system.
+2. Upload the current-state screenshots from `/sessions/<session>/screenshots/` as the "before" reference for each flow.
+3. Produce prototypes for, at minimum: the 4-step start wizard, the HUD at 375 / 768 / 1280 px, the multiplayer turn banner + handoff, the week-summary modal, the stranded Ride Home screen, and any warning modal redesigned for stackability.
+4. Export each prototype as a shareable URL (PDF/PPTX optional) and paste URLs into the PR description so the implementer can reference pixels instead of guessing.
+
+Do **not** implement the code — this agent designs only.
 
 #### 3. Staff Software Engineer Agent
 
