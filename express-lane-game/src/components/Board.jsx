@@ -2,7 +2,7 @@ import React, { Component, useEffect, useEffectEvent, useRef, useState } from 'r
 import { useGame } from '../context/GameContext';
 import { LOCATION_ORDER, travelCost } from '../engine/constants';
 import { getNextPromotion, getJobLocation } from '../engine/jobModel';
-import { ringPath, LOCATIONS_CONFIG, homeEmoji } from '../engine/boardModel';
+import { effectiveTravelCost, getTravelBonus, ringPath, LOCATIONS_CONFIG, homeEmoji } from '../engine/boardModel';
 import { MapBackground, BuildingNode, PlayerToken, FloatingMoney, LocationPanel } from './ui/MapComponents';
 import HUD from './ui/HUD';
 import { GoalsModal, NotificationModal, InventoryModal, HungerWarningModal, ClothingWarningModal, EventModal, FullLogModal, WeekSummaryModal } from './ui/Modals';
@@ -51,6 +51,14 @@ const Board = () => {
   const [lotteryResult, setLotteryResult] = useState(null); // {win: bool}
   const [endWeekHint, setEndWeekHint] = useState(false);
   const animTimers = useRef([]);
+  const modalOpen = showInventory ||
+    showGoals ||
+    showLog ||
+    !!notification ||
+    !!state.weekSummary ||
+    !!state.pendingEvent ||
+    state.players?.some(p => p.hungerWarning) ||
+    state.players?.some(p => p.clothingWarning);
 
   const addFloat = (amount) => {
     const id = Date.now() + Math.random();
@@ -153,21 +161,47 @@ const Board = () => {
   useEffect(() => {
     const handler = (e) => {
       // Ignore when typing in an input
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.tagName === 'SELECT' ||
+        e.target.isContentEditable
+      ) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'escape') {
+        if (notification) setNotification(null);
+        else if (showInventory) setShowInventory(false);
+        else if (showGoals) setShowGoals(false);
+        else if (showLog) setShowLog(false);
+        else if (state.weekSummary) dismissWeekSummary();
+        else if (state.pendingEvent) dismissEvent();
+        else if (state.players?.some(p => p.hungerWarning)) dismissHungerWarning();
+        else if (state.players?.some(p => p.clothingWarning)) dismissClothingWarning();
+        else if (showPanel) setShowPanel(false);
+        return;
+      }
+
+      if (modalOpen) {
+        if (key === 'm') {
+          toggleMute();
+        } else if (key === 'i' && showInventory) {
+          setShowInventory(false);
+        } else if (key === 'g' && showGoals) {
+          setShowGoals(false);
+        } else if (key === 'l' && showLog) {
+          setShowLog(false);
+        }
+        return;
+      }
+
       const { player } = state;
-      switch (e.key.toLowerCase()) {
+      switch (key) {
         case 'i': setShowInventory(v => !v); break;
         case 'g': setShowGoals(v => !v); break;
         case 'l': setShowLog(v => !v); break;
         case 'm': { toggleMute(); break; }
-        case 'escape': {
-          // Close any open modal/panel
-          if (showInventory) setShowInventory(false);
-          else if (showGoals) setShowGoals(false);
-          else if (showLog) setShowLog(false);
-          else if (showPanel) setShowPanel(false);
-          break;
-        }
         case 'w': {
           // Work if at work location and has time
           if (player.job) {
@@ -209,7 +243,7 @@ const Board = () => {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [endWeek, showGoals, showInventory, showLog, showPanel, state, toggleMute, work, partTimeWork, rest, study, network]);
+  }, [dismissClothingWarning, dismissEvent, dismissHungerWarning, dismissWeekSummary, endWeek, modalOpen, notification, partTimeWork, rest, showGoals, showInventory, showLog, showPanel, state, study, toggleMute, work, network]);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
@@ -217,9 +251,9 @@ const Board = () => {
       return;
     }
 
-    const travelBonus = state.player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
+    const travelBonus = getTravelBonus(state.player.inventory);
     const pathToTarget = ringPath(state.player.currentLocation, id);
-    const cost = Math.max(1, travelCost(state.player.currentLocation, id) - travelBonus);
+    const cost = effectiveTravelCost(state.player.currentLocation, id, state.player.inventory);
     const canReachDestination = state.player.timeRemaining >= cost;
     const reachableSteps = canReachDestination
       ? pathToTarget.length
@@ -390,9 +424,8 @@ const Board = () => {
               warningBadge = { icon: '📖', color: 'bg-blue-500' };
             }
             const isPromoReady = !!(promoJob && id === workLocId);
-            const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
             const travelHours = player.currentLocation !== id
-              ? Math.max(1, travelCost(player.currentLocation, id) - travelBonus)
+              ? effectiveTravelCost(player.currentLocation, id, player.inventory)
               : null;
             const config = id === 'home'
               ? { ...LOCATIONS_CONFIG.home, emoji: homeEmoji(player.housing), label: player.housing?.homeType === 'luxury_condo' ? 'Condo' : player.housing?.homeType === 'apartment' ? 'Apartment' : 'Home' }
@@ -463,9 +496,8 @@ const Board = () => {
         const { player } = state;
         const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
         const isAtHomeBase = ['home', 'leasing_office'].includes(player.currentLocation);
-        const travelBonus = player.inventory.reduce((max, item) => Math.max(max, item.travelBonus || 0), 0);
         const rawStepsToHome = travelCost(player.currentLocation, homeTarget);
-        const effectiveStepsToHome = Math.max(1, rawStepsToHome - travelBonus);
+        const effectiveStepsToHome = effectiveTravelCost(player.currentLocation, homeTarget, player.inventory);
         const isStranded = !isAtHomeBase && player.timeRemaining < effectiveStepsToHome && !state.awaitingEndWeek;
         const rideFare = 15 + rawStepsToHome * 8;
         return (
@@ -475,7 +507,7 @@ const Board = () => {
             onClose={() => setShowPanel(false)}
             isStranded={isStranded}
             rideFare={rideFare}
-            onRideHome={() => { rideHome(); endWeek(); }}
+            onRideHome={rideHome}
           >
             {renderPanelContent(player.currentLocation)}
           </LocationPanel>

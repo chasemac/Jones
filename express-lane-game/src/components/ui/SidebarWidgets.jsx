@@ -57,7 +57,7 @@ export const RingTips = ({ player, week }) => {
       tutorialTips.push({ emoji: loc?.emoji ?? '💼', text: `Head to ${loc?.label ?? 'your workplace'} and work a shift` });
     }
     if (player.money >= 200 && !player.job) {
-      tutorialTips.push({ emoji: '🏦', text: 'Deposit cash at NeoBank to earn 1% interest per week' });
+      tutorialTips.push({ emoji: '🏦', text: 'Deposit cash at NeoBank to earn 1.5% interest per week' });
     }
   }
 
