@@ -74,19 +74,23 @@ export const getTravelBonus = (inventory = []) => {
  *
  * @type {Object<string, {emoji: string, label: string, color: string, pos: {x: number, y: number}}>}
  */
+// Positions evenly distributed at 30° intervals around a circle:
+//   x = 50 + 42·sin(θ);  y = 50 − 42·cos(θ);  θ clockwise from top, in LOCATION_ORDER.
+// This gives an orderly ring on a square board; landscape mobile uses ry=38 instead
+// (see ringPosition() in MapComponents.jsx) for a stretched ellipse.
 export const LOCATIONS_CONFIG = {
-  leasing_office: { emoji: '🏠', label: 'Leasing', color: '#9333ea', pos: { x: 9, y: 8 } },
-  quick_eats:     { emoji: '🍔', label: 'Quick Eats', color: '#ea580c', pos: { x: 38, y: 8 } },
-  public_library: { emoji: '📚', label: 'Library', color: '#059669', pos: { x: 72, y: 8 } },
-  trendsetters:   { emoji: '👕', label: 'TrendSetters', color: '#db2777', pos: { x: 91, y: 20 } },
-  coffee_shop:    { emoji: '☕', label: 'Coffee Shop', color: '#78350f', pos: { x: 91, y: 50 } },
-  megamart:       { emoji: '🏪', label: 'MegaMart', color: '#dc2626', pos: { x: 75, y: 74 } },
-  blacks_market:  { emoji: '🕶️', label: "Black's Mkt", color: '#1e293b', pos: { x: 60, y: 88 } },
-  grocery_store:  { emoji: '🛒', label: 'Fresh Mart', color: '#16a34a', pos: { x: 44, y: 88 } },
-  city_college:   { emoji: '🎓', label: 'City College', color: '#2563eb', pos: { x: 28, y: 88 } },
-  tech_store:     { emoji: '📱', label: 'Tech Store', color: '#475569', pos: { x: 9, y: 85 } },
-  home:           { emoji: '🏠', label: 'Home', color: '#7c3aed', pos: { x: 9, y: 66 } },
-  neobank:        { emoji: '🏦', label: 'NeoBank', color: '#4f46e5', pos: { x: 9, y: 47 } },
+  leasing_office: { emoji: '🏠', label: 'Leasing',      color: '#9333ea', pos: { x: 50,   y: 8 } },
+  quick_eats:     { emoji: '🍔', label: 'Quick Eats',   color: '#ea580c', pos: { x: 71,   y: 13.6 } },
+  public_library: { emoji: '📚', label: 'Library',      color: '#059669', pos: { x: 86.4, y: 29 } },
+  trendsetters:   { emoji: '👕', label: 'TrendSetters', color: '#db2777', pos: { x: 92,   y: 50 } },
+  coffee_shop:    { emoji: '☕', label: 'Coffee Shop',  color: '#78350f', pos: { x: 86.4, y: 71 } },
+  megamart:       { emoji: '🏪', label: 'MegaMart',     color: '#dc2626', pos: { x: 71,   y: 86.4 } },
+  blacks_market:  { emoji: '🕶️', label: "Black's Mkt",  color: '#1e293b', pos: { x: 50,   y: 92 } },
+  grocery_store:  { emoji: '🛒', label: 'Fresh Mart',   color: '#16a34a', pos: { x: 29,   y: 86.4 } },
+  city_college:   { emoji: '🎓', label: 'City College', color: '#2563eb', pos: { x: 13.6, y: 71 } },
+  tech_store:     { emoji: '📱', label: 'Tech Store',   color: '#475569', pos: { x: 8,    y: 50 } },
+  home:           { emoji: '🏠', label: 'Home',         color: '#7c3aed', pos: { x: 13.6, y: 29 } },
+  neobank:        { emoji: '🏦', label: 'NeoBank',      color: '#4f46e5', pos: { x: 29,   y: 13.6 } },
 };
 
 /**

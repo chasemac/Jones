@@ -309,9 +309,17 @@ const Board = () => {
   };
 
   return (
-    <div className="relative w-full flex-1 lg:flex-none overflow-hidden border-[3px] border-slate-900/90 bg-[linear-gradient(180deg,#cdeeff_0%,#dff7ff_32%,#eefbf5_100%)] shadow-[0_30px_80px_rgba(15,23,42,0.45)] select-none lg:h-[min(720px,_calc(100dvh-2rem))] xl:h-[min(780px,_calc(100dvh-2rem))] lg:rounded-[1.75rem]">
+    <div
+      className="relative w-full flex-1 lg:flex-none overflow-hidden select-none lg:h-[min(720px,_calc(100dvh-2rem))] xl:h-[min(780px,_calc(100dvh-2rem))] lg:rounded-[24px]"
+      style={{
+        background: 'linear-gradient(180deg, #FFFFFF 0%, #FAF5EB 60%, #F1E7D3 100%)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--sh-3)',
+      }}
+    >
       <BoardErrorBoundary>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.7),transparent_32%),linear-gradient(180deg,transparent,rgba(15,23,42,0.08))]" />
+      <div className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(circle at 50% 0%, rgba(255,255,255,0.6), transparent 40%)' }} />
 
       {/* CSS keyframes injected once */}
       <style>{`
@@ -385,15 +393,24 @@ const Board = () => {
         {/* Economy pill — top-center */}
         {(() => {
           const { economy, week, economyTimer } = state;
-          const bg = economy === 'Boom' ? 'bg-green-600' : economy === 'Depression' ? 'bg-red-600' : 'bg-slate-600';
+          const pillClass =
+            economy === 'Boom' ? 'ds-pill ds-pill-money'
+            : economy === 'Depression' ? 'ds-pill ds-pill-debt'
+            : 'ds-pill ds-pill-dark';
           const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '📊';
           return (
-            <div className={`absolute top-1.5 ${state.players?.length > 1 ? 'left-2' : 'left-1/2 -translate-x-1/2'} flex items-center gap-1 ${bg} text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg z-10 pointer-events-none border border-white/20`}>
-              <span>{icon}</span><span>{economy}</span><span className="opacity-50">·</span><span>Wk {week}</span>
+            <div
+              className={`absolute top-2 ${state.players?.length > 1 ? 'left-2' : 'left-1/2 -translate-x-1/2'} ${pillClass} z-10 pointer-events-none font-display`}
+              style={{ fontSize: 10 }}
+            >
+              <span>{icon}</span>
+              <span>{economy}</span>
+              <span style={{ opacity: 0.5 }}>·</span>
+              <span>Wk {week}</span>
               {economyTimer <= 2 ? (
-                <span className="opacity-90 animate-pulse bg-white/20 px-1 rounded">→shift in {economyTimer}wk</span>
+                <span className="ml-1 px-1 rounded animate-pulse" style={{ background: 'rgba(0,0,0,0.08)' }}>shift in {economyTimer}wk</span>
               ) : economyTimer <= 4 ? (
-                <span className="opacity-60">{economyTimer}wk left</span>
+                <span style={{ opacity: 0.6 }} className="ml-1">{economyTimer}wk left</span>
               ) : null}
             </div>
           );
