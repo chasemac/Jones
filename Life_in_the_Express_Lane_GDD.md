@@ -14,6 +14,7 @@ Inspired by the 1990s classic *Jones in the Fast Lane*, the game teaches financi
 
 ### 1.1 Players
 - 1–4 human players, plus the AI opponent "Jones."
+- Multiplayer is **hot-seat** (one device, pass-the-phone). See §16 for turn-handoff and visibility rules.
 
 ### 1.2 Tech Stack
 | Layer | Technology |
@@ -306,7 +307,35 @@ Jones is an AI opponent who progresses automatically each week:
 
 ---
 
-## 15. Project Architecture
+## 15. Multiplayer Turn Handoff & Visibility
+
+The game is **hot-seat** multiplayer: players share one device and take turns. To keep each player's position and plans private — and to keep the board uncluttered — the following visibility rules apply during play.
+
+### 15.1 Board tokens
+- **Only the active player's token is rendered on the board.** Inactive players' locations are hidden during the active player's turn.
+- **The Joneses (AI rival) token is always visible** on the board — the rival is public information and is used as a pacing signal.
+- At turn end, the outgoing player's token is removed before the handoff screen appears so that the incoming player cannot infer the previous player's final location from the board.
+
+### 15.2 HUD & stats
+- The HUD displays the active player's stats only (cash, debt, hunger, clothing, relaxation, happiness, time remaining).
+- Other players' stats are hidden by default. A dedicated **Scoreboard** screen (opened explicitly from the menu, typically between turns) shows public, end-of-week values only: name, job title, and goal-progress bars. Private values (exact cash, debt, hunger, etc.) are never revealed.
+
+### 15.3 Turn-summary panel
+- At the end of each player's turn, an opaque **Handoff screen** covers the board with the next player's name and color ("Pass to Bailey"). The board is not revealed until the incoming player confirms they're ready.
+- The end-of-week summary ledger (§3) is private to the player whose week just ended and is shown before the handoff.
+
+### 15.4 Warnings & events
+- Hunger / clothing warnings are scoped to the active player only and never surface another player's thresholds.
+- Shared-world events (economy shifts, Daily News) are public and shown to every player as their turn begins.
+
+### 15.5 Implementation notes
+- In `Board.jsx`, the player-token render loop must filter to `state.players[state.activePlayerIndex]` (plus the Joneses) — it currently renders all `state.players`.
+- `HUD.jsx` must read only the active player's stats (already does); any per-player widgets (e.g. mini-roster) added later must opt in explicitly.
+- Persistence (`jones_v2_state` in `localStorage`) continues to store all players' state — only the *rendering* is scoped.
+
+---
+
+## 16. Project Architecture
 
 ```
 src/

@@ -1,0 +1,19 @@
+{
+  "name": "Life in the Express Lane",
+  "short_name": "Express Lane",
+  "description": "Outwork the city, outlearn the grind, and finally beat The Joneses.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#FAF7F2",
+  "theme_color": "#FAF7F2",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

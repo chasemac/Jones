@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Week Summary + Events — Life in the Express Lane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #FAF7F2;
+    --surface: #FFFFFF;
+    --surface-2: #F4EFE6;
+    --border: #E8E1D3;
+    --ink: #1A1816;
+    --ink-2: #3A3630;
+    --muted: #7B756C;
+
+    --brand: #FF6B4A;
+    --brand-ink: #BC3617;
+    --money: #10A876;
+    --money-ink: #0B6E4F;
+    --debt: #E4413A;
+    --warn: #F4B82A;
+    --info: #3B82F6;
+    --accent: #7C5CFF;
+
+    --sh-1: 0 1px 2px rgba(26,24,22,0.06), 0 1px 3px rgba(26,24,22,0.04);
+    --sh-2: 0 2px 4px rgba(26,24,22,0.06), 0 6px 16px rgba(26,24,22,0.08);
+    --sh-3: 0 10px 30px rgba(26,24,22,0.14), 0 2px 6px rgba(26,24,22,0.08);
+    --sh-modal: 0 30px 80px rgba(12,14,20,0.35), 0 4px 16px rgba(12,14,20,0.15);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, #EAE2D1 0%, transparent 60%),
+      linear-gradient(180deg, #E8E1D3 0%, #CDBFA6 100%);
+    min-height: 100vh;
+    padding: 40px 32px 80px;
+  }
+
+  .page-head { max-width: 1400px; margin: 0 auto 24px; }
+  .page-head .eyebrow {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 11px; letter-spacing: 1.2px;
+    color: var(--brand); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .page-head h1 {
+    font-family: "Space Grotesk"; font-weight: 700;
+    font-size: 32px; letter-spacing: -0.015em; margin: 0 0 6px; color: var(--ink);
+  }
+  .page-head p { margin: 0; color: var(--muted); font-size: 14px; max-width: 860px; line-height: 1.5; }
+
+  .section-title {
+    max-width: 1400px; margin: 36px auto 16px;
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 18px; letter-spacing: -0.01em;
+    color: var(--ink);
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .section-title small { font-family: "Inter"; font-weight: 500; font-size: 12px; color: var(--muted); }
+
+  .stage {
+    max-width: 1400px; margin: 0 auto;
+    position: relative;
+    background: linear-gradient(180deg, rgba(26,24,22,0.7), rgba(26,24,22,0.75));
+    border: 1px solid rgba(26,24,22,0.4);
+    border-radius: 24px;
+    padding: 60px;
+    min-height: 720px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .stage::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,107,74,0.18), transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(124,92,255,0.16), transparent 50%);
+    pointer-events: none;
+  }
+  .stage::after {
+    content: "Behind the modal: blurred/dimmed board"; position: absolute;
+    bottom: 14px; right: 20px; color: rgba(255,255,255,0.5);
+    font-family: "Space Grotesk"; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* Queue badge in top-left corner of stage */
+  .queue-indicator {
+    position: absolute; top: 16px; left: 16px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--ink);
+    box-shadow: var(--sh-1);
+  }
+  .queue-indicator .dots { display: inline-flex; gap: 3px; }
+  .queue-indicator .dots span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong, #D6CBB5);
+  }
+  .queue-indicator .dots span.active { background: var(--brand); }
+
+  /* --- Modal base --- */
+  .modal {
+    position: relative;
+    width: 100%; max-width: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--sh-modal);
+    overflow: hidden;
+    z-index: 1;
+  }
+  .modal-header {
+    padding: 18px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #FBF7EF 100%);
+  }
+  .modal-header .emoji {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: linear-gradient(135deg, #FDEDE7, #FFE4D4);
+    border: 1px solid rgba(255,107,74,0.3);
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .modal-header h2 {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 22px;
+    color: var(--ink); letter-spacing: -0.015em; margin: 0;
+  }
+  .modal-header .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .modal-header .tag {
+    margin-left: auto;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--ink); color: #fff;
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 11px; letter-spacing: 0.04em;
+  }
+  .modal-body { padding: 22px; display: grid; gap: 18px; }
+  .modal-footer {
+    padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, #FBF7EF 0%, #FFFFFF 100%);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .modal-footer .spacer { flex: 1; }
+
+  /* --- Week summary specific --- */
+  .summary-grid {
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 18px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px; box-shadow: var(--sh-1);
+  }
+  .card h3 {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+    margin: 0 0 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .card h3 .accent { font-family: "Space Grotesk"; font-weight: 700; font-size: 12px; color: var(--brand); letter-spacing: 0.04em; }
+
+  .ledger .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px dashed var(--border);
+    font-size: 13px;
+  }
+  .ledger .row:last-child { border-bottom: none; }
+  .ledger .row .lbl { color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .ledger .row .val { font-family: "Space Grotesk"; font-weight: 700; }
+  .ledger .row .val.pos { color: var(--money-ink); }
+  .ledger .row .val.neg { color: #A82620; }
+  .ledger .total {
+    margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--ink);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ledger .total .lbl { font-weight: 700; color: var(--ink); }
+  .ledger .total .val { font-family: "Space Grotesk"; font-weight: 700; font-size: 20px; color: var(--money-ink); }
+
+  .stat-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .mini {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 12px;
+  }
+  .mini .lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .mini .val { font-family: "Space Grotesk"; font-weight: 700; font-size: 20px; color: var(--ink); margin-top: 2px; letter-spacing: -0.01em; }
+  .mini .delta { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .delta.up { color: var(--money-ink); }
+  .delta.down { color: #A82620; }
+
+  .needs-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .need {
+    background: var(--surface-2); border-radius: 10px; padding: 8px 10px; border: 1px solid var(--border);
+  }
+  .need .top { display: flex; justify-content: space-between; align-items: center; }
+  .need .top .lbl { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+  .need .top .val { font-family: "Space Grotesk"; font-weight: 700; font-size: 13px; color: var(--ink); }
+  .need .bar { height: 5px; background: var(--surface); border-radius: 999px; margin-top: 5px; overflow: hidden; border: 1px solid var(--border); }
+  .need .bar span { display: block; height: 100%; border-radius: 999px; }
+
+  .goals-table .g-row {
+    display: grid; grid-template-columns: 1.4fr 1fr auto; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px dashed var(--border);
+  }
+  .goals-table .g-row:last-child { border-bottom: none; }
+  .goals-table .g-row .lbl { font-weight: 600; font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; }
+  .goals-table .g-row .progress { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+  .goals-table .g-row .progress span { display: block; height: 100%; border-radius: 999px; background: var(--brand); }
+  .goals-table .g-row .val { font-family: "Space Grotesk"; font-weight: 700; font-size: 13px; color: var(--ink); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    font-family: "Inter"; font-weight: 600; font-size: 13px;
+    box-shadow: var(--sh-1); cursor: pointer;
+  }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 4px 14px rgba(255,107,74,0.4); }
+  .btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); box-shadow: none; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 11px; font-weight: 600; color: var(--ink-2);
+  }
+  .pill.money { background: rgba(16,168,118,0.12); color: var(--money-ink); border-color: rgba(16,168,118,0.25); }
+  .pill.warn { background: rgba(244,184,42,0.18); color: #8A6510; border-color: rgba(244,184,42,0.4); }
+  .pill.brand { background: rgba(255,107,74,0.12); color: var(--brand-ink); border-color: rgba(255,107,74,0.25); }
+
+  /* --- News modal --- */
+  .news .modal-header { background: linear-gradient(135deg, #FDEDE7, #FFE4D4); }
+  .news-hero {
+    height: 180px; border-radius: 14px;
+    background:
+      radial-gradient(circle at 30% 40%, #FFD9B3 0%, transparent 45%),
+      radial-gradient(circle at 70% 60%, #FFB399 0%, transparent 50%),
+      linear-gradient(135deg, #FFE4D4, #FDEDE7);
+    border: 1px solid rgba(255,107,74,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 72px;
+  }
+  .news-lead {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 22px; line-height: 1.2;
+    color: var(--ink); letter-spacing: -0.015em;
+  }
+  .news-body p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+  .effect-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding-top: 4px;
+  }
+
+  /* --- Warning modal --- */
+  .warn-modal {
+    max-width: 520px;
+  }
+  .warn-modal .modal-header { background: linear-gradient(135deg, rgba(244,184,42,0.18), rgba(255,255,255,0.9)); }
+  .warn-modal .modal-header .emoji {
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    border: 1px solid rgba(244,184,42,0.5);
+  }
+  .warn-modal .modal-body { text-align: left; }
+  .warn-modal h3 { margin: 0 0 8px; font-family: "Space Grotesk"; font-weight: 700; font-size: 16px; color: var(--ink); }
+  .warn-modal p { margin: 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+  .warn-row {
+    display: flex; gap: 10px; align-items: center; padding: 10px 12px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+    font-size: 13px; color: var(--ink-2);
+  }
+  .warn-row .em { font-size: 18px; }
+  .warn-row strong { color: var(--ink); }
+
+  .callouts {
+    max-width: 1400px; margin: 36px auto 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px;
+  }
+  .callout {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 16px 18px; box-shadow: var(--sh-1);
+  }
+  .callout .tag {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--brand); margin-bottom: 6px;
+  }
+  .callout h3 { font-family: "Space Grotesk"; margin: 0 0 6px; font-size: 15px; color: var(--ink); font-weight: 700; }
+  .callout p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="eyebrow">Redesign · Week end + events</div>
+  <h1>Week Summary, Daily News & Warnings</h1>
+  <p>Modern modal system on top of the same visual language as the board. Week summary is a scannable sheet: ledger, key stats, needs, goal progress. Daily News is a focused card with an illustrated hero and inline effect chips. Warnings stack one-at-a-time per player.</p>
+</div>
+
+<!-- WEEK SUMMARY -->
+<div class="section-title">Week summary <small>End-of-week modal · scoped to the active player</small></div>
+<div class="stage">
+  <div class="queue-indicator">
+    <span>1 of 1</span>
+    <span class="dots"><span class="active"></span></span>
+  </div>
+
+  <div class="modal">
+    <div class="modal-header">
+      <div class="emoji">📋</div>
+      <div>
+        <h2>Week 12 wrap-up</h2>
+        <div class="sub">Alex 🦊 · Net +$167 · 40h of paid work</div>
+      </div>
+      <div class="tag">WEEK 12 / 52</div>
+    </div>
+
+    <div class="modal-body">
+      <div class="summary-grid">
+        <div class="card">
+          <h3>Ledger <span class="accent">+$167 net</span></h3>
+          <div class="ledger">
+            <div class="row"><div class="lbl">💼 Barista shifts (40h)</div><div class="val pos">+$480</div></div>
+            <div class="row"><div class="lbl">🏠 Rent</div><div class="val neg">−$220</div></div>
+            <div class="row"><div class="lbl">🍔 Quick Eats × 4</div><div class="val neg">−$32</div></div>
+            <div class="row"><div class="lbl">🛒 Megamart groceries</div><div class="val neg">−$48</div></div>
+            <div class="row"><div class="lbl">💳 Loan interest</div><div class="val neg">−$13</div></div>
+            <div class="row"><div class="lbl">📚 Library study (6h)</div><div class="val">+3 skill</div></div>
+            <div class="total">
+              <div class="lbl">Net this week</div>
+              <div class="val">+$167</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div class="card">
+            <h3>Balance sheet</h3>
+            <div class="stat-grid">
+              <div class="mini">
+                <div class="lbl">Cash</div>
+                <div class="val">$1,248</div>
+                <div class="delta up">▲ $167</div>
+              </div>
+              <div class="mini">
+                <div class="lbl">Debt</div>
+                <div class="val" style="color: #A82620;">$650</div>
+                <div class="delta down">▼ $13 paid</div>
+              </div>
+              <div class="mini">
+                <div class="lbl">Skill</div>
+                <div class="val">18</div>
+                <div class="delta up">▲ 3 of 50</div>
+              </div>
+              <div class="mini">
+                <div class="lbl">Happiness</div>
+                <div class="val">71</div>
+                <div class="delta up">▲ 4</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Needs</h3>
+            <div class="needs-row">
+              <div class="need">
+                <div class="top"><div class="lbl">🍔 Hunger</div><div class="val">62</div></div>
+                <div class="bar"><span style="width: 62%; background: linear-gradient(90deg, #FF8A4A, #F4B82A);"></span></div>
+              </div>
+              <div class="need">
+                <div class="top"><div class="lbl">👕 Clothes</div><div class="val">78</div></div>
+                <div class="bar"><span style="width: 78%; background: linear-gradient(90deg, #7C5CFF, #3B82F6);"></span></div>
+              </div>
+              <div class="need">
+                <div class="top"><div class="lbl">😌 Relax</div><div class="val">54</div></div>
+                <div class="bar"><span style="width: 54%; background: linear-gradient(90deg, #10A876, #6EE7B7);"></span></div>
+              </div>
+              <div class="need">
+                <div class="top"><div class="lbl">😊 Happy</div><div class="val">71</div></div>
+                <div class="bar"><span style="width: 71%; background: linear-gradient(90deg, #F4B82A, #FF6B4A);"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Goal progress <span class="accent">Week 12 / 52</span></h3>
+        <div class="goals-table">
+          <div class="g-row">
+            <div class="lbl">🎓 Graduate college</div>
+            <div class="progress"><span style="width: 36%;"></span></div>
+            <div class="val">18 / 50</div>
+          </div>
+          <div class="g-row">
+            <div class="lbl">🏡 Buy a home</div>
+            <div class="progress"><span style="width: 6%;"></span></div>
+            <div class="val">$1,248 / $20,000</div>
+          </div>
+          <div class="g-row">
+            <div class="lbl">😊 Contentment 90</div>
+            <div class="progress"><span style="width: 78%;"></span></div>
+            <div class="val">71 / 90</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="pill">Autosaved · localStorage</span>
+      <div class="spacer"></div>
+      <button class="btn ghost">View full log</button>
+      <button class="btn dark">Continue → Bailey's turn</button>
+    </div>
+  </div>
+</div>
+
+<!-- DAILY NEWS -->
+<div class="section-title">Daily News <small>Random event · visible to everyone</small></div>
+<div class="stage">
+  <div class="queue-indicator">
+    <span>News + 1 warning queued</span>
+    <span class="dots"><span class="active"></span><span></span></span>
+  </div>
+
+  <div class="modal news">
+    <div class="modal-header">
+      <div class="emoji">📰</div>
+      <div>
+        <h2>Tech firms raise starting wages 15%</h2>
+        <div class="sub">Daily News · Week 12 · Boom cycle</div>
+      </div>
+      <div class="tag" style="background: var(--money); color: #fff;">BOOM</div>
+    </div>
+
+    <div class="modal-body">
+      <div class="news-hero">💼</div>
+
+      <div class="news-lead">Hiring boom sends starting salaries up sharply at the Tech Store.</div>
+
+      <div class="news-body">
+        <p>A wave of funding in the tech sector has pushed entry-level wages up fifteen percent overnight. Candidates with Skill 20+ are being snapped up faster than the ink on their résumés dries.</p>
+        <p>Effect holds for <strong>3 weeks</strong>. The Tech Store's hourly rate reflects the boom for anyone who works a shift there this cycle.</p>
+      </div>
+
+      <div class="effect-row">
+        <span class="pill money">💰 Wages +15%</span>
+        <span class="pill brand">📱 Tech Store boosted</span>
+        <span class="pill">⏱ 3 weeks left</span>
+        <span class="pill">🌍 Affects all players</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="pill">Press <strong style="margin: 0 2px; color: var(--ink);">N</strong> for more news</span>
+      <div class="spacer"></div>
+      <button class="btn ghost">See details</button>
+      <button class="btn primary">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- WARNING -->
+<div class="section-title">Warning modal <small>Stacks one at a time — one modal per player</small></div>
+<div class="stage" style="min-height: 460px;">
+  <div class="queue-indicator">
+    <span>Warning 1 of 2</span>
+    <span class="dots"><span class="active"></span><span></span></span>
+  </div>
+
+  <div class="modal warn-modal">
+    <div class="modal-header">
+      <div class="emoji">⚠️</div>
+      <div>
+        <h2>Hunger is getting low</h2>
+        <div class="sub">Alex 🦊 · Current hunger 22 / 100</div>
+      </div>
+      <div class="tag" style="background: var(--warn); color: var(--ink);">WARNING</div>
+    </div>
+
+    <div class="modal-body" style="gap: 12px;">
+      <p style="font-size: 13px; color: var(--ink-2); line-height: 1.5; margin: 0;">
+        If hunger drops below 10 you'll start losing happiness every hour. Pick somewhere to eat before the week ends.
+      </p>
+
+      <div class="warn-row">
+        <div class="em">🍔</div>
+        <div><strong>Quick Eats</strong> · $8 · +22 hunger · 1h</div>
+        <div style="margin-left: auto;"><span class="pill">1 move away</span></div>
+      </div>
+      <div class="warn-row">
+        <div class="em">🥬</div>
+        <div><strong>Grocery Store</strong> · $18 · +34 hunger · 2h</div>
+        <div style="margin-left: auto;"><span class="pill">3 moves away</span></div>
+      </div>
+      <div class="warn-row">
+        <div class="em">🏡</div>
+        <div><strong>Home pantry</strong> · Free · +12 hunger</div>
+        <div style="margin-left: auto;"><span class="pill">5 moves away</span></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <span class="pill warn">Auto-dismiss doesn't apply to warnings</span>
+      <div class="spacer"></div>
+      <button class="btn ghost">Dismiss</button>
+      <button class="btn primary">Travel to Quick Eats</button>
+    </div>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="callout">
+    <div class="tag">Scannability</div>
+    <h3>Five seconds to read the week</h3>
+    <p>Ledger totals, balance sheet, needs, goals — every block has a header, a signature number in Space Grotesk, and a delta. No paragraphs of prose. The Continue button is always in the same spot.</p>
+  </div>
+  <div class="callout">
+    <div class="tag">Queue indicator</div>
+    <h3>Modals stack, never double-render</h3>
+    <p>A small pill in the stage corner tells the player how many events are queued. News, warnings, and the week summary run one at a time so nothing gets dismissed accidentally.</p>
+  </div>
+  <div class="callout">
+    <div class="tag">Warnings are actionable</div>
+    <h3>Don't just warn — offer a fix</h3>
+    <p>Low-hunger warnings list the three cheapest/fastest options with cost and travel distance. The primary CTA routes the player straight there instead of dumping them back on the board to figure it out.</p>
+  </div>
+</div>
+
+</body>
+</html>

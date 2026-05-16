@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Board + HUD — Life in the Express Lane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #FAF7F2;
+    --surface: #FFFFFF;
+    --surface-2: #F4EFE6;
+    --border: #E8E1D3;
+    --border-strong: #D6CBB5;
+    --ink: #1A1816;
+    --ink-2: #3A3630;
+    --muted: #7B756C;
+
+    --brand: #FF6B4A;
+    --brand-ink: #BC3617;
+    --money: #10A876;
+    --money-ink: #0B6E4F;
+    --debt: #E4413A;
+    --warn: #F4B82A;
+    --info: #3B82F6;
+    --accent: #7C5CFF;
+
+    --sh-1: 0 1px 2px rgba(26,24,22,0.06), 0 1px 3px rgba(26,24,22,0.04);
+    --sh-2: 0 2px 4px rgba(26,24,22,0.06), 0 6px 16px rgba(26,24,22,0.08);
+    --sh-3: 0 10px 30px rgba(26,24,22,0.14), 0 2px 6px rgba(26,24,22,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, #EAE2D1 0%, transparent 60%),
+      linear-gradient(180deg, #E8E1D3 0%, #CDBFA6 100%);
+    min-height: 100vh;
+    padding: 40px 32px 80px;
+  }
+
+  .page-head { max-width: 1400px; margin: 0 auto 24px; }
+  .page-head .eyebrow {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 11px; letter-spacing: 1.2px;
+    color: var(--brand); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .page-head h1 {
+    font-family: "Space Grotesk"; font-weight: 700;
+    font-size: 32px; letter-spacing: -0.015em; margin: 0 0 6px; color: var(--ink);
+  }
+  .page-head p { margin: 0; color: var(--muted); font-size: 14px; max-width: 860px; line-height: 1.5; }
+
+  .app-frame {
+    max-width: 1400px; margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    box-shadow: var(--sh-3);
+    overflow: hidden;
+  }
+
+  .topbar {
+    display: flex; align-items: center; gap: 20px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #FFFFFF 0%, #FBF7EF 100%);
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 15px; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .brand .logo {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: linear-gradient(135deg, #FF6B4A, #F4B82A);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; box-shadow: 0 2px 8px rgba(255,107,74,0.35);
+  }
+  .player-chips { display: flex; align-items: center; gap: 8px; margin-left: 8px; }
+  .pchip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: var(--ink-2);
+  }
+  .pchip .em { font-size: 14px; }
+  .pchip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .pchip.active::after { content: "· turn"; font-weight: 500; opacity: 0.7; margin-left: 2px; }
+
+  .topbar .week-pill {
+    margin-left: auto;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--ink); color: #fff;
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 12px; letter-spacing: 0.04em;
+  }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink-2);
+    font-size: 14px; cursor: pointer;
+  }
+
+  .main { display: grid; grid-template-columns: 280px 1fr 280px; gap: 0; }
+  .sidebar {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAF6EB 100%);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .sidebar.right { border-right: none; border-left: 1px solid var(--border); }
+
+  .panel-title {
+    font-family: "Space Grotesk"; font-weight: 700;
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title .meta { font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 11px; }
+
+  .player-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 14px; box-shadow: var(--sh-1);
+  }
+  .player-card .top { display: flex; align-items: center; gap: 10px; }
+  .player-card .avatar {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #FDEDE7, #FFE4D4);
+    border: 1px solid rgba(255,107,74,0.3);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .player-card .name { font-family: "Space Grotesk"; font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+  .player-card .role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .big-stat { margin-top: 12px; display: flex; flex-direction: column; }
+  .big-stat .lbl { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+  .big-stat .val {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 30px;
+    color: var(--money-ink); letter-spacing: -0.02em;
+  }
+  .big-stat .delta { font-size: 11px; color: var(--money-ink); font-weight: 600; margin-top: 2px; }
+
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .kv { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; }
+  .kv .lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .kv .val { font-family: "Space Grotesk"; font-weight: 700; font-size: 15px; color: var(--ink); margin-top: 2px; }
+  .kv.debt .val { color: #A82620; }
+
+  .meters {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 14px; box-shadow: var(--sh-1);
+  }
+  .meter { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 8px 0; border-bottom: 1px dashed var(--border); }
+  .meter:last-of-type { border-bottom: none; }
+  .meter .lbl { font-size: 12px; color: var(--ink-2); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .meter .val { font-family: "Space Grotesk"; font-weight: 700; font-size: 13px; color: var(--ink); }
+  .meter .bar { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 4px; }
+  .meter .bar span { display: block; height: 100%; border-radius: 999px; }
+  .bar .hunger { background: linear-gradient(90deg, #FF8A4A, #F4B82A); }
+  .bar .cloth  { background: linear-gradient(90deg, #7C5CFF, #3B82F6); }
+  .bar .relax  { background: linear-gradient(90deg, #10A876, #6EE7B7); }
+  .bar .happy  { background: linear-gradient(90deg, #F4B82A, #FF6B4A); }
+
+  .goal { padding: 10px 0; border-bottom: 1px dashed var(--border); }
+  .goal:last-child { border-bottom: none; }
+  .goal .row { display: flex; justify-content: space-between; align-items: center; }
+  .goal .row .l { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .goal .row .r { font-family: "Space Grotesk"; font-weight: 700; font-size: 13px; color: var(--ink); }
+  .goal .bar { height: 5px; border-radius: 999px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+  .goal .bar span { display: block; height: 100%; border-radius: 999px; background: var(--brand); }
+
+  .board-col {
+    padding: 24px; position: relative;
+    display: flex; flex-direction: column; gap: 14px;
+    min-height: 700px;
+  }
+  .turn-banner {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: var(--sh-1);
+  }
+  .turn-banner .pa {
+    width: 36px; height: 36px; border-radius: 12px;
+    background: linear-gradient(135deg, #FDEDE7, #FFE4D4); border: 1px solid rgba(255,107,74,0.3);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .turn-banner .name { font-family: "Space Grotesk"; font-weight: 700; font-size: 15px; }
+  .turn-banner .meta { font-size: 11px; color: var(--muted); }
+  .turn-banner .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .dot-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 999px;
+    background: rgba(16,168,118,0.1); color: var(--money-ink);
+    font-size: 11px; font-weight: 600; border: 1px solid rgba(16,168,118,0.25);
+  }
+  .dot-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--money); }
+
+  .board {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    max-height: 640px;
+    margin: 0 auto;
+    width: 100%;
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 50% 50%, #FFFFFF 0%, #FAF5EB 60%, #F1E7D3 100%);
+    border: 1px solid var(--border);
+    box-shadow: var(--sh-1), inset 0 0 0 1px rgba(255,255,255,0.6);
+    overflow: hidden;
+  }
+  .board::before {
+    content: ""; position: absolute; inset: 16px;
+    border: 1px dashed rgba(124,92,255,0.18);
+    border-radius: 18px; pointer-events: none;
+  }
+  .shop {
+    position: absolute; width: 92px; height: 92px; transform: translate(-50%, -50%);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; box-shadow: var(--sh-1);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; gap: 2px; padding: 6px;
+    transition: transform 0.15s ease;
+  }
+  .shop:hover { transform: translate(-50%, -50%) scale(1.04); }
+  .shop .em { font-size: 28px; line-height: 1; }
+  .shop .nm { font-size: 11px; font-weight: 600; color: var(--ink-2); }
+  .shop .cost {
+    position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+    padding: 2px 6px; border-radius: 999px;
+    background: var(--ink); color: #fff;
+    font-family: "Space Grotesk"; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em;
+    border: 1px solid rgba(255,255,255,0.15);
+    white-space: nowrap;
+  }
+  .shop::after {
+    content: ""; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 999px;
+  }
+  .shop[data-accent="coral"]::after    { background: #FF6B4A; }
+  .shop[data-accent="amber"]::after    { background: #F4B82A; }
+  .shop[data-accent="teal"]::after     { background: #0EA5A4; }
+  .shop[data-accent="pink"]::after     { background: #EC4899; }
+  .shop[data-accent="violet"]::after   { background: #7C5CFF; }
+  .shop[data-accent="red"]::after      { background: #E4413A; }
+  .shop[data-accent="slate"]::after    { background: #475569; }
+  .shop[data-accent="green"]::after    { background: #10A876; }
+  .shop[data-accent="blue"]::after     { background: #3B82F6; }
+  .shop[data-accent="indigo"]::after   { background: #6366F1; }
+  .shop[data-accent="brown"]::after    { background: #92400E; }
+
+  .shop.current {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 8px 24px rgba(26,24,22,0.3);
+  }
+  .shop.current .nm { color: rgba(255,255,255,0.9); }
+  .shop.joneses {
+    border-color: var(--accent);
+    background: #F5F0FF;
+  }
+  .shop.joneses::before {
+    content: "Joneses";
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    font-family: "Space Grotesk"; font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+    padding: 2px 6px; border-radius: 999px;
+    background: var(--accent); color: #fff; white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .shop.warn { border-color: var(--warn); }
+  .shop.warn::before {
+    content: "!"; position: absolute; top: -8px; left: -8px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--warn); color: var(--ink); font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Space Grotesk"; font-size: 13px;
+    box-shadow: 0 2px 6px rgba(244,184,42,0.5);
+  }
+
+  .board-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 50%; aspect-ratio: 1 / 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    box-shadow: var(--sh-2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 18px; text-align: center;
+  }
+  .board-center .loc-emoji { font-size: 54px; }
+  .board-center h3 { font-family: "Space Grotesk"; font-weight: 700; font-size: 22px; margin: 6px 0 2px; color: var(--ink); letter-spacing: -0.01em; }
+  .board-center .loc-sub { font-size: 12px; color: var(--muted); }
+  .board-center .you {
+    margin-top: 10px; padding: 4px 12px; border-radius: 999px;
+    background: var(--brand); color: #fff;
+    font-size: 11px; font-weight: 700;
+  }
+  .board-center .actions {
+    margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 85%;
+  }
+  .ca {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 10px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--ink-2);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    box-shadow: var(--sh-1); cursor: pointer;
+  }
+  .ca .h { font-size: 12px; color: var(--ink); font-weight: 700; }
+  .ca .m { font-size: 10px; color: var(--muted); }
+  .ca.primary { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 4px 14px rgba(255,107,74,0.35); }
+  .ca.primary .h, .ca.primary .m { color: #fff; }
+  .ca.primary .m { color: rgba(255,255,255,0.85); }
+  .ca.money { background: var(--money); border-color: var(--money); color: #fff; box-shadow: 0 4px 14px rgba(16,168,118,0.3); }
+  .ca.money .h, .ca.money .m { color: #fff; }
+  .ca.money .m { color: rgba(255,255,255,0.85); }
+
+  .log {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 10px 12px; box-shadow: var(--sh-1);
+  }
+  .log .entry { display: flex; gap: 8px; align-items: flex-start; padding: 6px 0; font-size: 12px; color: var(--ink-2); }
+  .log .entry + .entry { border-top: 1px dashed var(--border); }
+  .log .e { font-size: 14px; line-height: 1.2; }
+  .log .t { font-family: "Space Grotesk"; font-size: 10px; color: var(--muted); margin-left: auto; font-weight: 600; letter-spacing: 0.02em; }
+
+  .bottombar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    background: linear-gradient(180deg, #FFFFFF 0%, #FBF7EF 100%);
+  }
+  .bottombar .key {
+    font-family: "Space Grotesk"; font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 5px;
+    background: var(--surface-2); color: var(--muted);
+    border: 1px solid var(--border);
+    margin-right: 6px;
+  }
+  .bottombar .hint { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; }
+  .bottombar .spacer { flex: 1; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 12px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    font-family: "Inter"; font-weight: 600; font-size: 13px;
+    box-shadow: var(--sh-1); cursor: pointer;
+  }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; box-shadow: 0 4px 14px rgba(255,107,74,0.4); }
+  .btn.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  .callouts {
+    max-width: 1400px; margin: 36px auto 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px;
+  }
+  .callout {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 16px 18px; box-shadow: var(--sh-1);
+  }
+  .callout .tag {
+    font-family: "Space Grotesk"; font-weight: 700; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--brand); margin-bottom: 6px;
+  }
+  .callout h3 { font-family: "Space Grotesk"; margin: 0 0 6px; font-size: 15px; color: var(--ink); font-weight: 700; }
+  .callout p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="eyebrow">Redesign · Main screen</div>
+  <h1>Board + HUD — Life in the Express Lane</h1>
+  <p>Modern visual system applied to the primary screen. Warm off-white canvas, 1px borders, soft shadows, Inter + Space Grotesk. Only the active player's token renders on the board (GDD §15); the Joneses always show as the public rival. Action preview lives with the current location in the center so no button is a blind click.</p>
+</div>
+
+<div class="app-frame">
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">🚗</div>
+      Express Lane
+    </div>
+    <div class="player-chips">
+      <div class="pchip active"><span class="em">🦊</span> Alex</div>
+      <div class="pchip"><span class="em">🐨</span> Bailey</div>
+      <div class="pchip"><span class="em">🐼</span> Chen</div>
+    </div>
+    <div class="week-pill">Week 12 · Monday</div>
+    <button class="icon-btn" title="Mute">🔊</button>
+    <button class="icon-btn" title="Settings">⚙️</button>
+  </div>
+
+  <div class="main">
+    <aside class="sidebar">
+      <div class="panel-title">Your stats <span class="meta">Private</span></div>
+
+      <div class="player-card">
+        <div class="top">
+          <div class="avatar">🦊</div>
+          <div>
+            <div class="name">Alex</div>
+            <div class="role">Barista · No degree</div>
+          </div>
+        </div>
+
+        <div class="big-stat">
+          <div class="lbl">Cash on hand</div>
+          <div class="val">$1,248</div>
+          <div class="delta">▲ $96 today</div>
+        </div>
+
+        <div class="kv-grid">
+          <div class="kv debt">
+            <div class="lbl">Debt</div>
+            <div class="val">$650</div>
+          </div>
+          <div class="kv">
+            <div class="lbl">Time</div>
+            <div class="val">42h</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="meters">
+        <div class="panel-title" style="margin-bottom: 4px;">Needs</div>
+        <div class="meter">
+          <div class="lbl">🍔 Hunger</div>
+          <div class="val">62</div>
+          <div class="bar"><span class="hunger" style="width: 62%;"></span></div>
+        </div>
+        <div class="meter">
+          <div class="lbl">👕 Clothes</div>
+          <div class="val">78</div>
+          <div class="bar"><span class="cloth" style="width: 78%;"></span></div>
+        </div>
+        <div class="meter">
+          <div class="lbl">😌 Relax</div>
+          <div class="val">54</div>
+          <div class="bar"><span class="relax" style="width: 54%;"></span></div>
+        </div>
+        <div class="meter">
+          <div class="lbl">😊 Happy</div>
+          <div class="val">71</div>
+          <div class="bar"><span class="happy" style="width: 71%;"></span></div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="board-col">
+      <div class="turn-banner">
+        <div class="pa">🦊</div>
+        <div>
+          <div class="name">Alex's turn</div>
+          <div class="meta">At Coffee Shop · 42h left this week</div>
+        </div>
+        <div class="right">
+          <span class="dot-badge">Boom economy · 2 wks left</span>
+        </div>
+      </div>
+
+      <div class="board">
+        <!-- 12 shops evenly distributed at 30° intervals around a circle (R=42% from center).
+             Ring order is preserved clockwise for travel-cost math. -->
+        <div class="shop" data-accent="violet" style="left:50%; top:8%;">
+          <div class="em">🏠</div><div class="nm">Leasing Office</div>
+          <div class="cost">travel $4</div>
+        </div>
+        <div class="shop" data-accent="coral" style="left:71%; top:13.6%;">
+          <div class="em">🍔</div><div class="nm">Quick Eats</div>
+          <div class="cost">travel $3</div>
+        </div>
+        <div class="shop" data-accent="green" style="left:86.4%; top:29%;">
+          <div class="em">📚</div><div class="nm">Library</div>
+          <div class="cost">travel $2</div>
+        </div>
+        <div class="shop" data-accent="pink" style="left:92%; top:50%;">
+          <div class="em">👗</div><div class="nm">Trendsetters</div>
+          <div class="cost">travel $1</div>
+        </div>
+        <div class="shop current" data-accent="brown" style="left:86.4%; top:71%;">
+          <div class="em">☕</div><div class="nm">Coffee Shop</div>
+        </div>
+        <div class="shop" data-accent="red" style="left:71%; top:86.4%;">
+          <div class="em">🛒</div><div class="nm">Megamart</div>
+          <div class="cost">travel $1</div>
+        </div>
+        <div class="shop joneses" data-accent="violet" style="left:50%; top:92%;">
+          <div class="em">🤑</div><div class="nm">Black's Market</div>
+          <div class="cost">travel $2</div>
+        </div>
+        <div class="shop warn" data-accent="green" style="left:29%; top:86.4%;">
+          <div class="em">🥬</div><div class="nm">Grocery Store</div>
+          <div class="cost">travel $3</div>
+        </div>
+        <div class="shop" data-accent="blue" style="left:13.6%; top:71%;">
+          <div class="em">🎓</div><div class="nm">City College</div>
+          <div class="cost">travel $4</div>
+        </div>
+        <div class="shop" data-accent="slate" style="left:8%; top:50%;">
+          <div class="em">📱</div><div class="nm">Tech Store</div>
+          <div class="cost">travel $5</div>
+        </div>
+        <div class="shop" data-accent="violet" style="left:13.6%; top:29%;">
+          <div class="em">🏡</div><div class="nm">Home</div>
+          <div class="cost">travel $6</div>
+        </div>
+        <div class="shop" data-accent="indigo" style="left:29%; top:13.6%;">
+          <div class="em">🏦</div><div class="nm">Neobank</div>
+          <div class="cost">travel $7</div>
+        </div>
+
+        <div class="board-center">
+          <div class="loc-emoji">☕</div>
+          <h3>Coffee Shop</h3>
+          <div class="loc-sub">Work a shift, pick up a coffee, or grab the part-time slot.</div>
+          <div class="you">🦊 You are here</div>
+          <div class="actions">
+            <button class="ca money">
+              <div class="h">💼 Work shift · 8h</div>
+              <div class="m">+$96 · Relax −12</div>
+            </button>
+            <button class="ca primary">
+              <div class="h">☕ Buy coffee</div>
+              <div class="m">$4 · Relax +8</div>
+            </button>
+            <button class="ca">
+              <div class="h">⏳ Part-time · 4h</div>
+              <div class="m">+$48</div>
+            </button>
+            <button class="ca">
+              <div class="h">🚪 Leave</div>
+              <div class="m">Travel to another shop</div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="log">
+        <div class="entry"><div class="e">💼</div><div>Alex worked a shift at Coffee Shop · +$96</div><div class="t">09:24</div></div>
+        <div class="entry"><div class="e">🚗</div><div>Alex traveled from Home → Coffee Shop · −$1</div><div class="t">09:18</div></div>
+        <div class="entry"><div class="e">📰</div><div>Boom cycle starts — wages +15% for 3 weeks</div><div class="t">Week 12 · Mon</div></div>
+      </div>
+    </div>
+
+    <aside class="sidebar right">
+      <div class="panel-title">Goals</div>
+      <div class="player-card" style="padding: 14px;">
+        <div class="goal">
+          <div class="row"><div class="l">🎓 Graduate college</div><div class="r">18 / 50</div></div>
+          <div class="bar"><span style="width: 36%;"></span></div>
+        </div>
+        <div class="goal">
+          <div class="row"><div class="l">🏡 Buy a home</div><div class="r">$1,248 / $20,000</div></div>
+          <div class="bar"><span style="width: 6%;"></span></div>
+        </div>
+        <div class="goal">
+          <div class="row"><div class="l">😊 Contentment 90</div><div class="r">71 / 90</div></div>
+          <div class="bar"><span style="width: 78%;"></span></div>
+        </div>
+      </div>
+
+      <div class="panel-title">Scoreboard <span class="meta">Public</span></div>
+      <div class="player-card" style="padding: 14px;">
+        <div class="goal" style="padding: 6px 0;">
+          <div class="row">
+            <div class="l"><span style="font-size:16px;">🦊</span> Alex</div>
+            <div class="r">0 / 3 goals</div>
+          </div>
+        </div>
+        <div class="goal" style="padding: 6px 0;">
+          <div class="row">
+            <div class="l"><span style="font-size:16px;">🐨</span> Bailey</div>
+            <div class="r">1 / 3 goals</div>
+          </div>
+        </div>
+        <div class="goal" style="padding: 6px 0;">
+          <div class="row">
+            <div class="l"><span style="font-size:16px;">🐼</span> Chen</div>
+            <div class="r">0 / 3 goals</div>
+          </div>
+        </div>
+        <div class="goal" style="padding: 6px 0;">
+          <div class="row">
+            <div class="l" style="color: var(--accent);"><span style="font-size:16px;">🤑</span> Joneses</div>
+            <div class="r">3 / 3 goals</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-title">Inventory</div>
+      <div class="player-card" style="padding: 14px; display: flex; flex-wrap: wrap; gap: 6px;">
+        <div style="padding: 6px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12px; font-weight: 600;">🧥 Jacket</div>
+        <div style="padding: 6px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12px; font-weight: 600;">📱 Phone</div>
+        <div style="padding: 6px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12px; font-weight: 600;">🥪 Lunch × 2</div>
+        <div style="padding: 6px 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--muted);">+ empty</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="bottombar">
+    <span><span class="key">I</span><span class="hint">Inventory</span></span>
+    <span><span class="key">G</span><span class="hint">Goals</span></span>
+    <span><span class="key">L</span><span class="hint">Log</span></span>
+    <span><span class="key">M</span><span class="hint">Mute</span></span>
+    <span><span class="key">E</span><span class="hint">End week</span></span>
+    <div class="spacer"></div>
+    <button class="btn">💾 Save</button>
+    <button class="btn dark">End turn → Bailey</button>
+    <button class="btn primary">End week</button>
+  </div>
+</div>
+
+<div class="callouts">
+  <div class="callout">
+    <div class="tag">Signature layout, modern skin</div>
+    <h3>Shops on the ring, action in the middle</h3>
+    <p>The 12 storefronts stay on a ring like the original Jones in the Fast Lane. The central stage is where you actually <em>do</em> things — the current location's actions appear there with their cost/outcome inline, so no button is a blind click.</p>
+  </div>
+  <div class="callout">
+    <div class="tag">Hot-seat privacy (GDD §15)</div>
+    <h3>One active token, one HUD</h3>
+    <p>Only Alex's token renders on the board; the Joneses always show as the public rival. Cash, debt, and needs live in the left sidebar for the active player only — the handoff screen wipes them between turns.</p>
+  </div>
+  <div class="callout">
+    <div class="tag">Scannability</div>
+    <h3>Numbers in Space Grotesk, UI in Inter</h3>
+    <p>Money, costs, weeks, and meters render in Space Grotesk so you can eyeball changes fast. Body labels stay in Inter to avoid display-font fatigue during long sessions.</p>
+  </div>
+</div>
+
+</body>
+</html>
