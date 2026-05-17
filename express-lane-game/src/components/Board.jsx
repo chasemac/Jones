@@ -495,11 +495,12 @@ const Board = () => {
       {/* Multiplayer turn banner */}
       {state.players?.length > 1 && (
         <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-full font-black text-sm shadow-lg text-white flex items-center gap-2 border border-white/25 backdrop-blur"
-          style={{ background: state.player?.color || '#6366f1' }}
+          className="absolute top-3 left-1/2 -translate-x-1/2 z-30 ds-pill ds-pill-dark gap-2 font-display"
+          style={{ padding: '6px 14px', fontSize: 12 }}
         >
-          {state.player?.emoji} {state.player?.name}'s Turn
-          <span className="text-xs font-normal opacity-75">({(state.activePlayerIndex ?? 0) + 1}/{state.players.length}) · Wk {state.week}</span>
+          <span className="text-base leading-none">{state.player?.emoji}</span>
+          <span className="font-bold">{state.player?.name}'s turn</span>
+          <span style={{ opacity: 0.6 }}>· {(state.activePlayerIndex ?? 0) + 1}/{state.players.length} · Wk {state.week}</span>
         </div>
       )}
 
@@ -508,7 +509,8 @@ const Board = () => {
       <RingTips player={state.player} week={state.week} />
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
-      {/* Location panel — hidden during end-week animation */}
+      {/* Location panel — centered overlay sitting in the middle of the ring,
+          so the 12 shops stay visible around the perimeter. */}
       {showPanel && !isMoving && !state.awaitingEndWeek && (() => {
         const { player } = state;
         const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
@@ -518,16 +520,32 @@ const Board = () => {
         const isStranded = !isAtHomeBase && player.timeRemaining < effectiveStepsToHome && !state.awaitingEndWeek;
         const rideFare = 15 + rawStepsToHome * 8;
         return (
-          <LocationPanel
-            locationId={player.currentLocation}
-            player={player}
-            onClose={() => setShowPanel(false)}
-            isStranded={isStranded}
-            rideFare={rideFare}
-            onRideHome={rideHome}
+          <div
+            className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24 z-20 pointer-events-none flex items-center justify-center"
           >
-            {renderPanelContent(player.currentLocation)}
-          </LocationPanel>
+            {/* Pad the inner area enough that ring shops at the poles stay
+                visible around the panel. 13% inset clears the top/bottom/side
+                pole shops (at 8% / 92% with shop half-width ~5%). */}
+            <div
+              className="pointer-events-auto h-full mx-auto"
+              style={{
+                width: 'min(560px, calc(100% - 26%))',
+                maxHeight: 'calc(100% - 26%)',
+              }}
+            >
+              <LocationPanel
+                locationId={player.currentLocation}
+                player={player}
+                onClose={() => setShowPanel(false)}
+                isStranded={isStranded}
+                rideFare={rideFare}
+                onRideHome={rideHome}
+                embedded
+              >
+                {renderPanelContent(player.currentLocation)}
+              </LocationPanel>
+            </div>
+          </div>
         );
       })()}
 

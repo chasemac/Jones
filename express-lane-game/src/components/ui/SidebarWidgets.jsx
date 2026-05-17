@@ -84,13 +84,14 @@ export const RingTips = ({ player, week }) => {
       )}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-[5rem] sm:bottom-28 right-[4.75rem] h-11 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 border-2 px-3 ${open ? 'bg-amber-300 border-amber-500' : 'bg-amber-400/90 border-amber-500 hover:bg-amber-300'}`}
+        className="ds-btn ds-btn-warn absolute bottom-[5rem] sm:bottom-28 right-[4.75rem] h-11 z-10 gap-1 px-3"
         title="Hints"
       >
         <span className="text-lg leading-none">💡</span>
-        <span className="text-[10px] font-black uppercase tracking-wide text-slate-900">Tips</span>
+        <span className="font-display text-[11px]">Tips</span>
         {!open && tips.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none"
+                style={{ background: 'var(--brand)' }}>
             {tips.length}
           </span>
         )}
@@ -146,11 +147,16 @@ export const JonesSidebar = ({ jones, player }) => {
       )}
       <button
         onClick={() => setOpen(o => !o)}
-        className={`absolute bottom-[5rem] sm:bottom-28 right-[9.5rem] h-11 border-2 rounded-full flex items-center justify-center z-10 shadow-lg transition-colors gap-1 px-3 ${open ? 'bg-red-200 border-red-400' : 'bg-slate-900/90 border-slate-700 hover:border-slate-400'}`}
+        className="ds-btn absolute bottom-[5rem] sm:bottom-28 right-[9.5rem] h-11 z-10 gap-1 px-3"
         title="The Joneses"
+        style={{
+          background: open ? '#F5F0FF' : 'var(--surface)',
+          borderColor: 'var(--accent)',
+          color: 'var(--ink)',
+        }}
       >
         <span className="text-lg leading-none">🤑</span>
-        <span className={`text-[10px] font-black uppercase tracking-wide ${open ? 'text-red-900' : 'text-white'}`}>Jones</span>
+        <span className="font-display text-[11px]" style={{ color: 'var(--accent)' }}>Jones</span>
       </button>
     </>
   );
@@ -171,14 +177,15 @@ export const NotificationFeed = ({ history, onOpenLog }) => {
 
   return (
     <button
-      className="absolute bottom-[5rem] sm:bottom-28 right-4 h-11 rounded-full bg-slate-900/90 backdrop-blur border border-slate-700 flex items-center justify-center z-10 hover:border-slate-400 transition-colors shadow-lg gap-1 px-3"
+      className="ds-btn absolute bottom-[5rem] sm:bottom-28 right-4 h-11 z-10 gap-1 px-3"
       onClick={handleOpen}
       title="Open event log"
     >
       <span className="text-lg leading-none">🔔</span>
-      <span className="text-[10px] font-black uppercase tracking-wide text-white">Log</span>
+      <span className="font-display text-[11px]">Log</span>
       {unread > 0 && (
-        <span className="absolute -top-1 -right-1 bg-indigo-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+        <span className="absolute -top-1 -right-1 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none"
+              style={{ background: 'var(--brand)' }}>
           {Math.min(unread, 99)}
         </span>
       )}
