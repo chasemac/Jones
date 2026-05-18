@@ -5,7 +5,6 @@ import itemsData from '../../data/items.json';
 import educationData from '../../data/education.json';
 import jobsData from '../../data/jobs.json';
 
-// Map each degree to jobs it unlocks (by exact education requirement match)
 const degreeUnlocks = {};
 jobsData.forEach(job => {
   const req = job.requirements?.education;
@@ -24,65 +23,93 @@ const CityCollegeContent = ({ state, actions }) => {
 
   return (
     <div className="h-full flex flex-col gap-3">
+      {/* Active enrollment card or status */}
       {player.currentCourse ? (
-        <div className="bg-blue-600 text-white p-3 rounded-xl shadow">
+        <div
+          className="p-3 rounded-xl"
+          style={{ background: 'var(--ink)', color: '#fff', boxShadow: 'var(--sh-2)' }}
+        >
           <div className="flex justify-between items-start mb-2">
             <div>
-              <div className="text-[10px] uppercase font-bold opacity-70 tracking-wide">Currently Enrolled</div>
-              <div className="font-black text-sm">{player.currentCourse.title}</div>
+              <div className="text-[10px] uppercase font-display font-bold tracking-wider" style={{ opacity: 0.7 }}>Currently enrolled</div>
+              <div className="font-display font-bold text-[14px]">{player.currentCourse.title}</div>
             </div>
             <div className="text-right">
-              <div className="text-xs opacity-70">{player.currentCourse.progress}/{player.currentCourse.totalHours} hrs</div>
-              <div className="text-xs font-bold">{Math.round((player.currentCourse.progress / player.currentCourse.totalHours) * 100)}%</div>
+              <div className="text-[11px] font-num" style={{ opacity: 0.7 }}>{player.currentCourse.progress}/{player.currentCourse.totalHours} hrs</div>
+              <div className="text-[12px] font-num font-bold">{Math.round((player.currentCourse.progress / player.currentCourse.totalHours) * 100)}%</div>
             </div>
           </div>
-          <div className="w-full bg-blue-800 h-3 rounded-full overflow-hidden mb-2">
-            <div className="bg-yellow-400 h-full rounded-full transition-all duration-500"
-              style={{ width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%` }} />
+          <div className="w-full rounded-full overflow-hidden mb-2" style={{ height: 8, background: 'rgba(255,255,255,0.18)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${(player.currentCourse.progress / player.currentCourse.totalHours) * 100}%`,
+                background: 'var(--warn)',
+              }}
+            />
           </div>
           {studyBonus > 0 && (
-            <div className="text-[10px] text-blue-200 mb-1">📚 Study bonus active: +{studyBonus}h/session</div>
+            <div className="text-[10px] mb-1" style={{ opacity: 0.8 }}>📚 Study bonus active: +{studyBonus}h/session</div>
           )}
           <button
             onClick={actions.study}
             disabled={player.timeRemaining < 10}
-            className="w-full bg-yellow-400 hover:bg-yellow-300 text-blue-900 font-black py-2 rounded-lg disabled:opacity-50 text-sm transition active:scale-95 min-h-[44px]"
+            className="w-full font-display font-bold py-2 rounded-lg disabled:opacity-50 text-[13px] transition active:scale-[0.99]"
+            style={{ background: 'var(--warn)', color: 'var(--ink)', minHeight: 44 }}
           >
-            📖 Study {10 + studyBonus}hrs
-            <span className="text-xs font-normal ml-1">({player.timeRemaining}h left this week)</span>
+            📖 Study {10 + studyBonus}h
+            <span className="ml-1 text-[11px] font-normal" style={{ opacity: 0.7 }}>({player.timeRemaining}h left)</span>
           </button>
         </div>
       ) : (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-          <div className="font-bold mb-1">🎓 Currently: {player.education}</div>
-          <div className="text-slate-500">Enroll in a course below to advance your education.</div>
+        <div
+          className="rounded-xl p-3 text-[12px]"
+          style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.25)' }}
+        >
+          <div className="font-display font-bold mb-1" style={{ color: '#1d4ed8' }}>🎓 Currently: {player.education}</div>
+          <div style={{ color: 'var(--muted)' }}>Enroll in a course below to advance your education.</div>
         </div>
       )}
 
       {player.currentCourse && !ownsTextbook && !player.inventory.some(i => i.id === 'laptop') && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800">
-          💡 <strong>Study faster!</strong> A Textbook (+2h/session) from here or a Laptop (+3h/session) from Tech Store will speed up your degree.
+        <div
+          className="rounded-lg p-2 text-[11px]"
+          style={{ background: 'rgba(244,184,42,0.1)', border: '1px solid rgba(244,184,42,0.35)', color: 'var(--warn-ink)' }}
+        >
+          💡 <strong>Study faster!</strong> A Textbook (+2h/session) or Laptop (+3h/session) speeds up your degree.
         </div>
       )}
+
       {!ownsTextbook && (
         <button
           onClick={() => actions.buyItem({ ...textbook, cost: textbookPrice })}
           disabled={player.money < textbookPrice}
-          className="w-full flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 disabled:opacity-50 text-xs transition min-h-[44px]"
+          className="w-full flex justify-between items-center p-2 rounded-lg disabled:opacity-50 text-[12px] transition active:scale-[0.99]"
+          style={{
+            background: 'rgba(244,184,42,0.06)',
+            border: '1px solid rgba(244,184,42,0.3)',
+            minHeight: 44,
+          }}
         >
-          <div>
-            <div className="font-bold">📚 Buy Textbook <span className="text-green-600 font-normal">(saves time!)</span></div>
-            <div className="text-slate-500">+2hrs per study session</div>
+          <div className="text-left">
+            <div className="font-display font-bold" style={{ color: 'var(--ink)' }}>
+              📚 Buy Textbook
+              <span className="ml-1 text-[10px] font-normal" style={{ color: 'var(--money-ink)' }}>saves time</span>
+            </div>
+            <div className="text-[11px]" style={{ color: 'var(--muted)' }}>+2hrs per study session</div>
           </div>
-          <span className="font-mono font-bold">${textbookPrice}</span>
+          <span className="font-num font-bold" style={{ color: 'var(--ink)' }}>${textbookPrice}</span>
         </button>
       )}
 
       <div className="flex-grow overflow-y-auto space-y-1.5">
         <div className="flex justify-between items-center mb-1">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Available Courses</div>
-          {studyBonus > 0 && <div className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold">📚 +{studyBonus}h/session</div>}
+          <div className="ds-eyebrow">Available courses</div>
+          {studyBonus > 0 && (
+            <span className="ds-pill ds-pill-info" style={{ padding: '1px 6px', fontSize: 9 }}>📚 +{studyBonus}h/session</span>
+          )}
         </div>
+
         {educationData.map(course => {
           const eduReq = course.requirements?.education;
           const itemReq = course.requirements?.item;
@@ -91,47 +118,54 @@ const CityCollegeContent = ({ state, actions }) => {
           const canEnroll = eduOk && itemOk;
           const alreadyDone = meetsEducation(player.education, course.degree);
           const isActive = player.currentCourse?.id === course.id;
-          const courseStudyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
-          const hrsPerSession = 10 + courseStudyBonus;
+          const hrsPerSession = 10 + studyBonus;
           const sessionsNeeded = Math.ceil(course.totalHours / hrsPerSession);
           const canAfford = player.money >= course.cost;
+
+          let bg = 'var(--surface)';
+          let border = 'var(--border)';
+          let opacity = 1;
+          if (alreadyDone) { bg = 'rgba(16,168,118,0.06)'; border = 'rgba(16,168,118,0.3)'; }
+          else if (isActive) { bg = 'rgba(59,130,246,0.06)'; border = 'rgba(59,130,246,0.4)'; }
+          else if (!canEnroll || !canAfford || player.currentCourse) { bg = 'var(--surface-2)'; opacity = 0.55; }
+
           return (
             <button
               key={course.id}
               onClick={() => canEnroll && !alreadyDone && !player.currentCourse && canAfford && actions.enroll(course)}
               disabled={!canEnroll || alreadyDone || !!player.currentCourse || !canAfford}
-              className={`w-full flex justify-between items-start p-2.5 border-2 rounded-xl text-xs transition active:scale-[0.99]
-                ${alreadyDone ? 'bg-green-50 border-green-200' :
-                  isActive ? 'bg-blue-50 border-blue-400' :
-                  canEnroll && !player.currentCourse && canAfford ? 'bg-white border-slate-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer' :
-                  'bg-slate-50 border-slate-100 opacity-50'}`}
+              className="w-full flex justify-between items-start p-2.5 rounded-xl text-[12px] transition active:scale-[0.99]"
+              style={{ background: bg, border: `1px solid ${border}`, opacity, boxShadow: opacity < 1 ? 'none' : 'var(--sh-1)' }}
             >
               <div className="text-left flex-1 min-w-0">
-                <div className="font-bold flex items-center gap-1 flex-wrap">
+                <div className="font-display font-bold flex items-center gap-1 flex-wrap" style={{ color: 'var(--ink)' }}>
                   <span>{alreadyDone ? '✅' : isActive ? '📖' : !canEnroll ? '🔒' : '🎓'}</span>
                   <span className="truncate">{course.title}</span>
-                  <span className="text-blue-600 font-normal text-[9px] bg-blue-100 px-1 rounded">→ {course.degree}</span>
+                  <span
+                    className="font-normal text-[10px] px-1 rounded"
+                    style={{ background: 'rgba(59,130,246,0.1)', color: '#1d4ed8' }}
+                  >→ {course.degree}</span>
                 </div>
-                <div className="text-slate-500 mt-0.5 flex gap-2 flex-wrap">
+                <div className="mt-0.5 flex gap-2 flex-wrap" style={{ color: 'var(--muted)' }}>
                   <span>{course.totalHours}h total</span>
-                  {!alreadyDone && !isActive && <span className="text-blue-600">~{sessionsNeeded} sessions</span>}
-                  {eduReq && !eduOk ? <span className="text-red-500">Need {eduReq}</span> : ''}
-                  {itemReq && !itemOk ? <span className="text-red-500">Need {itemReq.replace(/_/g, ' ')}</span> : ''}
-                  {!canAfford && !alreadyDone ? <span className="text-red-500">Need ${(course.cost - player.money).toFixed(0)} more</span> : ''}
+                  {!alreadyDone && !isActive && <span style={{ color: '#1d4ed8' }}>~{sessionsNeeded} sessions</span>}
+                  {eduReq && !eduOk && <span style={{ color: 'var(--debt-ink)' }}>Need {eduReq}</span>}
+                  {itemReq && !itemOk && <span style={{ color: 'var(--debt-ink)' }}>Need {itemReq.replace(/_/g, ' ')}</span>}
+                  {!canAfford && !alreadyDone && <span style={{ color: 'var(--debt-ink)' }}>Need ${(course.cost - player.money).toFixed(0)} more</span>}
                 </div>
                 {degreeUnlocks[course.degree] && (
-                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5 line-clamp-2">
+                  <div className="text-[10px] font-display font-bold mt-0.5 line-clamp-2" style={{ color: 'var(--money-ink)' }}>
                     → Unlocks: {degreeUnlocks[course.degree].join(', ')}
                   </div>
                 )}
               </div>
               <div className="ml-2 shrink-0 text-right">
-                <div className="font-mono font-bold text-slate-700">${course.cost}</div>
+                <div className="font-num font-bold" style={{ color: 'var(--ink)' }}>${course.cost}</div>
                 {!alreadyDone && course.totalHours > 0 && (
-                  <div className="text-[8px] text-slate-400">${(course.cost / course.totalHours).toFixed(0)}/hr</div>
+                  <div className="text-[9px] font-num" style={{ color: 'var(--muted-2)' }}>${(course.cost / course.totalHours).toFixed(0)}/hr</div>
                 )}
                 {!alreadyDone && !isActive && canEnroll && canAfford && (
-                  <div className="text-[9px] text-green-600 font-bold mt-0.5">Enroll →</div>
+                  <div className="text-[10px] font-display font-bold mt-0.5" style={{ color: 'var(--money-ink)' }}>Enroll →</div>
                 )}
               </div>
             </button>

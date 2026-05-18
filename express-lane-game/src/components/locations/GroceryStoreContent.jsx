@@ -18,44 +18,68 @@ const GroceryStoreContent = ({ state, actions }) => {
     ? Array.from({ length: slotsOpen }, (_, i) => i + 1).filter(n => player.money >= groceryPrice * n)
     : [1];
 
+  const hungerColor = player.hunger >= 80 ? 'var(--debt-ink)' : player.hunger >= 50 ? 'var(--warn-ink)' : 'var(--money-ink)';
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
-      <div className="flex flex-col items-center justify-center bg-green-50 rounded-lg p-4">
+      <div
+        className="flex flex-col items-center justify-center rounded-xl p-4"
+        style={{ background: 'rgba(16,168,118,0.06)', border: '1px solid rgba(16,168,118,0.25)' }}
+      >
         <div className="text-7xl mb-2">🛒</div>
-        <div className="text-xs font-bold text-green-800 text-center">Fresh Mart</div>
-        <div className="text-[10px] text-green-600 mt-1 text-center">Affordable groceries — get a fridge to stock up!</div>
-        <div className={`mt-2 text-[10px] font-bold ${player.hunger >= 80 ? 'text-red-600 animate-pulse' : player.hunger >= 50 ? 'text-orange-600' : 'text-green-600'}`}>
+        <div className="font-display font-bold text-[13px] text-center" style={{ color: 'var(--money-ink)' }}>Fresh Mart</div>
+        <div className="text-[10px] mt-1 text-center" style={{ color: 'var(--ink-2)' }}>Affordable groceries — get a fridge to stock up.</div>
+        <div className={`mt-2 text-[11px] font-display font-bold ${player.hunger >= 80 ? 'animate-pulse' : ''}`} style={{ color: hungerColor }}>
           Hunger: {player.hunger}/100 {player.hunger >= 80 ? '⚠️ STARVING' : player.hunger >= 50 ? '⚠️ Hungry' : '✓ OK'}
         </div>
         {!hasStorage && (
-          <div className="mt-1 text-[9px] text-amber-600 font-bold text-center">
-            💡 Buy a fridge at MegaMart to store more!
+          <div className="mt-1 text-[10px] font-display font-bold text-center" style={{ color: 'var(--warn-ink)' }}>
+            💡 Buy a fridge at MegaMart to store more
           </div>
         )}
       </div>
+
       <div>
-        <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">Groceries</h3>
-        {/* Storage capacity display */}
-        <div className="mb-2 p-2 bg-slate-50 border border-slate-200 rounded text-[10px]">
+        <div className="flex items-center justify-between pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h3 className="font-display font-bold text-[13px]" style={{ color: 'var(--ink)' }}>Groceries</h3>
+        </div>
+
+        <div
+          className="mb-2 p-2 rounded-lg text-[11px]"
+          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+        >
           <div className="flex justify-between items-center mb-1">
-            <span className="font-bold text-slate-600">
+            <span className="font-display font-bold" style={{ color: 'var(--ink-2)' }}>
               {hasFreezer ? '🧊 Freezer' : hasFridge ? '❄️ Fridge' : '🛍️ No storage'}
             </span>
-            <span className={`font-mono font-bold ${storedServings >= maxStorage ? 'text-green-600' : storedServings > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+            <span
+              className="font-num font-bold"
+              style={{ color: storedServings >= maxStorage ? 'var(--money-ink)' : storedServings > 0 ? 'var(--warn-ink)' : 'var(--muted-2)' }}
+            >
               {storedServings}/{maxStorage} wks stored
             </span>
           </div>
-          <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${storedServings >= maxStorage ? 'bg-green-500' : storedServings > 0 ? 'bg-amber-400' : 'bg-slate-300'}`}
-              style={{ width: `${maxStorage > 0 ? (storedServings / maxStorage) * 100 : 0}%` }}
+          <div className="ds-meter-bar">
+            <span
+              style={{
+                width: `${maxStorage > 0 ? (storedServings / maxStorage) * 100 : 0}%`,
+                background: storedServings >= maxStorage ? 'var(--money)' : storedServings > 0 ? 'var(--warn)' : 'var(--muted-2)',
+              }}
             />
           </div>
-          {!hasStorage && <div className="mt-1 text-amber-700 font-bold">⚠️ Food spoils at week's end — buy a fridge at MegaMart (stores 2 wks)</div>}
+          {!hasStorage && (
+            <div className="mt-1 font-bold" style={{ color: 'var(--warn-ink)' }}>
+              ⚠️ Food spoils at week's end — buy a fridge at MegaMart (stores 2 wks)
+            </div>
+          )}
         </div>
+
         {storedServings >= maxStorage ? (
-          <div className="p-2 bg-green-50 border border-green-300 rounded text-xs text-green-800 mb-2 mt-2">
-            ✅ Stocked up! ({storedServings}/{maxStorage} weeks stored) — you're set for {storedServings} week{storedServings > 1 ? 's' : ''}!
+          <div
+            className="p-2 rounded-lg text-[12px] mb-2"
+            style={{ background: 'rgba(16,168,118,0.08)', border: '1px solid rgba(16,168,118,0.3)', color: 'var(--money-ink)' }}
+          >
+            ✅ Stocked up! ({storedServings}/{maxStorage} weeks) — you're set for {storedServings} week{storedServings > 1 ? 's' : ''}.
           </div>
         ) : (
           <div className="space-y-1">
@@ -66,21 +90,27 @@ const GroceryStoreContent = ({ state, actions }) => {
                   for (let i = 0; i < n; i++) actions.buyItem({ ...groceryItem, cost: groceryPrice });
                 }}
                 disabled={!canBuy(n)}
-                className="w-full flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded hover:bg-green-100 disabled:opacity-50 text-sm min-h-[44px]"
+                className="w-full flex justify-between items-center p-2 rounded-lg disabled:opacity-50 text-[13px] transition active:scale-[0.99]"
+                style={{
+                  background: 'rgba(16,168,118,0.06)',
+                  border: '1px solid rgba(16,168,118,0.3)',
+                  minHeight: 44,
+                }}
               >
-                <div>
-                  <div className="font-bold">🥦 {n === 1 ? '1 week' : `${n} weeks`} of groceries</div>
-                  {n > 1 && <div className="text-[10px] text-green-600">Stock up & save trips!</div>}
+                <div className="text-left">
+                  <div className="font-display font-bold" style={{ color: 'var(--ink)' }}>🥦 {n === 1 ? '1 week' : `${n} weeks`} of groceries</div>
+                  {n > 1 && <div className="text-[10px]" style={{ color: 'var(--money-ink)' }}>Stock up & save trips</div>}
                 </div>
-                <span className="font-mono text-xs">${groceryPrice * n}</span>
+                <span className="font-num font-bold" style={{ color: 'var(--ink)' }}>${groceryPrice * n}</span>
               </button>
             ))}
           </div>
         )}
+
         {hasStorage && (
-          <div className="text-[10px] text-green-700 mt-2 space-y-0.5">
-            <div>🧊 {hasFreezer ? 'Freezer' : 'Fridge'}: {storedServings}/{maxStorage} weeks stored — auto-eaten each week.</div>
-            <div className="text-green-600 font-bold">💰 Groceries: $40/wk vs Quick Eats: $60-80/wk — save ${20}-${40}/wk!</div>
+          <div className="text-[10px] mt-2 space-y-0.5" style={{ color: 'var(--money-ink)' }}>
+            <div>🧊 {hasFreezer ? 'Freezer' : 'Fridge'}: {storedServings}/{maxStorage} weeks — auto-eaten each week.</div>
+            <div className="font-bold">💰 Groceries $40/wk vs Quick Eats $60–80/wk — save $20–$40/wk.</div>
           </div>
         )}
       </div>
