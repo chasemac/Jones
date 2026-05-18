@@ -7,31 +7,46 @@ import WorkShiftPanel from '../ui/WorkShiftPanel';
 import { meetsEducation, CAREER_PERKS } from '../../engine/constants';
 import jobsData from '../../data/jobs.json';
 
+const SectionTitle = ({ children, right }) => (
+  <div className="flex items-center justify-between pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
+    <h3 className="font-display font-bold text-[13px]" style={{ color: 'var(--ink)' }}>{children}</h3>
+    {right}
+  </div>
+);
+
 const SalaryTransparencyView = ({ player, economy }) => {
   const sorted = [...jobsData].sort((a, b) => b.wage - a.wage);
   return (
     <div className="space-y-1">
-      <div className="text-[9px] text-slate-400 mb-1.5">All jobs sorted by pay — visit the location to apply.</div>
       {sorted.map(job => {
         const isCurrent = player.job?.id === job.id;
         const { canApply: qualified } = checkJobRequirements(player, job);
         return (
-          <div key={job.id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs ${isCurrent ? 'bg-emerald-50 border-emerald-300' : qualified ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[9px] opacity-60">{LOCATIONS_CONFIG[job.location]?.emoji}</span>
+          <div
+            key={job.id}
+            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[12px]"
+            style={{
+              background: isCurrent ? 'rgba(16,168,118,0.08)' : qualified ? 'var(--surface)' : 'var(--surface-2)',
+              border: `1px solid ${isCurrent ? 'rgba(16,168,118,0.35)' : 'var(--border)'}`,
+              opacity: !isCurrent && !qualified ? 0.6 : 1,
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[14px] opacity-70">{LOCATIONS_CONFIG[job.location]?.emoji}</span>
               <div className="min-w-0">
-                <div className="font-bold truncate">{job.title} {isCurrent && <span className="text-[8px] text-emerald-700">← you</span>}</div>
-                <div className="text-[9px] text-slate-400">{LIBRARY_LOCATION_GROUPS.find(g => g.id === job.location)?.label ?? job.location.replace(/_/g, ' ')} {job.remote ? '· 🏠 WFH' : ''}</div>
-                {!isCurrent && (
-                  <span className={`text-[8px] font-bold px-1 rounded ${qualified ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {qualified ? '✅ Eligible' : '❌ Missing reqs'}
-                  </span>
-                )}
+                <div className="font-display font-bold truncate" style={{ color: 'var(--ink)' }}>
+                  {job.title}
+                  {isCurrent && <span className="ml-1 text-[9px] font-num" style={{ color: 'var(--money-ink)' }}>· you</span>}
+                </div>
+                <div className="text-[10px]" style={{ color: 'var(--muted)' }}>
+                  {LIBRARY_LOCATION_GROUPS.find(g => g.id === job.location)?.label ?? job.location.replace(/_/g, ' ')}
+                  {job.remote ? ' · WFH' : ''}
+                </div>
               </div>
             </div>
             <div className="text-right shrink-0 ml-2">
-              <div className="font-mono font-black text-green-700">${effectiveWage(job.wage, economy)}/hr</div>
-              <div className="text-[8px] text-slate-400">${Math.floor(effectiveWage(job.wage, economy) * 8)}/shift</div>
+              <div className="font-num font-bold" style={{ color: 'var(--money-ink)' }}>${effectiveWage(job.wage, economy)}/hr</div>
+              <div className="text-[9px] font-num" style={{ color: 'var(--muted-2)' }}>${Math.floor(effectiveWage(job.wage, economy) * 8)}/shift</div>
             </div>
           </div>
         );
@@ -40,6 +55,20 @@ const SalaryTransparencyView = ({ player, economy }) => {
   );
 };
 
+const ToggleBtn = ({ active, onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="px-2 py-1 rounded-md font-display text-[10px] font-bold transition"
+    style={{
+      background: active ? 'var(--ink)' : 'var(--surface-2)',
+      color: active ? '#fff' : 'var(--muted)',
+      border: '1px solid var(--border)',
+    }}
+  >
+    {children}
+  </button>
+);
+
 const LibraryContent = ({ state, actions }) => {
   const { player, economy } = state;
   const isTradeEmployee = player.job?.type === 'trade';
@@ -47,125 +76,150 @@ const LibraryContent = ({ state, actions }) => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [viewMode, setViewMode] = useState('browse');
 
-  const locationJobs = selectedLocation
-    ? jobsData.filter(j => j.location === selectedLocation.id)
-    : [];
+  const locationJobs = selectedLocation ? jobsData.filter(j => j.location === selectedLocation.id) : [];
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 h-full">
-      {/* Left: Job board by location */}
+      {/* Left: Job board */}
       <div className="flex flex-col">
         {!selectedLocation ? (
           <>
-            <div className="flex items-center gap-2 border-b border-slate-300 pb-1 mb-2">
-              <h3 className="font-bold text-sm flex-1">📋 Job Board</h3>
-              <div className="flex text-[9px] gap-1">
-                <button onClick={() => setViewMode('browse')} className={`px-2 py-0.5 rounded font-bold transition ${viewMode === 'browse' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                  By Location
-                </button>
-                <button onClick={() => setViewMode('salary')} className={`px-2 py-0.5 rounded font-bold transition ${viewMode === 'salary' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                  💰 By Pay
-                </button>
-              </div>
-            </div>
+            <SectionTitle
+              right={
+                <div className="flex gap-1">
+                  <ToggleBtn active={viewMode === 'browse'} onClick={() => setViewMode('browse')}>By location</ToggleBtn>
+                  <ToggleBtn active={viewMode === 'salary'} onClick={() => setViewMode('salary')}>By pay</ToggleBtn>
+                </div>
+              }
+            >
+              📋 Job board
+            </SectionTitle>
+
             {viewMode === 'salary' && (
               <div className="max-h-64 sm:max-h-none sm:flex-grow overflow-y-auto">
                 <SalaryTransparencyView player={player} economy={economy} />
               </div>
             )}
+
             {viewMode === 'browse' && (
-            <div className="max-h-72 sm:max-h-none sm:flex-grow overflow-y-auto">
-            <div className="space-y-1.5">
-              {LIBRARY_LOCATION_GROUPS.map(loc => {
-                const jobs = jobsData.filter(j => j.location === loc.id);
-                if (jobs.length === 0) return null;
-                const entryCount = jobs.filter(j => isEntryLevel(j)).length;
-                const isCurrentWorkplace = player.job?.location === loc.id;
-                const isRemote = loc.id === 'home';
-                return (
-                  <button
-                    key={loc.id}
-                    onClick={() => setSelectedLocation(loc)}
-                    className={`w-full text-left p-2.5 border-2 rounded-xl transition active:scale-95
-                      ${isCurrentWorkplace ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400' : 'bg-white border-slate-200 hover:border-slate-400 hover:bg-slate-50'}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{loc.emoji}</span>
-                        <div>
-                          <div className="font-bold text-xs flex items-center gap-1.5">
-                            {loc.label}
-                            {isCurrentWorkplace && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">your employer</span>}
-                            {isRemote && <span className="text-[9px] bg-violet-100 text-violet-700 px-1 rounded">WFH</span>}
+              <div className="max-h-72 sm:max-h-none sm:flex-grow overflow-y-auto space-y-1.5">
+                {LIBRARY_LOCATION_GROUPS.map(loc => {
+                  const jobs = jobsData.filter(j => j.location === loc.id);
+                  if (jobs.length === 0) return null;
+                  const entryCount = jobs.filter(j => isEntryLevel(j)).length;
+                  const isCurrentWorkplace = player.job?.location === loc.id;
+                  const isRemote = loc.id === 'home';
+                  return (
+                    <button
+                      key={loc.id}
+                      onClick={() => setSelectedLocation(loc)}
+                      className="w-full text-left p-2.5 rounded-xl transition active:scale-[0.99]"
+                      style={{
+                        background: isCurrentWorkplace ? 'rgba(16,168,118,0.08)' : 'var(--surface)',
+                        border: `1px solid ${isCurrentWorkplace ? 'rgba(16,168,118,0.4)' : 'var(--border)'}`,
+                        boxShadow: 'var(--sh-1)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg">{loc.emoji}</span>
+                          <div className="min-w-0">
+                            <div className="font-display font-bold text-[12px] flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--ink)' }}>
+                              {loc.label}
+                              {isCurrentWorkplace && <span className="ds-pill ds-pill-money" style={{ padding: '1px 6px', fontSize: 9 }}>employer</span>}
+                              {isRemote && <span className="ds-pill ds-pill-accent" style={{ padding: '1px 6px', fontSize: 9 }}>WFH</span>}
+                            </div>
+                            {entryCount > 0 && (
+                              <div className="text-[10px] font-semibold mt-0.5" style={{ color: 'var(--money-ink)' }}>
+                                {entryCount} entry-level opening{entryCount !== 1 ? 's' : ''}
+                              </div>
+                            )}
                           </div>
-                          {entryCount > 0 && <div className="text-[9px] text-green-600 font-semibold">✓ {entryCount} entry-level opening{entryCount !== 1 ? 's' : ''}</div>}
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <div className="text-[10px] font-num" style={{ color: 'var(--muted)' }}>{jobs.length} {jobs.length === 1 ? 'role' : 'roles'}</div>
+                          <div className="text-[16px] leading-none" style={{ color: 'var(--muted-2)' }}>›</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-[9px] text-slate-500">{jobs.length} position{jobs.length !== 1 ? 's' : ''}</div>
-                        <div className="text-slate-400 text-sm">›</div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-2 text-[9px] text-slate-400 italic text-center">Select a company to browse openings and apply. Then visit that location to work your shifts.</div>
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </>
         ) : (
           <>
-            <div className="flex items-center gap-2 mb-2 border-b border-slate-300 pb-1">
-              <button onClick={() => setSelectedLocation(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none font-bold">‹</button>
+            <div className="flex items-center gap-2 pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
+              <button onClick={() => setSelectedLocation(null)} className="text-lg leading-none font-bold" style={{ color: 'var(--muted-2)' }}>‹</button>
               <span className="text-lg">{selectedLocation.emoji}</span>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-sm leading-tight">{selectedLocation.label}</h3>
-                <p className="text-[9px] text-slate-500">{locationJobs.length} position{locationJobs.length !== 1 ? 's' : ''} available</p>
+                <h3 className="font-display font-bold text-[13px] leading-tight" style={{ color: 'var(--ink)' }}>{selectedLocation.label}</h3>
+                <p className="text-[10px]" style={{ color: 'var(--muted)' }}>{locationJobs.length} position{locationJobs.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
+
             <div className="max-h-72 sm:max-h-none sm:flex-grow overflow-y-auto space-y-2">
               {locationJobs.map(job => {
                 const { meetsExp, meetsEdu, meetsDep, meetsItem, canApply } = checkJobRequirements(player, job);
                 const isCurrent = player.job?.id === job.id;
                 const isEntry = isEntryLevel(job);
                 const diff = difficultyLabel(job.rejectionChance);
+                const reqPill = (label, ok) => (
+                  <span
+                    className="text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
+                    style={{
+                      background: ok ? 'rgba(16,168,118,0.12)' : 'rgba(228,65,58,0.1)',
+                      color: ok ? 'var(--money-ink)' : 'var(--debt-ink)',
+                      border: `1px solid ${ok ? 'rgba(16,168,118,0.3)' : 'rgba(228,65,58,0.3)'}`,
+                    }}
+                  >{label}</span>
+                );
                 return (
-                  <div key={job.id} className={`border-2 rounded-xl p-2.5 ${isCurrent ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-300' : canApply ? 'bg-white border-slate-200' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className="flex justify-between items-start mb-1">
-                      <div>
-                        <div className="font-bold text-xs flex items-center gap-1">
+                  <div
+                    key={job.id}
+                    className="rounded-xl p-2.5"
+                    style={{
+                      background: isCurrent ? 'rgba(16,168,118,0.08)' : 'var(--surface)',
+                      border: `1px solid ${isCurrent ? 'rgba(16,168,118,0.4)' : 'var(--border)'}`,
+                      boxShadow: isCurrent ? 'none' : 'var(--sh-1)',
+                    }}
+                  >
+                    <div className="flex justify-between items-start mb-1.5">
+                      <div className="min-w-0">
+                        <div className="font-display font-bold text-[12px] flex items-center gap-1 flex-wrap" style={{ color: 'var(--ink)' }}>
                           {job.title}
-                          {isCurrent && <span className="text-[9px] bg-emerald-200 text-emerald-800 px-1 rounded">current</span>}
-                          {job.remote && <span className="text-[9px] bg-violet-100 text-violet-700 px-1 rounded">remote</span>}
+                          {isCurrent && <span className="ds-pill ds-pill-money" style={{ padding: '1px 6px', fontSize: 9 }}>current</span>}
+                          {job.remote && <span className="ds-pill ds-pill-accent" style={{ padding: '1px 6px', fontSize: 9 }}>remote</span>}
                         </div>
-                        <div className="text-[9px] text-slate-500 mt-0.5">{job.description}</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: 'var(--muted)' }}>{job.description}</div>
                       </div>
                       <div className="text-right shrink-0 ml-2">
-                        <div className="font-mono font-black text-sm text-green-700">${job.wage}/hr</div>
+                        <div className="font-num font-bold text-[14px]" style={{ color: 'var(--money-ink)' }}>${job.wage}/hr</div>
                         <span className={`text-[9px] px-1 rounded ${diff.colorClass}`}>{diff.text}</span>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {isEntry
-                        ? <span className="text-[9px] text-green-600 font-semibold">✓ Open to everyone</span>
-                        : <>
-                          {job.requirements?.education && <span className={`text-[9px] px-1 rounded ${meetsEdu ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎓 {job.requirements.education}</span>}
-                          {job.requirements?.experience && <span className={`text-[9px] px-1 rounded ${meetsExp ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>⏱ {job.requirements.experience}wks exp</span>}
-                          {job.requirements?.dependability && <span className={`text-[9px] px-1 rounded ${meetsDep ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>🎯 {job.requirements.dependability} dep</span>}
-                          {job.requirements?.item && <span className={`text-[9px] px-1 rounded ${meetsItem ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>📦 {job.requirements.item.replace(/_/g, ' ')}</span>}
+                      {isEntry ? (
+                        <span className="text-[10px] font-semibold" style={{ color: 'var(--money-ink)' }}>✓ Open to everyone</span>
+                      ) : (
+                        <>
+                          {job.requirements?.education && reqPill(`🎓 ${job.requirements.education}`, meetsEdu)}
+                          {job.requirements?.experience && reqPill(`⏱ ${job.requirements.experience}wks`, meetsExp)}
+                          {job.requirements?.dependability && reqPill(`🎯 ${job.requirements.dependability} dep`, meetsDep)}
+                          {job.requirements?.item && reqPill(`📦 ${job.requirements.item.replace(/_/g, ' ')}`, meetsItem)}
                         </>
-                      }
+                      )}
                     </div>
                     {isCurrent ? (
-                      <div className="text-[10px] text-center text-emerald-700 font-semibold py-1">✓ Currently employed here</div>
+                      <div className="text-[11px] text-center font-semibold py-1" style={{ color: 'var(--money-ink)' }}>✓ Currently employed</div>
                     ) : (
                       <button
                         onClick={() => actions.applyForJob(job)}
                         disabled={player.timeRemaining < 2}
-                        className={`w-full py-1.5 rounded-lg text-xs font-bold text-white transition active:scale-95 disabled:opacity-40 min-h-[44px] ${canApply ? 'bg-slate-700 hover:bg-slate-900' : 'bg-slate-400 hover:bg-slate-500'}`}
+                        className={canApply ? 'ds-btn ds-btn-dark w-full' : 'ds-btn w-full'}
+                        style={{ minHeight: 44 }}
                       >
-                        {canApply ? '📋 Apply (2 hrs)' : '🚫 Apply anyway (likely rejected)'}
+                        {canApply ? '📋 Apply · 2h' : '🚫 Apply anyway · likely rejected'}
                       </button>
                     )}
                   </div>
@@ -176,17 +230,22 @@ const LibraryContent = ({ state, actions }) => {
         )}
       </div>
 
-      {/* Right: Trade Dispatch */}
+      {/* Right: Trade dispatch + career tracks + books */}
       <div className="flex flex-col gap-3 sm:overflow-y-auto sm:max-h-full">
         <div>
-          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">
-            🔧 Trade Dispatch <EconomyWageBadge economy={state.economy} />
-          </h3>
+          <SectionTitle right={<EconomyWageBadge economy={state.economy} />}>🔧 Trade dispatch</SectionTitle>
           {isTradeEmployee && (
-            <div className="bg-yellow-50 border border-yellow-300 rounded-xl px-3 py-1.5 text-xs flex items-center gap-2 mb-2">
+            <div
+              className="rounded-xl px-3 py-1.5 text-[11px] flex items-center gap-2 mb-2"
+              style={{
+                background: 'rgba(244,184,42,0.12)',
+                border: '1px solid rgba(244,184,42,0.4)',
+                color: 'var(--warn-ink)',
+              }}
+            >
               <span>{tradePerk.icon}</span>
-              <span className="font-bold text-yellow-800">{tradePerk.label}:</span>
-              <span className="text-yellow-700">{tradePerk.desc}</span>
+              <span className="font-bold">{tradePerk.label}:</span>
+              <span>{tradePerk.desc}</span>
             </div>
           )}
           {isTradeEmployee ? (
@@ -194,78 +253,97 @@ const LibraryContent = ({ state, actions }) => {
               player={player}
               economy={state.economy}
               actions={actions}
-              partClass="bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
-              fullClass="bg-yellow-100 border-yellow-300 hover:bg-yellow-200"
-              partLabel="⏱ Half (4h)"
-              fullLabel="🔧 Site (8h)"
+              partClass=""
+              fullClass=""
+              partLabel="⏱ Half · 4h"
+              fullLabel="🔧 Site · 8h"
             />
           ) : (
-            <div className="text-xs italic text-slate-400 p-2 bg-slate-100 rounded">Trade workers (electricians, plumbers, laborers) pick up dispatch jobs here.</div>
+            <div className="text-[11px] italic p-2 rounded" style={{ color: 'var(--muted)', background: 'var(--surface-2)' }}>
+              Trade workers (electricians, plumbers, laborers) pick up dispatch jobs here.
+            </div>
           )}
         </div>
-        {/* Career track overview */}
+
         {!isTradeEmployee && (
-          <div className="mb-3">
-            <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">🗺️ Career Tracks</h3>
+          <div>
+            <SectionTitle>🗺️ Career tracks</SectionTitle>
             <div className="space-y-2">
               {CAREER_TRACKS.slice(0, 4).map((track, ti) => {
                 const entryJob = jobsData.find(j => j.id === track.jobs[0]);
                 const canEnter = entryJob && (!entryJob.requirements?.education || meetsEducation(player.education, entryJob.requirements.education));
                 return (
-                <div key={ti} className={`rounded-lg p-2 border ${canEnter ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-[10px] font-bold text-slate-600">{track.label}</div>
-                    {canEnter ? <span className="text-[8px] bg-green-100 text-green-700 px-1 rounded font-bold">✓ Eligible</span> : <span className="text-[8px] bg-slate-100 text-slate-400 px-1 rounded">locked</span>}
+                  <div
+                    key={ti}
+                    className="rounded-lg p-2"
+                    style={{
+                      background: canEnter ? 'rgba(16,168,118,0.06)' : 'var(--surface-2)',
+                      border: `1px solid ${canEnter ? 'rgba(16,168,118,0.3)' : 'var(--border)'}`,
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-[11px] font-display font-bold" style={{ color: 'var(--ink)' }}>{track.label}</div>
+                      {canEnter
+                        ? <span className="ds-pill ds-pill-money" style={{ padding: '1px 6px', fontSize: 9 }}>Eligible</span>
+                        : <span className="ds-pill" style={{ padding: '1px 6px', fontSize: 9 }}>Locked</span>}
+                    </div>
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {track.jobs.map((jobId, i) => {
+                        const job = jobsData.find(j => j.id === jobId);
+                        if (!job) return null;
+                        const isCurrent = player.job?.id === jobId;
+                        return (
+                          <React.Fragment key={jobId}>
+                            <span
+                              className="text-[10px] px-1.5 py-0.5 rounded font-display font-bold font-num"
+                              style={{
+                                background: isCurrent ? 'var(--money)' : 'var(--surface)',
+                                color: isCurrent ? '#fff' : 'var(--ink-2)',
+                                border: `1px solid ${isCurrent ? 'var(--money)' : 'var(--border)'}`,
+                              }}
+                            >
+                              {job.title} <span style={{ opacity: 0.7 }}>${job.wage}</span>
+                            </span>
+                            {i < track.jobs.length - 1 && <span className="text-[10px]" style={{ color: 'var(--muted-2)' }}>→</span>}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 flex-wrap">
-                    {track.jobs.map((jobId, i) => {
-                      const job = jobsData.find(j => j.id === jobId);
-                      if (!job) return null;
-                      const isCurrent = player.job?.id === jobId;
-                      return (
-                        <React.Fragment key={jobId}>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${isCurrent ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-300 text-slate-600'}`}>
-                            {job.title} <span className="opacity-60">${job.wage}</span>
-                          </span>
-                          {i < track.jobs.length - 1 && <span className="text-slate-300 text-[9px]">→</span>}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                </div>
                 );
               })}
             </div>
           </div>
         )}
-        {/* Books section */}
+
         <div>
-          <h3 className="font-bold text-sm border-b border-slate-300 pb-1 mb-2">📖 Read a Book (2h)</h3>
+          <SectionTitle>📖 Read a book · 2h</SectionTitle>
           <div className="space-y-2">
             {[
-              { title: 'The Great Novel',      emoji: '📕', genre: 'Fiction',    hours: 2, happinessGain: 8, relaxGain: 5,  depGain: 0, desc: 'Escape into a story. Pure bliss.' },
-              { title: 'Think & Grow Rich',    emoji: '📗', genre: 'Self-Help',  hours: 2, happinessGain: 4, relaxGain: 0,  depGain: 3, desc: '+happiness, +dependability' },
-              { title: 'How Things Work',      emoji: '📘', genre: 'Technical',  hours: 2, happinessGain: 3, relaxGain: 0,  depGain: 2, desc: 'Dry but useful. You feel smarter.' },
-              { title: 'Travel & Adventures',  emoji: '📙', genre: 'Travel',     hours: 2, happinessGain: 10, relaxGain: 8, depGain: 0, desc: 'Best happiness boost, pure joy.' },
+              { title: 'The Great Novel',      emoji: '📕', genre: 'Fiction',    hours: 2, happinessGain: 8,  relaxGain: 5, depGain: 0, desc: 'Escape into a story.' },
+              { title: 'Think & Grow Rich',    emoji: '📗', genre: 'Self-Help',  hours: 2, happinessGain: 4,  relaxGain: 0, depGain: 3, desc: '+happiness, +dependability' },
+              { title: 'How Things Work',      emoji: '📘', genre: 'Technical',  hours: 2, happinessGain: 3,  relaxGain: 0, depGain: 2, desc: 'You feel smarter.' },
+              { title: 'Travel & Adventures',  emoji: '📙', genre: 'Travel',     hours: 2, happinessGain: 10, relaxGain: 8, depGain: 0, desc: 'Best happiness boost.' },
             ].map(book => (
               <button
                 key={book.title}
                 onClick={() => actions.readBook(book)}
                 disabled={player.timeRemaining < book.hours}
-                className="w-full text-left p-2.5 border rounded-xl bg-white hover:bg-emerald-50 hover:border-emerald-300 disabled:opacity-40 transition active:scale-95 border-slate-200"
+                className="w-full text-left p-2.5 rounded-xl transition active:scale-[0.99] disabled:opacity-40"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--sh-1)' }}
               >
                 <div className="flex items-start gap-2">
                   <span className="text-xl">{book.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-xs">{book.title}</div>
-                    <div className="text-[9px] text-slate-400 mt-0.5">{book.desc}</div>
-                    <div className="flex gap-2 mt-1">
-                      {book.happinessGain > 0 && <span className="text-[9px] bg-yellow-100 text-yellow-700 px-1 rounded">+{book.happinessGain} 😊</span>}
-                      {book.relaxGain > 0 && <span className="text-[9px] bg-teal-100 text-teal-700 px-1 rounded">+{book.relaxGain} relax</span>}
-                      {book.depGain > 0 && <span className="text-[9px] bg-blue-100 text-blue-700 px-1 rounded">+{book.depGain} dep</span>}
+                    <div className="font-display font-bold text-[12px]" style={{ color: 'var(--ink)' }}>{book.title}</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: 'var(--muted)' }}>{book.desc}</div>
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {book.happinessGain > 0 && <span className="ds-pill ds-pill-warn" style={{ padding: '1px 6px', fontSize: 9 }}>+{book.happinessGain} 😊</span>}
+                      {book.relaxGain > 0 && <span className="ds-pill ds-pill-money" style={{ padding: '1px 6px', fontSize: 9 }}>+{book.relaxGain} relax</span>}
+                      {book.depGain > 0 && <span className="ds-pill ds-pill-info" style={{ padding: '1px 6px', fontSize: 9 }}>+{book.depGain} dep</span>}
                     </div>
                   </div>
-                  <span className="text-[9px] text-slate-400 shrink-0">{book.hours}h</span>
+                  <span className="text-[10px] font-num shrink-0" style={{ color: 'var(--muted-2)' }}>{book.hours}h</span>
                 </div>
               </button>
             ))}
