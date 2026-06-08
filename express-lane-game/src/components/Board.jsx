@@ -1,9 +1,9 @@
 import React, { Component, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, travelCost } from '../engine/constants';
+import { LOCATION_ORDER, rideFare } from '../engine/constants';
 import { getNextPromotion, getJobLocation } from '../engine/jobModel';
 import { effectiveTravelCost, getTravelBonus, ringPath, LOCATIONS_CONFIG, homeEmoji } from '../engine/boardModel';
-import { MapBackground, BuildingNode, PlayerToken, FloatingMoney, LocationPanel } from './ui/MapComponents';
+import { MapBackground, ShopNode, PlayerToken, FloatingMoney, LocationPanel } from './ui/MapComponents';
 import HUD from './ui/HUD';
 import { GoalsModal, NotificationModal, InventoryModal, HungerWarningModal, ClothingWarningModal, EventModal, FullLogModal, WeekSummaryModal } from './ui/Modals';
 import { RingTips, JonesSidebar, NotificationFeed } from './ui/SidebarWidgets';
@@ -50,8 +50,12 @@ const Board = () => {
   const [weekFlash, setWeekFlash] = useState(false);
   const [lotteryResult, setLotteryResult] = useState(null); // {win: bool}
   const [endWeekHint, setEndWeekHint] = useState(false);
+  const [showHandoff, setShowHandoff] = useState(false);
   const animTimers = useRef([]);
-  const modalOpen = showInventory ||
+  const isMultiplayer = (state.players?.length ?? 1) > 1;
+
+  const modalOpen = showHandoff ||
+    showInventory ||
     showGoals ||
     showLog ||
     !!notification ||
@@ -76,6 +80,19 @@ const Board = () => {
   const flashWeekChange = useEffectEvent(() => {
     setWeekFlash(true);
     setTimeout(() => setWeekFlash(false), 600);
+  });
+
+  // Hot-seat hand-off (GDD §15): when the active player changes in multiplayer,
+  // cover the board with a "pass the device" screen until the next player is ready.
+  const openHandoff = useEffectEvent(() => setShowHandoff(true));
+
+  // Reset transient board UI when a new week begins.
+  const resetUiForNewWeek = useEffectEvent(() => {
+    setShowPanel(true);
+    setIsMoving(false);
+    setAnimLocation(null);
+    animTimers.current.forEach(clearTimeout);
+    animTimers.current = [];
   });
 
   const animateEndWeek = useEffectEvent((from, home) => {
@@ -125,23 +142,35 @@ const Board = () => {
   useEffect(() => {
     if (state.week !== prevWeek.current) {
       flashWeekChange();
-      setShowPanel(true);
-      setIsMoving(false);
-      setAnimLocation(null);
-      animTimers.current.forEach(clearTimeout);
-      animTimers.current = [];
+      resetUiForNewWeek();
       prevWeek.current = state.week;
     }
   }, [state.week]);
 
-  // Track money changes for floating text — only show positive gains (earnings)
-  // Negative changes (rent, purchases) have their own UI feedback (week summary, button labels)
+  // Track money changes for floating text — gains (green) and spends (red).
+  // Skip the frame where the active player switches (multiplayer hand-off), so
+  // one player's balance isn't shown as another player's delta.
   const prevMoney = useRef(state.player.money);
+  const prevActiveForMoney = useRef(state.activePlayerIndex);
   useEffect(() => {
+    if (state.activePlayerIndex !== prevActiveForMoney.current) {
+      prevActiveForMoney.current = state.activePlayerIndex;
+      prevMoney.current = state.player.money;
+      return;
+    }
     const diff = Math.round(state.player.money - prevMoney.current);
-    if (diff >= 1) addFloat(diff);
+    if (Math.abs(diff) >= 1) addFloat(diff);
     prevMoney.current = state.player.money;
-  }, [state.player.money]);
+  }, [state.player.money, state.activePlayerIndex]);
+
+  // Detect active-player changes (multiplayer) → trigger the hand-off screen.
+  const prevActiveIndex = useRef(state.activePlayerIndex);
+  useEffect(() => {
+    if (state.activePlayerIndex !== prevActiveIndex.current) {
+      prevActiveIndex.current = state.activePlayerIndex;
+      if (isMultiplayer && state.gameStatus === 'playing') openHandoff();
+    }
+  }, [state.activePlayerIndex, isMultiplayer, state.gameStatus]);
 
   // When time runs out, animate player walking home then end the week
   useEffect(() => {
@@ -167,6 +196,9 @@ const Board = () => {
         e.target.tagName === 'SELECT' ||
         e.target.isContentEditable
       ) return;
+
+      // During the hand-off screen, swallow all game shortcuts.
+      if (showHandoff) return;
 
       const key = e.key.toLowerCase();
 
@@ -243,7 +275,7 @@ const Board = () => {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [dismissClothingWarning, dismissEvent, dismissHungerWarning, dismissWeekSummary, endWeek, modalOpen, notification, partTimeWork, rest, showGoals, showInventory, showLog, showPanel, state, study, toggleMute, work, network]);
+  }, [dismissClothingWarning, dismissEvent, dismissHungerWarning, dismissWeekSummary, endWeek, modalOpen, notification, partTimeWork, rest, showGoals, showInventory, showLog, showHandoff, showPanel, state, study, toggleMute, work, network]);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
@@ -388,7 +420,7 @@ const Board = () => {
       {/* Padded map area — keeps buildings away from container edges */}
       <div className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24">
         {/* Map background */}
-        <MapBackground economy={state.economy} />
+        <MapBackground />
 
         {/* Economy pill — top-center */}
         {(() => {
@@ -400,7 +432,7 @@ const Board = () => {
           const icon = economy === 'Boom' ? '📈' : economy === 'Depression' ? '📉' : '📊';
           return (
             <div
-              className={`absolute top-2 ${state.players?.length > 1 ? 'left-2' : 'left-1/2 -translate-x-1/2'} ${pillClass} z-10 pointer-events-none font-display`}
+              className={`absolute top-2 left-1/2 -translate-x-1/2 ${pillClass} z-10 pointer-events-none font-display`}
               style={{ fontSize: 10 }}
             >
               <span>{icon}</span>
@@ -447,17 +479,21 @@ const Board = () => {
             const config = id === 'home'
               ? { ...LOCATIONS_CONFIG.home, emoji: homeEmoji(player.housing), label: player.housing?.homeType === 'luxury_condo' ? 'Condo' : player.housing?.homeType === 'apartment' ? 'Apartment' : 'Home' }
               : LOCATIONS_CONFIG[id];
+            const isJoneses = state.jones?.currentLocation === id;
             return (
-              <BuildingNode
+              <ShopNode
                 key={id}
+                id={id}
                 config={config}
                 isCurrent={state.player.currentLocation === id}
                 isTraveling={isMoving}
                 onClick={() => handleTravel(id)}
-                warningBadge={warningBadge}
+                isWarn={!!warningBadge}
+                badge={warningBadge?.icon}
                 travelHours={travelHours}
-                isPromoReady={isPromoReady}
-                hasJob={getJobLocation(player.job) === id}
+                isJoneses={isJoneses}
+                isJob={getJobLocation(player.job) === id}
+                promoReady={isPromoReady}
               />
             );
           });
@@ -469,40 +505,27 @@ const Board = () => {
           isMoving={false}
           label="The Joneses"
           emoji="🤑"
-          colorClass="bg-red-400"
+          accent="var(--debt)"
+          suffix="Joneses"
           zIndex={9}
         />
 
-        {/* All player tokens */}
-        {state.players?.map((p, i) => {
-          const isActive = i === state.activePlayerIndex;
-          const displayLocation = isActive && animLocation ? animLocation : p.currentLocation;
-          return (
-            <PlayerToken
-              key={p.name}
-              locationId={displayLocation}
-              isMoving={isActive && isMoving}
-              label={p.name}
-              emoji={p.emoji}
-              colorClass={isActive ? 'bg-yellow-400' : 'bg-slate-400 opacity-60'}
-              zIndex={isActive ? 11 : 10}
-            />
-          );
-        })}
+        {/* Active player token only — hot-seat privacy (GDD §15): other players'
+            positions stay hidden until it's their turn. */}
+        {state.player && (
+          <PlayerToken
+            key={state.player.name}
+            locationId={animLocation ? animLocation : state.player.currentLocation}
+            isMoving={isMoving}
+            label={state.player.name}
+            emoji={state.player.emoji}
+            accent={state.player.color || 'var(--brand)'}
+            suffix={state.players?.length > 1 ? state.player.name : undefined}
+            zIndex={11}
+          />
+        )}
 
       </div>
-
-      {/* Multiplayer turn banner */}
-      {state.players?.length > 1 && (
-        <div
-          className="absolute top-3 left-1/2 -translate-x-1/2 z-30 ds-pill ds-pill-dark gap-2 font-display"
-          style={{ padding: '6px 14px', fontSize: 12 }}
-        >
-          <span className="text-base leading-none">{state.player?.emoji}</span>
-          <span className="font-bold">{state.player?.name}'s turn</span>
-          <span style={{ opacity: 0.6 }}>· {(state.activePlayerIndex ?? 0) + 1}/{state.players.length} · Wk {state.week}</span>
-        </div>
-      )}
 
       {/* Jones + Tips + Bell — icon row bottom-right */}
       <JonesSidebar jones={state.jones} player={state.player} />
@@ -511,14 +534,13 @@ const Board = () => {
 
       {/* Location panel — centered overlay sitting in the middle of the ring,
           so the 12 shops stay visible around the perimeter. */}
-      {showPanel && !isMoving && !state.awaitingEndWeek && (() => {
+      {showPanel && !isMoving && !state.awaitingEndWeek && !showHandoff && (() => {
         const { player } = state;
         const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
         const isAtHomeBase = ['home', 'leasing_office'].includes(player.currentLocation);
-        const rawStepsToHome = travelCost(player.currentLocation, homeTarget);
         const effectiveStepsToHome = effectiveTravelCost(player.currentLocation, homeTarget, player.inventory);
         const isStranded = !isAtHomeBase && player.timeRemaining < effectiveStepsToHome && !state.awaitingEndWeek;
-        const rideFare = 15 + rawStepsToHome * 8;
+        const fare = rideFare(player.currentLocation, homeTarget);
         return (
           <div
             className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24 z-20 pointer-events-none flex items-center justify-center"
@@ -538,7 +560,7 @@ const Board = () => {
                 player={player}
                 onClose={() => setShowPanel(false)}
                 isStranded={isStranded}
-                rideFare={rideFare}
+                rideFare={fare}
                 onRideHome={rideHome}
                 embedded
               >
@@ -565,6 +587,42 @@ const Board = () => {
         onOpenGoals={() => setShowGoals(true)}
         onToggleMute={toggleMute}
       />
+
+      {/* Hot-seat hand-off screen — opaque cover so the next player doesn't see
+          the previous player's board/HUD until they tap Ready (GDD §15). */}
+      {showHandoff && state.player && (
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center p-6"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Pass the device to ${state.player.name}`}
+          style={{ background: 'linear-gradient(180deg,#1A1816 0%,#2A2620 100%)' }}
+        >
+          <div className="text-center">
+            <div className="text-[11px] font-display font-bold uppercase tracking-[0.2em] mb-4" style={{ color: 'var(--muted-2)' }}>
+              Pass the device
+            </div>
+            <div
+              className="w-24 h-24 rounded-2xl flex items-center justify-center text-5xl mx-auto mb-4"
+              style={{ background: '#fff', border: `3px solid ${state.player.color || 'var(--brand)'}`, boxShadow: '0 12px 40px rgba(0,0,0,0.4)' }}
+            >
+              {state.player.emoji}
+            </div>
+            <div className="font-display font-bold text-2xl text-white mb-1">{state.player.name}</div>
+            <div className="text-sm mb-6" style={{ color: 'var(--muted-2)' }}>
+              Your turn · Week {state.week} · {(state.activePlayerIndex ?? 0) + 1}/{state.players.length}
+            </div>
+            <button
+              autoFocus
+              onClick={() => setShowHandoff(false)}
+              className="ds-btn ds-btn-primary !px-8 !py-3 !text-base"
+              style={{ borderColor: state.player.color, background: state.player.color }}
+            >
+              I'm ready →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modals (layered, highest z-index last) */}
       {showInventory && (

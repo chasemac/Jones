@@ -37,20 +37,22 @@ const ACCENT_FOR = {
 // ─── Shop card on the ring (used by Board) ─────────────────────────────────
 export const ShopNode = ({
   id, config, isCurrent, isTraveling, isJoneses, isWarn,
+  badge, isJob, promoReady,
   onClick, travelHours, sizeClass = 'w-[88px] h-[88px]',
 }) => {
   const accent = ACCENT_FOR[id] || config.color;
+  const warnLabel = isCurrent ? '' : isWarn ? ' — needs attention' : promoReady ? ' — promotion available' : '';
   return (
     <button
       type="button"
       onClick={onClick}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
       disabled={isTraveling}
-      aria-label={`${config.label}${isCurrent ? ' — current location' : travelHours != null ? ` — travel ${travelHours}h` : ''}`}
+      aria-label={`${config.label}${isCurrent ? ' — current location' : travelHours != null ? ` — travel ${travelHours}h` : ''}${warnLabel}`}
       className={`ds-shop ${sizeClass} ${isCurrent ? 'current' : ''} ${isJoneses ? 'joneses' : ''} ${isWarn ? 'warn' : ''} ${isTraveling ? 'pointer-events-none opacity-60' : ''}`}
       style={{
         left: `${config.pos.x}%`,
         top: `${config.pos.y}%`,
+        ...(isJob && !isCurrent ? { boxShadow: `0 0 0 2px ${accent}, var(--sh-1)` } : null),
       }}
       data-shop-id={id}
     >
@@ -73,7 +75,14 @@ export const ShopNode = ({
           aria-hidden="true"
           className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center font-display font-bold text-[12px]"
           style={{ background: 'var(--warn)', color: 'var(--ink)', boxShadow: '0 2px 6px rgba(244,184,42,0.5)' }}
-        >!</span>
+        >{badge || '!'}</span>
+      )}
+      {promoReady && !isCurrent && !isWarn && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center font-display font-bold text-[11px] animate-pulse"
+          style={{ background: 'var(--money)', color: '#fff', boxShadow: '0 2px 6px rgba(16,168,118,0.5)' }}
+        >⬆</span>
       )}
       <span className="text-[26px] leading-none" aria-hidden="true">{config.emoji}</span>
       <span className={`text-[10px] font-semibold leading-tight ${isCurrent ? 'text-white/90' : ''}`}>{config.label}</span>
@@ -233,7 +242,3 @@ export const LocationPanel = ({
     </div>
   );
 };
-
-// ─── Back-compat shim: BuildingNode used by very old code paths is now an
-// alias to ShopNode so any leftover imports still type-check.
-export const BuildingNode = ShopNode;
