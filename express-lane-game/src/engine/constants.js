@@ -35,6 +35,12 @@ export const calculateNetWorth = (player) => player.money + player.savings - pla
 // Deposit required when upgrading housing (2 weeks of new rent; 0 for downgrades)
 export const calculateDeposit = (newRent, currentRent) => (newRent > currentRent ? newRent * 2 : 0);
 
+// Base weekly savings interest rate (NeoBank "Financial Insider" perk overrides this).
+export const BASE_SAVINGS_RATE = 0.015;
+
+// Gig-work payout (Dash gig / smartphone delivery) for the current economy.
+export const gigEarnings = (economy) => Math.floor(60 * (ECONOMY_WAGE_MULTIPLIER[economy] || 1));
+
 // ─── Economy States ───────────────────────────────────────────────────────────
 export const ECONOMY_STATES = ['Depression', 'Normal', 'Boom'];
 
@@ -121,6 +127,9 @@ export const travelCost = (fromId, toId) => {
   const ccw = (a - b + n) % n;
   return Math.min(cw, ccw);
 };
+
+// Taxi fare for the stranded "Ride Home" escape hatch: base $15 + $8 per ring step.
+export const rideFare = (fromId, toId) => 15 + travelCost(fromId, toId) * 8;
 
 // Location ID → employer name (used in job application messages)
 export const LOCATION_EMPLOYER_NAME = {

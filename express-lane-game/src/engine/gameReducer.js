@@ -1,6 +1,5 @@
 import {
   DIFFICULTY_PRESETS,
-  ECONOMY_WAGE_MULTIPLIER,
   ECONOMY_PAWN_MULTIPLIER,
   meetsEducation,
   calculateNetWorth,
@@ -9,6 +8,8 @@ import {
   calculateDeposit,
   LOCATION_EMPLOYER_NAME,
   CAREER_PERKS,
+  rideFare,
+  gigEarnings,
 } from './constants';
 import { calcShiftEarnings } from './economyModel';
 import { getTravelBonus, ringPath } from './boardModel';
@@ -269,7 +270,7 @@ export const gameReducer = (state, action) => {
       if (!player.inventory.some(i => i.id === 'smartphone')) return log(state, "You need a smartphone to do gig work!");
       if (player.timeRemaining < 4) return log(state, "Not enough time for a gig shift.");
 
-      const earnings = Math.floor(60 * (ECONOMY_WAGE_MULTIPLIER[state.economy] || 1));
+      const earnings = gigEarnings(state.economy);
       let s = log(state, `Completed gig delivery. Earned $${earnings}. +2 happiness.`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, timeRemaining: p.timeRemaining - 4, dependability: Math.min(100, p.dependability + 1), happiness: Math.min(100, p.happiness + 2) }));
       return autoEndIfNeeded(s);
@@ -740,8 +741,7 @@ export const gameReducer = (state, action) => {
     case 'RIDE_HOME': {
       const player = activePlayer(state);
       const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
-      const steps = travelCost(player.currentLocation, homeTarget);
-      const fare = 15 + steps * 8;
+      const fare = rideFare(player.currentLocation, homeTarget);
       let s = log(state, `🚗 Called a ride home — $${fare} fare. -3 dependability, -2 happiness.`);
       s = updateActivePlayer(s, p => ({
         ...p,

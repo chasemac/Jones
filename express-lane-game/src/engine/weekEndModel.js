@@ -12,6 +12,7 @@ import {
   JONES_EDUCATION_TRACK,
   CAREER_PERKS,
   calculateNetWorth,
+  BASE_SAVINGS_RATE,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
@@ -152,10 +153,10 @@ export function processPlayerWeekEnd(player, currentWeek) {
 
   // 5. Savings interest (1.5% weekly, compounding; NeoBank perk: 2.5%)
   if (np.savings > 0) {
-    const savingsRate = (jobLoc === 'neobank' && perk?.savingsRate) ? perk.savingsRate : 0.015;
+    const savingsRate = (jobLoc === 'neobank' && perk?.savingsRate) ? perk.savingsRate : BASE_SAVINGS_RATE;
     const interest = Math.floor(np.savings * savingsRate);
     np.savings += interest;
-    const rateNote = savingsRate > 0.015 ? ' (Financial Insider bonus!)' : '';
+    const rateNote = savingsRate > BASE_SAVINGS_RATE ? ' (Financial Insider bonus!)' : '';
     if (interest > 0) logEntries.push(`${np.name}: savings +$${interest} interest.${rateNote}`);
   }
 
@@ -366,8 +367,8 @@ export function advanceJones(jones, economy, currentWeek) {
     jonesMoney = Math.max(0, jonesMoney + grossSurplus);
   }
 
-  // Jones earns 1.5% savings interest weekly (same rate as players)
-  const savingsInterest = Math.floor(jonesSavings * 0.015);
+  // Jones earns base savings interest weekly (same rate as players)
+  const savingsInterest = Math.floor(jonesSavings * BASE_SAVINGS_RATE);
   jonesSavings += savingsInterest;
 
   let newJobIndex = jones.jobIndex;
