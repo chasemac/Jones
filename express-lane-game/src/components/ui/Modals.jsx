@@ -1,7 +1,37 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getEducationProgress, UNSELLABLE_TYPES } from '../../engine/constants';
 
+// ─── Accessibility: focus trap for modal dialogs ───────────────────────────
+// Moves focus into the dialog on open, cycles Tab/Shift+Tab within it, and
+// restores focus to the previously-focused element on close. (Esc is handled
+// by the global key handler in Board.jsx.)
+// eslint-disable-next-line react-refresh/only-export-components
+export const useFocusTrap = () => {
+  const ref = useRef(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const prev = document.activeElement;
+    const SEL = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const focusables = () => Array.from(node.querySelectorAll(SEL)).filter(el => el.offsetParent !== null);
+    const initial = node.querySelector('[data-autofocus]') || focusables()[0] || node;
+    initial.focus?.();
+    const onKey = (e) => {
+      if (e.key !== 'Tab') return;
+      const f = focusables();
+      if (f.length === 0) { e.preventDefault(); return; }
+      const idx = f.indexOf(document.activeElement);
+      if (e.shiftKey && idx <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && idx === f.length - 1) { e.preventDefault(); f[0].focus(); }
+    };
+    node.addEventListener('keydown', onKey);
+    return () => { node.removeEventListener('keydown', onKey); prev?.focus?.(); };
+  }, []);
+  return ref;
+};
+
 export const GoalsModal = ({ state, onClose }) => {
+  const ref = useFocusTrap();
   const { player, difficulty, week, jones } = state;
   const goals = DIFFICULTY_PRESETS[difficulty].goals;
   const netWorth = calculateNetWorth(player);
@@ -44,7 +74,7 @@ export const GoalsModal = ({ state, onClose }) => {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="goals-title" className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="goals-title" className="bg-white border-4 border-slate-800 rounded-2xl shadow-2xl p-5 max-w-sm w-full mx-4 max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
           <div>
             <h3 id="goals-title" className="text-xl font-black uppercase flex items-center gap-2">
@@ -136,18 +166,21 @@ export const GoalsModal = ({ state, onClose }) => {
   );
 };
 
-export const NotificationModal = ({ title, message, type, onClose }) => (
-  <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-    <div className="bg-white border-4 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4" style={{ borderColor: type === 'success' ? '#22c55e' : '#ef4444' }} onClick={e => e.stopPropagation()}>
-      <div className="text-center text-4xl mb-3">{type === 'success' ? '🎉' : '🚫'}</div>
-      <h3 className={`text-xl font-black text-center mb-2 uppercase ${type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{title}</h3>
-      <p className="text-slate-600 text-center text-sm mb-4">{message}</p>
-      <button onClick={onClose} className={`w-full text-white font-bold py-2.5 rounded-xl transition active:scale-95 min-h-[44px] ${type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-800 hover:bg-slate-700'}`}>
-        {type === 'success' ? '🎉 Nice!' : 'Got it'}
-      </button>
+export const NotificationModal = ({ title, message, type, onClose }) => {
+  const ref = useFocusTrap();
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div ref={ref} role="dialog" aria-modal="true" className="bg-white border-4 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4" style={{ borderColor: type === 'success' ? '#22c55e' : '#ef4444' }} onClick={e => e.stopPropagation()}>
+        <div className="text-center text-4xl mb-3">{type === 'success' ? '🎉' : '🚫'}</div>
+        <h3 className={`text-xl font-black text-center mb-2 uppercase ${type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{title}</h3>
+        <p className="text-slate-600 text-center text-sm mb-4">{message}</p>
+        <button onClick={onClose} className={`w-full text-white font-bold py-2.5 rounded-xl transition active:scale-95 min-h-[44px] ${type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-800 hover:bg-slate-700'}`}>
+          {type === 'success' ? '🎉 Nice!' : 'Got it'}
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const InventorySection = ({ title, items }) => {
   if (items.length === 0) return null;
@@ -206,9 +239,10 @@ export const InventoryModal = ({ inventory, onClose }) => {
     .filter(i => !UNSELLABLE_TYPES.has(i.type))
     .reduce((sum, i) => sum + Math.floor((i.cost || 0) * 0.5), 0);
 
+  const ref = useFocusTrap();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="inventory-title" className="bg-white border-4 border-slate-800 rounded-[1.75rem] shadow-2xl p-5 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="inventory-title" className="bg-white border-4 border-slate-800 rounded-[1.75rem] shadow-2xl p-5 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3 border-b-2 border-slate-200 pb-2">
           <div>
             <h3 id="inventory-title" className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
@@ -268,9 +302,10 @@ export const HungerWarningModal = ({ warning, onClose, playerCount }) => {
   const emoji = hunger >= 80 ? '😵' : hunger >= 50 ? '😫' : '😟';
   const borderColor = hunger >= 80 ? 'border-red-500' : hunger >= 50 ? 'border-orange-400' : 'border-yellow-400';
   const showPlayerName = playerCount > 1 && playerName;
+  const ref = useFocusTrap();
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" className={`bg-white border-4 ${borderColor} rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4`}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div ref={ref} role="dialog" aria-modal="true" className={`bg-white border-4 ${borderColor} rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4`} onClick={e => e.stopPropagation()}>
         <div className="text-center text-5xl mb-3">{emoji}</div>
         {showPlayerName && (
           <div className="text-center text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1 mb-2 mx-auto w-fit">
@@ -306,9 +341,10 @@ export const HungerWarningModal = ({ warning, onClose, playerCount }) => {
 
 export const ClothingWarningModal = ({ warning, onClose, playerCount }) => {
   const showPlayerName = playerCount > 1 && warning.playerName;
+  const ref = useFocusTrap();
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div role="dialog" aria-modal="true" className="bg-white border-4 border-amber-400 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div ref={ref} role="dialog" aria-modal="true" className="bg-white border-4 border-amber-400 rounded-[1.75rem] shadow-2xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="text-center text-5xl mb-3">👔</div>
         {showPlayerName && (
           <div className="text-center text-xs font-bold text-slate-500 bg-slate-100 rounded-full px-3 py-1 mb-2 mx-auto w-fit">
@@ -343,9 +379,10 @@ export const EventModal = ({ event, onClose }) => {
   const icon = isPositive ? '🎉' : isNegative ? '⚠️' : '📰';
   const effectBg = isPositive ? 'bg-green-50 border-green-200 text-green-800' : isNegative ? 'bg-red-50 border-red-200 text-red-700' : 'bg-yellow-50 border-yellow-200 text-yellow-800';
 
+  const ref = useFocusTrap();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div role="dialog" aria-modal="true" className="bg-white rounded-[1.75rem] shadow-2xl max-w-sm w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
+      <div ref={ref} role="dialog" aria-modal="true" className="bg-white rounded-[1.75rem] shadow-2xl max-w-sm w-full mx-4 overflow-hidden" style={{ borderWidth: 4, borderStyle: 'solid', borderColor }} onClick={e => e.stopPropagation()}>
         <div className={`bg-gradient-to-br ${headerBg} p-4 text-center`}>
           <div className="text-4xl mb-1">{icon}</div>
           <h3 className="text-lg font-black text-white">{event.title}</h3>
@@ -399,9 +436,10 @@ export const FullLogModal = ({ history, onClose }) => {
     if (e.includes('doctor') || e.includes('exhaustion')) return '🏥';
     return '·';
   };
+  const ref = useFocusTrap();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="log-title" className="bg-slate-900 border-2 border-slate-600 rounded-[1.75rem] shadow-2xl p-4 max-w-xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="log-title" className="bg-slate-900 border-2 border-slate-600 rounded-[1.75rem] shadow-2xl p-4 max-w-xl w-full mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-2">
           <h3 id="log-title" className="text-white font-black text-base">📋 Event Log</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-white text-lg leading-none">✕</button>
@@ -450,27 +488,12 @@ export const FullLogModal = ({ history, onClose }) => {
 };
 
 export const WeekSummaryModal = ({ summary, onClose }) => {
-  const playerCount = summary.lines?.length ?? 1;
-  const totalSeconds = Math.min(20, playerCount * 5);
-  const [countdown, setCountdown] = React.useState(totalSeconds);
-  const onCloseRef = React.useRef(onClose);
-  React.useEffect(() => { onCloseRef.current = onClose; });
-
-  useEffect(() => {
-    const interval = setInterval(() => setCountdown(c => c - 1), 1000);
-    const t = setTimeout(() => onCloseRef.current(), totalSeconds * 1000);
-    return () => { clearTimeout(t); clearInterval(interval); };
-  }, []); // run once on mount — onCloseRef keeps the latest callback
-
+  const ref = useFocusTrap();
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-labelledby="week-summary-title" className="bg-white border-4 border-indigo-500 rounded-[1.75rem] shadow-2xl p-5 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+      <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="week-summary-title" className="bg-white border-4 border-indigo-500 rounded-[1.75rem] shadow-2xl p-5 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
         <div className="text-center text-3xl mb-1">🌙</div>
-        <h3 id="week-summary-title" className="text-lg font-black text-center text-indigo-800 mb-0.5">Week {summary.week} Complete!</h3>
-        <p className="text-[10px] text-center text-slate-400 mb-3">Auto-closing in {Math.max(0, countdown)}s · tap to dismiss</p>
-        <div className="h-1 bg-slate-200 rounded-full overflow-hidden mb-3">
-          <div className="h-full bg-indigo-400 transition-all duration-1000" style={{ width: `${(countdown / totalSeconds) * 100}%` }} />
-        </div>
+        <h3 id="week-summary-title" className="text-lg font-black text-center text-indigo-800 mb-2">Week {summary.week} Complete!</h3>
         <div className="space-y-2 mb-4 overflow-y-auto max-h-[50vh]">
           {summary.lines.map((p, i) => (
             <div key={i} className="bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">
