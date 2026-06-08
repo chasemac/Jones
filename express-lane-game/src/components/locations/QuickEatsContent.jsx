@@ -1,17 +1,11 @@
 import React from 'react';
 import { adjustedPrice } from '../../engine/economyModel';
-import { CAREER_PERKS, ECONOMY_WAGE_MULTIPLIER } from '../../engine/constants';
+import { CAREER_PERKS, gigEarnings } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge } from '../ui/GameWidgets';
 import WorkShiftPanel from '../ui/WorkShiftPanel';
 import itemsData from '../../data/items.json';
-
-const SectionTitle = ({ children, right }) => (
-  <div className="flex items-center justify-between pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
-    <h3 className="font-display font-bold text-[13px]" style={{ color: 'var(--ink)' }}>{children}</h3>
-    {right}
-  </div>
-);
+import { SectionTitle } from './_shared';
 
 const QuickEatsContent = ({ state, actions }) => {
   const { player, economy } = state;
@@ -217,7 +211,7 @@ const QuickEatsContent = ({ state, actions }) => {
               <div className="flex justify-between items-center">
                 <div className="font-display font-bold" style={{ color: 'var(--ink)' }}>🚗 Delivery run · 4h</div>
                 <div className="font-num font-bold" style={{ color: 'var(--money-ink)' }}>
-                  +${Math.floor(60 * (ECONOMY_WAGE_MULTIPLIER[state.economy] ?? 1.0))}
+                  +${gigEarnings(state.economy)}
                 </div>
               </div>
               <div className="text-[11px] mt-0.5" style={{ color: 'var(--money-ink)' }}>Economy: {state.economy} · flexible hours</div>

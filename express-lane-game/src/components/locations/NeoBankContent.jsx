@@ -1,18 +1,12 @@
 import React from 'react';
 import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
-import { DIFFICULTY_PRESETS, calculateNetWorth, CAREER_PERKS } from '../../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth, CAREER_PERKS, BASE_SAVINGS_RATE } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge, ExpProgressBar } from '../ui/GameWidgets';
 import itemsData from '../../data/items.json';
 import stocksData from '../../data/stocks.json';
-
-const SectionTitle = ({ children, right }) => (
-  <div className="flex items-center justify-between pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
-    <h3 className="font-display font-bold text-[13px]" style={{ color: 'var(--ink)' }}>{children}</h3>
-    {right}
-  </div>
-);
+import { SectionTitle } from './_shared';
 
 const AmountBtn = ({ amt, onClick, disabled, tone = 'neutral' }) => {
   const palette = tone === 'money'
@@ -41,7 +35,7 @@ const NeoBankContent = ({ state, actions }) => {
   const wealthPct = Math.min(100, Math.max(0, (netWorth / goals.wealth) * 100));
   const AMOUNTS = [50, 100, 250, 500];
   const isBankEmployee = player.job?.location === 'neobank';
-  const savingsRate = isBankEmployee ? perk.savingsRate : 0.015;
+  const savingsRate = isBankEmployee ? perk.savingsRate : BASE_SAVINGS_RATE;
   const ratePct = (savingsRate * 100).toFixed(1);
 
   return (

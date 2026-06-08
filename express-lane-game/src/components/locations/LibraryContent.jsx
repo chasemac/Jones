@@ -6,13 +6,7 @@ import { EconomyWageBadge } from '../ui/GameWidgets';
 import WorkShiftPanel from '../ui/WorkShiftPanel';
 import { meetsEducation, CAREER_PERKS } from '../../engine/constants';
 import jobsData from '../../data/jobs.json';
-
-const SectionTitle = ({ children, right }) => (
-  <div className="flex items-center justify-between pb-1.5 mb-2" style={{ borderBottom: '1px solid var(--border)' }}>
-    <h3 className="font-display font-bold text-[13px]" style={{ color: 'var(--ink)' }}>{children}</h3>
-    {right}
-  </div>
-);
+import { SectionTitle } from './_shared';
 
 const SalaryTransparencyView = ({ player, economy }) => {
   const sorted = [...jobsData].sort((a, b) => b.wage - a.wage);
