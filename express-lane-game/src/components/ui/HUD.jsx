@@ -36,36 +36,16 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
         boxShadow: '0 -8px 24px rgba(26,24,22,0.08)',
       }}
     >
+      {/* Multiplayer turn strip — shows only WHOSE turn it is and overall
+          progress, never other players' finances (hot-seat privacy, GDD §15). */}
       {isMultiplayer && (
-        <div className="flex overflow-x-auto" style={{ borderBottom: '1px solid var(--border)' }}>
-          {players.map((p, i) => {
-            const isActive = i === state.activePlayerIndex;
-            const pNetWorth = calculateNetWorth(p);
-            const isHungry = (p.hunger ?? 0) >= 70;
-            const isLowHappy = p.happiness < 25;
-            const isDone = p.weekDone && !isActive;
-            return (
-              <div
-                key={p.name}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold shrink-0 font-display"
-                style={{
-                  background: isActive ? 'var(--ink)' : 'transparent',
-                  color: isActive ? '#fff' : isDone ? 'var(--muted-2)' : 'var(--muted)',
-                  borderRight: '1px solid var(--border)',
-                }}
-              >
-                <span className="text-base">{p.emoji}</span>
-                <span className="hidden sm:inline">{p.name}</span>
-                {isActive && <span style={{ color: 'var(--warn)' }}>◀</span>}
-                {isDone && <span className="text-[10px]">✓</span>}
-                <span className="font-num font-bold" style={{ color: isActive ? '#fff' : (pNetWorth >= 0 ? 'var(--money-ink)' : 'var(--debt-ink)') }}>
-                  ${Math.round(pNetWorth).toLocaleString()}
-                </span>
-                {isHungry && <span title="Hungry">🍕</span>}
-                {isLowHappy && <span title="Unhappy">💔</span>}
-              </div>
-            );
-          })}
+        <div
+          className="flex items-center justify-center gap-2 px-3 py-1.5 text-[11px] font-display font-bold"
+          style={{ background: 'var(--ink)', color: '#fff', borderBottom: '1px solid var(--border)' }}
+        >
+          <span className="text-base">{player.emoji}</span>
+          <span>{player.name}'s turn</span>
+          <span style={{ opacity: 0.6 }}>· {(state.activePlayerIndex ?? 0) + 1}/{players.length} · Wk {week}</span>
         </div>
       )}
 
@@ -186,7 +166,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
                 </span>
               )}
               {player.job && (
-                <span className="ml-2 font-num" style={{ color: 'var(--muted-2)' }}>
+                <span className="ml-2 font-num" style={{ color: 'var(--muted)' }}>
                   ≈ ${Math.floor(effectiveWage(player.job.wage, economy) * 8)}/shift
                 </span>
               )}
@@ -219,7 +199,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
                 <span className="text-base">{muted ? '🔇' : '🔊'}</span>
               </button>
             </div>
-            <div className="hidden md:block text-[9px] text-right" style={{ color: 'var(--muted-2)' }}>
+            <div className="hidden md:block text-[10px] text-right" style={{ color: 'var(--muted)' }}>
               ⌨ I G L M W E R S N · goal {goals?.happiness ?? 80}
             </div>
           </div>
