@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildInitialState, gameReducer } from './gameReducer';
 import { rideFare, gigEarnings } from './constants';
+import { adjustedPrice, effectiveItemPrice, calcShiftEarnings } from './economyModel';
 
 // Build a fresh "playing" state with `n` players.
 const playing = (n = 1) => {
@@ -119,5 +120,71 @@ describe('DISMISS_WEEK_SUMMARY / DISMISS_CLOTHING_WARNING', () => {
     const out = gameReducer(s, { type: 'DISMISS_CLOTHING_WARNING' });
     const remaining = out.players.filter(p => p.clothingWarning).length;
     expect(remaining).toBe(1);
+  });
+});
+
+// ── Audit regression tests (B1, M1) ──────────────────────────────────────────
+// B1: employee discount was applied in BOTH the shop component and BUY_ITEM,
+// double-discounting staff purchases. The reducer is now the single authority:
+// components dispatch the economy-adjusted (undiscounted) cost.
+describe('BUY_ITEM employee discount (audit B1)', () => {
+  const dispatchBuy = (s, item) =>
+    // Components dispatch the economy-adjusted cost, never pre-discounted.
+    gameReducer(s, { type: 'BUY_ITEM', item: { ...item, cost: adjustedPrice(item.cost, s.economy) } });
+
+  it('charges TrendSetters staff exactly the displayed 20%-off price (applied once)', () => {
+    let s = { ...buildInitialState('normal', 1), gameStatus: 'playing', economy: 'Boom' };
+    s.players[0].job = { title: 'Sales Associate', wage: 12, location: 'trendsetters', type: 'service' };
+    const item = { id: 'business_casual', name: 'Business Casual', type: 'clothing', cost: 200 };
+    const displayed = effectiveItemPrice(item, 'Boom', s.players[0]); // 200→280→224
+    expect(displayed).toBe(224);
+    const out = dispatchBuy(s, item);
+    expect(s.players[0].money - out.players[0].money).toBe(displayed); // pays what the shelf says
+  });
+
+  it('charges MegaMart staff exactly the displayed 25%-off appliance price', () => {
+    let s = { ...buildInitialState('normal', 1), gameStatus: 'playing' };
+    s.players[0].job = { title: 'Stocker', wage: 11, location: 'megamart', type: 'service' };
+    const item = { id: 'refrigerator', name: 'Refrigerator', type: 'appliance', cost: 400 };
+    const displayed = effectiveItemPrice(item, 'Normal', s.players[0]); // 400 * 0.75 = 300
+    expect(displayed).toBe(300);
+    const out = dispatchBuy(s, item);
+    expect(s.players[0].money - out.players[0].money).toBe(displayed);
+  });
+
+  it('charges non-staff the full economy-adjusted price', () => {
+    let s = { ...buildInitialState('normal', 1), gameStatus: 'playing', economy: 'Boom' };
+    const item = { id: 'business_casual', name: 'Business Casual', type: 'clothing', cost: 200 };
+    const out = dispatchBuy(s, item);
+    expect(s.players[0].money - out.players[0].money).toBe(280); // no discount
+  });
+});
+
+// M1: shift-pay previews used floor(round(wage·mult)·hours) while the reducer
+// paid floor(wage·hours·mult). Previews now call calcShiftEarnings directly —
+// this locks the reducer to that same function.
+describe('WORK pay matches calcShiftEarnings preview (audit M1)', () => {
+  const workState = (economy) => {
+    const s = { ...buildInitialState('normal', 1), gameStatus: 'playing', economy };
+    s.players[0].job = { title: 'Cashier', wage: 12, location: 'megamart', type: 'service', weeksWorked: 0 };
+    return s;
+  };
+
+  it.each(['Depression', 'Normal', 'Boom'])('full 8h shift in %s', (economy) => {
+    const s = workState(economy);
+    const out = gameReducer(s, { type: 'WORK', hours: 8 });
+    expect(out.players[0].money - s.players[0].money).toBe(calcShiftEarnings(12, 8, economy));
+  });
+
+  it('overtime pays calcShiftEarnings(wage·1.5, 12) — the preview formula', () => {
+    const s = workState('Boom');
+    const out = gameReducer(s, { type: 'WORK', overtime: true });
+    expect(out.players[0].money - s.players[0].money).toBe(calcShiftEarnings(12 * 1.5, 12, 'Boom'));
+  });
+
+  it('part-time pays calcShiftEarnings(wage, 4)', () => {
+    const s = workState('Depression');
+    const out = gameReducer(s, { type: 'PART_TIME_WORK' });
+    expect(out.players[0].money - s.players[0].money).toBe(calcShiftEarnings(12, 4, 'Depression'));
   });
 });

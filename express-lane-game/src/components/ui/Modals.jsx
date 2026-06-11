@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getEducationProgress, UNSELLABLE_TYPES } from '../../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getEducationProgress, UNSELLABLE_TYPES, ECONOMY_PAWN_MULTIPLIER } from '../../engine/constants';
 
 // ─── Accessibility: focus trap for modal dialogs ───────────────────────────
 // Moves focus into the dialog on open, cycles Tab/Shift+Tab within it, and
@@ -182,7 +182,7 @@ export const NotificationModal = ({ title, message, type, onClose }) => {
   );
 };
 
-const InventorySection = ({ title, items }) => {
+const InventorySection = ({ title, items, pawnRate }) => {
   if (items.length === 0) return null;
   return (
     <div className="mb-3">
@@ -210,7 +210,7 @@ const InventorySection = ({ title, items }) => {
           </div>
           <div className="text-xs text-slate-500 text-right">
             <div>${item.cost}</div>
-            <div className="text-slate-400">resell ${Math.floor(item.cost * 0.5)}</div>
+            <div className="text-slate-400">resell ${Math.floor(item.cost * pawnRate)}</div>
             {item.weeklyFee > 0 && <div className="text-red-400 text-[9px]">-${item.weeklyFee}/wk</div>}
             {item.weeklyHappinessBoost > 0 && <div className="text-green-500 text-[9px]">+{item.weeklyHappinessBoost} 😊/wk</div>}
             {item.studyBonus > 0 && <div className="text-blue-500 text-[9px]">+{item.studyBonus}h study</div>}
@@ -222,7 +222,10 @@ const InventorySection = ({ title, items }) => {
   );
 };
 
-export const InventoryModal = ({ inventory, onClose }) => {
+export const InventoryModal = ({ inventory, economy, onClose }) => {
+  // Resale values must mirror SELL_ITEM's economy pawn multiplier (0.4–0.6),
+  // not a hardcoded 0.5 — otherwise the modal misquotes Boom/Depression prices.
+  const pawnRate = ECONOMY_PAWN_MULTIPLIER[economy] ?? 0.5;
   const clothing = inventory.filter(i => i.clothingWear !== undefined);
   const electronics = inventory.filter(i => i.type === 'electronics' || i.type === 'subscription');
   const appliances = inventory.filter(i => i.type === 'appliance');
@@ -237,7 +240,7 @@ export const InventoryModal = ({ inventory, onClose }) => {
 
   const totalResaleValue = inventory
     .filter(i => !UNSELLABLE_TYPES.has(i.type))
-    .reduce((sum, i) => sum + Math.floor((i.cost || 0) * 0.5), 0);
+    .reduce((sum, i) => sum + Math.floor((i.cost || 0) * pawnRate), 0);
 
   const ref = useFocusTrap();
   return (
@@ -246,7 +249,7 @@ export const InventoryModal = ({ inventory, onClose }) => {
         <div className="flex justify-between items-center mb-3 border-b-2 border-slate-200 pb-2">
           <div>
             <h3 id="inventory-title" className="text-xl font-black uppercase flex items-center gap-2">🎒 Inventory</h3>
-            <div className="text-[10px] text-slate-400">{inventory.length} item{inventory.length !== 1 ? 's' : ''}{totalResaleValue > 0 ? ` · $${totalResaleValue} resale` : ''}</div>
+            <div className="text-[10px] text-slate-400">{inventory.length} item{inventory.length !== 1 ? 's' : ''}{totalResaleValue > 0 ? ` · $${totalResaleValue} resale (${economy} market)` : ''}</div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
@@ -255,7 +258,7 @@ export const InventoryModal = ({ inventory, onClose }) => {
             <div className="text-center text-slate-400 py-8 italic">Your pockets are empty.</div>
           ) : (
             <>
-              <InventorySection title="👗 Clothing" items={clothing} />
+              <InventorySection title="👗 Clothing" items={clothing} pawnRate={pawnRate} />
               {groceries.length > 0 && (
                 <div className="mb-3">
                   <div className="text-[10px] font-bold uppercase text-slate-400 mb-1">🛒 Stored Food</div>
@@ -265,10 +268,10 @@ export const InventoryModal = ({ inventory, onClose }) => {
                   </div>
                 </div>
               )}
-              <InventorySection title="📱 Electronics & Subs" items={electronics} />
-              <InventorySection title="🏠 Appliances" items={appliances} />
-              <InventorySection title="📚 Study Aids" items={studyAids} />
-              <InventorySection title="📦 Other" items={other} />
+              <InventorySection title="📱 Electronics & Subs" items={electronics} pawnRate={pawnRate} />
+              <InventorySection title="🏠 Appliances" items={appliances} pawnRate={pawnRate} />
+              <InventorySection title="📚 Study Aids" items={studyAids} pawnRate={pawnRate} />
+              <InventorySection title="📦 Other" items={other} pawnRate={pawnRate} />
             </>
           )}
         </div>

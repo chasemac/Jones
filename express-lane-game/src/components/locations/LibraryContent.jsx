@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { effectiveWage } from '../../engine/economyModel';
+import { effectiveWage, calcShiftEarnings } from '../../engine/economyModel';
 import { CAREER_TRACKS, checkJobRequirements, isEntryLevel, difficultyLabel } from '../../engine/jobModel';
 import { LOCATIONS_CONFIG, LIBRARY_LOCATION_GROUPS } from '../../engine/boardModel';
 import { EconomyWageBadge } from '../ui/GameWidgets';
@@ -40,7 +40,7 @@ const SalaryTransparencyView = ({ player, economy }) => {
             </div>
             <div className="text-right shrink-0 ml-2">
               <div className="font-num font-bold" style={{ color: 'var(--money-ink)' }}>${effectiveWage(job.wage, economy)}/hr</div>
-              <div className="text-[9px] font-num" style={{ color: 'var(--muted-2)' }}>${Math.floor(effectiveWage(job.wage, economy) * 8)}/shift</div>
+              <div className="text-[9px] font-num" style={{ color: 'var(--muted-2)' }}>${calcShiftEarnings(job.wage, 8, economy)}/shift</div>
             </div>
           </div>
         );

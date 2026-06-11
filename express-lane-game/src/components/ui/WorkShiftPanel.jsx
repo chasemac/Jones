@@ -1,5 +1,5 @@
 import React from 'react';
-import { effectiveWage } from '../../engine/economyModel';
+import { calcShiftEarnings } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
 import { ExpProgressBar } from './GameWidgets';
 
@@ -34,7 +34,8 @@ const WorkShiftPanel = ({
           className={`p-2 border-2 rounded-xl disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px] ${partClass}`}
         >
           <div className="font-bold">{partLabel}</div>
-          <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(wage, economy) * 4)}</div>
+          {/* Previews use calcShiftEarnings — the exact function the reducer pays with */}
+          <div className="font-mono font-black text-green-600">+${calcShiftEarnings(wage, 4, economy)}</div>
         </button>
         <button
           onClick={actions.work}
@@ -42,7 +43,7 @@ const WorkShiftPanel = ({
           className={`p-2 border-2 rounded-xl disabled:opacity-50 text-xs transition active:scale-95 min-h-[44px] ${fullClass}`}
         >
           <div className="font-bold">{fullLabel}</div>
-          <div className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(wage, economy) * 8)}</div>
+          <div className="font-mono font-black text-green-600">+${calcShiftEarnings(wage, 8, economy)}</div>
         </button>
       </div>
       <button
@@ -52,7 +53,7 @@ const WorkShiftPanel = ({
       >
         <div className="flex justify-between items-center">
           <span className="font-bold">⚡ Overtime (12h · 1.5x)</span>
-          <span className="font-mono font-black text-green-600">+${Math.floor(effectiveWage(wage, economy) * 12 * 1.5)}</span>
+          <span className="font-mono font-black text-green-600">+${calcShiftEarnings(wage * 1.5, 12, economy)}</span>
         </div>
         <div className={overtimeTextClass}>{overtimeSubtitle}</div>
       </button>

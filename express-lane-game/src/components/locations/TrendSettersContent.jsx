@@ -1,5 +1,5 @@
 import React from 'react';
-import { adjustedPrice } from '../../engine/economyModel';
+import { adjustedPrice, effectiveItemPrice } from '../../engine/economyModel';
 import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge } from '../ui/GameWidgets';
@@ -79,8 +79,10 @@ const TrendSettersContent = ({ state, actions }) => {
         </SectionTitle>
         {clothing.map(item => {
           const owned = player.inventory.find(i => i.id === item.id);
+          // Display the price the reducer will actually charge (incl. staff discount);
+          // dispatch the economy-adjusted cost only — BUY_ITEM applies the discount.
           const basePrice = adjustedPrice(item.cost, economy);
-          const price = isTrendsettersEmployee ? Math.floor(basePrice * (1 - perk.clothingDiscount)) : basePrice;
+          const price = effectiveItemPrice(item, economy, player);
           const wear = owned?.clothingWear;
 
           let bg = 'var(--surface)';
@@ -94,7 +96,7 @@ const TrendSettersContent = ({ state, actions }) => {
           return (
             <button
               key={item.id}
-              onClick={() => actions.buyItem({ ...item, cost: price })}
+              onClick={() => actions.buyItem({ ...item, cost: basePrice })}
               className="w-full text-left p-2.5 rounded-lg mb-1.5 text-[12px] transition active:scale-[0.99]"
               style={{ background: bg, border: `1px solid ${border}`, boxShadow: 'var(--sh-1)' }}
             >
@@ -140,11 +142,11 @@ const TrendSettersContent = ({ state, actions }) => {
           const owned = player.inventory.some(i => i.id === item.id);
           const hasVehicle = player.inventory.some(i => i.type === 'vehicle');
           const basePrice = adjustedPrice(item.cost, economy);
-          const price = isTrendsettersEmployee ? Math.floor(basePrice * (1 - perk.clothingDiscount)) : basePrice;
+          const price = effectiveItemPrice(item, economy, player);
           return (
             <button
               key={item.id}
-              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: basePrice })}
               disabled={owned}
               className="w-full text-left p-2.5 rounded-lg mb-1.5 text-[12px] transition active:scale-[0.99] disabled:opacity-60"
               style={{

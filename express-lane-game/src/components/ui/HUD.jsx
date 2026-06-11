@@ -1,6 +1,6 @@
 import React from 'react';
 import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
-import { effectiveWage } from '../../engine/economyModel';
+import { calcShiftEarnings } from '../../engine/economyModel';
 import stocksData from '../../data/stocks.json';
 
 const Meter = ({ label, value, fillClass, danger = false }) => (
@@ -22,9 +22,11 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const isLowTime = player.timeRemaining < 8;
   const portfolioVal = stocksData.reduce((sum, s) => sum + (player.portfolio?.[s.symbol] || 0) * (state.market[s.symbol] || 0), 0);
 
-  // Snapshot delta for net-worth direction arrow
+  // Snapshot delta for net-worth direction arrow — must use the same shared
+  // formula as the live value (incl. housing equity) or equity holders see a
+  // permanent phantom gain (audit bug M2).
   const snap = state.weekStartSnapshot?.find(s => s.name === player.name);
-  const oldNW = snap ? (snap.money ?? 0) + (snap.savings ?? 0) - (snap.debt ?? 0) : null;
+  const oldNW = snap ? calculateNetWorth(snap) : null;
   const nwDelta = oldNW != null ? netWorth - oldNW : 0;
 
   return (
@@ -167,7 +169,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
               )}
               {player.job && (
                 <span className="ml-2 font-num" style={{ color: 'var(--muted)' }}>
-                  ≈ ${Math.floor(effectiveWage(player.job.wage, economy) * 8)}/shift
+                  ≈ ${calcShiftEarnings(player.job.wage, 8, economy)}/shift
                 </span>
               )}
             </div>

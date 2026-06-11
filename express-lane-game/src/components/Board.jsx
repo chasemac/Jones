@@ -626,7 +626,7 @@ const Board = () => {
 
       {/* Modals (layered, highest z-index last) */}
       {showInventory && (
-        <InventoryModal inventory={state.player.inventory} onClose={() => setShowInventory(false)} />
+        <InventoryModal inventory={state.player.inventory} economy={state.economy} onClose={() => setShowInventory(false)} />
       )}
       {showGoals && (
         <GoalsModal state={state} onClose={() => setShowGoals(false)} />

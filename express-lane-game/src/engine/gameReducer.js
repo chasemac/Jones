@@ -11,7 +11,7 @@ import {
   rideFare,
   gigEarnings,
 } from './constants';
-import { calcShiftEarnings } from './economyModel';
+import { calcShiftEarnings, perkDiscountFor } from './economyModel';
 import { getTravelBonus, ringPath } from './boardModel';
 import { processPlayerWeekEnd, advanceEconomy, tickMarket, rollRandomEvent, advanceJones, buildWeekSummary } from './weekEndModel';
 import stocksData from '../data/stocks.json';
@@ -435,13 +435,11 @@ export const gameReducer = (state, action) => {
       const { item: rawItem } = action;
       const player = activePlayer(state);
 
-      // Employee discounts: MegaMart staff get 25% off appliances, TrendSetters staff get 20% off clothing/vehicles
-      let discount = 0;
-      if (player.job?.location === 'megamart' && rawItem.type === 'appliance') {
-        discount = CAREER_PERKS.megamart.applianceDiscount || 0;
-      } else if (player.job?.location === 'trendsetters' && (rawItem.type === 'clothing' || rawItem.type === 'vehicle')) {
-        discount = CAREER_PERKS.trendsetters.clothingDiscount || 0;
-      }
+      // Employee discounts (single source of truth: perkDiscountFor in economyModel).
+      // Components dispatch the economy-adjusted, UNDISCOUNTED cost; the reducer is
+      // the only place the perk discount is applied — applying it in both places
+      // double-discounted staff purchases (audit bug B1).
+      const discount = perkDiscountFor(player, rawItem.type);
       const item = discount > 0 ? { ...rawItem, cost: Math.floor(rawItem.cost * (1 - discount)) } : rawItem;
 
       if (player.money < item.cost) return log(state, `Not enough money for ${item.name}.`);

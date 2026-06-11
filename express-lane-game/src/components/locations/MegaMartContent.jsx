@@ -1,5 +1,5 @@
 import React from 'react';
-import { adjustedPrice } from '../../engine/economyModel';
+import { adjustedPrice, effectiveItemPrice } from '../../engine/economyModel';
 import { CAREER_PERKS } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge } from '../ui/GameWidgets';
@@ -112,8 +112,10 @@ const MegaMartContent = ({ state, actions }) => {
 
         {appliances.map(item => {
           const owned = player.inventory.some(i => i.id === item.id);
+          // Display the charged price (incl. staff discount); dispatch the
+          // economy-adjusted cost only — BUY_ITEM applies the discount.
           const basePrice = adjustedPrice(item.cost, economy);
-          const price = isRetailEmployee ? Math.floor(basePrice * (1 - perk.applianceDiscount)) : basePrice;
+          const price = effectiveItemPrice(item, economy, player);
           const upgrading = item.id === 'freezer' && hasFridge;
           const isRecommended = !hasStorage && (item.id === 'refrigerator');
           const mechanic =
@@ -130,7 +132,7 @@ const MegaMartContent = ({ state, actions }) => {
           return (
             <button
               key={item.id}
-              onClick={() => !owned && actions.buyItem({ ...item, cost: price })}
+              onClick={() => !owned && actions.buyItem({ ...item, cost: basePrice })}
               disabled={owned}
               className="w-full text-left p-2.5 rounded-lg mb-1.5 text-[12px] transition active:scale-[0.99]"
               style={{ background: bg, border: `1px solid ${border}`, opacity: owned ? 0.7 : 1, boxShadow: owned ? 'none' : 'var(--sh-1)' }}

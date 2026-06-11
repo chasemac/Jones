@@ -1,5 +1,5 @@
 import React from 'react';
-import { effectiveWage } from '../../engine/economyModel';
+import { calcShiftEarnings } from '../../engine/economyModel';
 import { getJobLocation } from '../../engine/jobModel';
 import { homeEmoji } from '../../engine/boardModel';
 import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getCareerPerk, CAREER_PERKS } from '../../engine/constants';
@@ -98,7 +98,7 @@ const HomeContent = ({ state, actions }) => {
             {hasHotTub && <span>🛁 Hot tub</span>}
             {player.job && (
               <span className="font-bold font-num" style={{ color: 'var(--money-ink)' }}>
-                💰 ~${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}/shift
+                💰 ~${calcShiftEarnings(player.job.wage, 8, state.economy)}/shift
               </span>
             )}
             {(player.housing?.equityPerWeek || 0) > 0 && (

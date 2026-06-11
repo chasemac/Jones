@@ -1,5 +1,5 @@
 import React from 'react';
-import { adjustedPrice, effectiveWage } from '../../engine/economyModel';
+import { adjustedPrice, calcShiftEarnings } from '../../engine/economyModel';
 import { getNextPromotion } from '../../engine/jobModel';
 import { DIFFICULTY_PRESETS, calculateNetWorth, CAREER_PERKS, BASE_SAVINGS_RATE } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
@@ -265,7 +265,7 @@ const NeoBankContent = ({ state, actions }) => {
                 style={{ minHeight: 50, padding: '8px 10px' }}
               >
                 <div className="font-display font-bold text-[12px]" style={{ color: 'var(--ink)' }}>⏱ Part · 4h</div>
-                <div className="font-num font-bold text-[12px]" style={{ color: 'var(--money-ink)' }}>+${Math.floor(effectiveWage(player.job.wage, state.economy) * 4)}</div>
+                <div className="font-num font-bold text-[12px]" style={{ color: 'var(--money-ink)' }}>+${calcShiftEarnings(player.job.wage, 4, state.economy)}</div>
               </button>
               <button
                 onClick={actions.work} disabled={player.timeRemaining < 8}
@@ -273,7 +273,7 @@ const NeoBankContent = ({ state, actions }) => {
                 style={{ minHeight: 50, padding: '8px 10px' }}
               >
                 <div className="font-display font-bold text-[12px]">💼 Full · 8h</div>
-                <div className="font-num font-bold text-[12px]" style={{ color: '#86efac' }}>+${Math.floor(effectiveWage(player.job.wage, state.economy) * 8)}</div>
+                <div className="font-num font-bold text-[12px]" style={{ color: '#86efac' }}>+${calcShiftEarnings(player.job.wage, 8, state.economy)}</div>
               </button>
             </div>
             <button
@@ -283,7 +283,7 @@ const NeoBankContent = ({ state, actions }) => {
             >
               <div className="flex justify-between items-center w-full">
                 <span className="font-display font-bold text-[12px]">⚡ Overtime · 12h · 1.5×</span>
-                <span className="font-num font-bold text-[12px]" style={{ color: 'var(--money-ink)' }}>+${Math.floor(effectiveWage(player.job.wage, state.economy) * 12 * 1.5)}</span>
+                <span className="font-num font-bold text-[12px]" style={{ color: 'var(--money-ink)' }}>+${calcShiftEarnings(player.job.wage * 1.5, 12, state.economy)}</span>
               </div>
             </button>
             <ExpProgressBar player={player} />
