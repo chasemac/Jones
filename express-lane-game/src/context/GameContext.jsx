@@ -1,52 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { gameReducer, buildInitialState } from '../engine/gameReducer';
+import { SAVE_KEY, hydrateSavedState } from '../engine/persistence';
 import { playSound, toggleMute, isMuted } from '../utils/sound';
 
 const GameContext = createContext();
 export const useGame = () => useContext(GameContext);
 
 // ─── Persistence helpers ──────────────────────────────────────────────────────
-const SAVE_KEY = 'jones_v2_state';
-
-const hydrateSavedState = (saved) => {
-  if (!saved || typeof saved !== 'object') return null;
-
-  const playerCount = Math.max(1, saved.playerCount || saved.players?.length || 1);
-  const playerEmojis = Array.isArray(saved.players) ? saved.players.map(player => player?.emoji) : null;
-  const baseState = buildInitialState(saved.difficulty || 'normal', playerCount, playerEmojis);
-
-  const players = baseState.players.map((basePlayer, index) => ({
-    ...basePlayer,
-    ...(saved.players?.[index] || {}),
-    housing: {
-      ...basePlayer.housing,
-      ...(saved.players?.[index]?.housing || {}),
-    },
-    portfolio: {
-      ...basePlayer.portfolio,
-      ...(saved.players?.[index]?.portfolio || {}),
-    },
-    inventory: Array.isArray(saved.players?.[index]?.inventory) ? saved.players[index].inventory : basePlayer.inventory,
-  }));
-
-  return {
-    ...baseState,
-    ...saved,
-    players,
-    playerCount,
-    history: Array.isArray(saved.history) ? saved.history : baseState.history,
-    market: saved.market && typeof saved.market === 'object' ? { ...baseState.market, ...saved.market } : baseState.market,
-    jones: {
-      ...baseState.jones,
-      ...(saved.jones || {}),
-    },
-    pendingEvent: null,
-    lastJobResult: null,
-    awaitingEndWeek: false,
-    weekSummary: null,
-  };
-};
+// (SAVE_KEY + hydrateSavedState live in engine/persistence.js so they can be
+// unit-tested and shared with StartScreen.)
 
 const loadSavedState = () => {
   try {
@@ -71,7 +34,8 @@ export const GameProvider = ({ children }) => {
     () => {
       const saved = loadSavedState();
       // Always show start screen, but restore saved data if available
-      return saved ? { ...saved, gameStatus: 'start', pendingEvent: null } : buildInitialState('normal');
+      // (incl. any pending event/week-summary modal — see hydrateSavedState)
+      return saved ? { ...saved, gameStatus: 'start' } : buildInitialState('normal');
     }
   );
 

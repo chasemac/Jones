@@ -15,7 +15,7 @@ function basePlayer(overrides = {}) {
     hunger: 0,
     housing: { homeType: 'studio', rent: 100, happiness: 1, id: 'studio' },
     inventory: [],
-    job: { title: 'Cashier', wage: 12, weeksWorked: 4 },
+    job: { title: 'Cashier', wage: 12, shiftsWorked: 4 },
     hasChosenHousing: true,
     maxTime: 60,
     maxTimeReduction: 0,
@@ -179,5 +179,32 @@ describe('buildWeekSummary', () => {
     expect(summary.lines).toHaveLength(2);
     // Delta will be zero since fallback = current players
     expect(summary.lines[0].netWorthDelta).toBe(0);
+  });
+});
+
+// M5: events must carry explicit sentiment — the modal no longer infers tone
+// from effectDesc text (a rent hike's "+$40/wk" rendered as a celebration).
+import { rollRandomEvent as rollEventForSentiment } from './weekEndModel';
+
+describe('rollRandomEvent sentiment (audit M5)', () => {
+  it('every fired event carries a valid explicit sentiment', () => {
+    const mkPlayer = () => ({
+      name: 'P1', money: 1000, savings: 500, happiness: 50, maxTime: 60, timeRemaining: 60,
+      job: { title: 'Barista', wage: 12 },
+      housing: { rent: 400 }, inventory: [{ id: 'car', type: 'vehicle', cost: 2000 }],
+    });
+    let fired = 0;
+    for (let i = 0; i < 300 && fired < 30; i++) {
+      const { pendingEvent } = rollEventForSentiment([mkPlayer()]);
+      if (pendingEvent) {
+        fired++;
+        expect(['good', 'bad', 'neutral']).toContain(pendingEvent.sentiment);
+        // A rent increase must never be 'good'
+        if (pendingEvent.effectDesc.startsWith('rent +$')) expect(pendingEvent.sentiment).toBe('bad');
+        // Direct money loss must be 'bad'
+        if (/^-\$\d+$/.test(pendingEvent.effectDesc)) expect(pendingEvent.sentiment).toBe('bad');
+      }
+    }
+    expect(fired).toBeGreaterThan(10); // sanity: events actually fired
   });
 });

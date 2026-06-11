@@ -56,7 +56,7 @@ export const CAREER_TRACKS = (() => {
  */
 export const checkJobRequirements = (player, job) => {
   const meetsExp = !job.requirements?.experience ||
-    (player.job?.weeksWorked || 0) >= job.requirements.experience;
+    (player.job?.shiftsWorked || 0) >= job.requirements.experience;
   const meetsEdu = !job.requirements?.education ||
     meetsEducation(player.education, job.requirements.education);
   const meetsDep = !job.requirements?.dependability ||

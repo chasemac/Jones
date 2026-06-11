@@ -23,7 +23,7 @@ describe('checkJobRequirements', () => {
   });
 
   it('fails when experience is insufficient', () => {
-    const player = { ...basePlayer, job: { weeksWorked: 2 } };
+    const player = { ...basePlayer, job: { shiftsWorked: 2 } };
     const job = { id: 'senior', requirements: { experience: 5 } };
     const result = checkJobRequirements(player, job);
     expect(result.meetsExp).toBe(false);

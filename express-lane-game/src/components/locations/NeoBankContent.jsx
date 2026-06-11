@@ -377,9 +377,11 @@ const NeoBankContent = ({ state, actions }) => {
                   <span>×{owned} shares</span>
                   <div className="flex items-center gap-1.5">
                     {owned > 0 && (() => {
-                      const costBasis = owned * stock.basePrice;
+                      // P/L vs what the player actually paid (audit M3);
+                      // basePrice only as a legacy-save fallback.
+                      const costBasis = player.stockCostBasis?.[stock.symbol] ?? owned * stock.basePrice;
                       const pl = ownedValue - costBasis;
-                      const plPct = Math.round((pl / costBasis) * 100);
+                      const plPct = costBasis > 0 ? Math.round((pl / costBasis) * 100) : 0;
                       return (
                         <span
                           className="text-[10px] font-num font-bold px-1 rounded"

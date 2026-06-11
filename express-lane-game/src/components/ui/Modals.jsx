@@ -374,9 +374,11 @@ export const ClothingWarningModal = ({ warning, onClose, playerCount }) => {
 };
 
 export const EventModal = ({ event, onClose }) => {
-  const desc = (event.effectDesc || '').toLowerCase();
-  const isPositive = desc.includes('+') && !desc.includes('−') && !desc.includes('-');
-  const isNegative = desc.includes('−') || (desc.includes('-') && !isPositive);
+  // Tone comes from the engine's explicit sentiment field — never inferred
+  // from the text (a rent hike's "+$40/wk" used to render as a 🎉 win).
+  // Legacy saves without sentiment fall back to neutral styling.
+  const isPositive = event.sentiment === 'good';
+  const isNegative = event.sentiment === 'bad';
   const borderColor = isPositive ? '#22c55e' : isNegative ? '#ef4444' : '#f59e0b';
   const headerBg = isPositive ? 'from-green-400 to-emerald-500' : isNegative ? 'from-red-400 to-rose-500' : 'from-yellow-400 to-amber-500';
   const icon = isPositive ? '🎉' : isNegative ? '⚠️' : '📰';

@@ -198,7 +198,7 @@ const LibraryContent = ({ state, actions }) => {
                       ) : (
                         <>
                           {job.requirements?.education && reqPill(`🎓 ${job.requirements.education}`, meetsEdu)}
-                          {job.requirements?.experience && reqPill(`⏱ ${job.requirements.experience}wks`, meetsExp)}
+                          {job.requirements?.experience && reqPill(`⏱ ${job.requirements.experience} shifts`, meetsExp)}
                           {job.requirements?.dependability && reqPill(`🎯 ${job.requirements.dependability} dep`, meetsDep)}
                           {job.requirements?.item && reqPill(`📦 ${job.requirements.item.replace(/_/g, ' ')}`, meetsItem)}
                         </>

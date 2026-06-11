@@ -41,6 +41,7 @@ export const buildPlayer = (index, startingMoney, emoji) => ({
   hunger: 0,
   housingEquity: 0,
   portfolio: {},
+  stockCostBasis: {}, // symbol → total $ paid for currently-held shares (avg-cost basis)
   currentCourse: null,
   inventory: [],
   weekDone: false, // has this player ended their turn this week?
@@ -223,10 +224,10 @@ export const gameReducer = (state, action) => {
 
       const wageMultiplier = overtime ? 1.5 : 1.0;
       const earnings = calcShiftEarnings(player.job.wage * wageMultiplier, effectiveHours, state.economy);
-      const newWeeksWorked = (player.job.weeksWorked || 0) + 1;
+      const newShiftsWorked = (player.job.shiftsWorked || 0) + 1;
       const depBonus = overtime ? 7 : 5;
       // Loyalty bonus: every 5 weeks at the same job earns extra
-      const loyaltyBonus = newWeeksWorked > 0 && newWeeksWorked % 5 === 0 ? 3 : 0;
+      const loyaltyBonus = newShiftsWorked > 0 && newShiftsWorked % 5 === 0 ? 3 : 0;
       const happinessEffect = overtime ? -10 : 0;
 
       const loyaltyMsg = loyaltyBonus > 0 ? ` Loyalty bonus: +${loyaltyBonus} dep!` : '';
@@ -238,7 +239,7 @@ export const gameReducer = (state, action) => {
         ...p,
         money: p.money + earnings,
         timeRemaining: p.timeRemaining - effectiveHours,
-        job: { ...p.job, weeksWorked: newWeeksWorked },
+        job: { ...p.job, shiftsWorked: newShiftsWorked },
         dependability: Math.min(100, p.dependability + depBonus + loyaltyBonus),
         happiness: Math.max(0, Math.min(100, p.happiness + happinessEffect)),
       }));
@@ -257,7 +258,7 @@ export const gameReducer = (state, action) => {
         ...p,
         money: p.money + earnings,
         timeRemaining: p.timeRemaining - 4,
-        job: { ...p.job, weeksWorked: (p.job?.weeksWorked || 0) + 1 },
+        job: { ...p.job, shiftsWorked: (p.job?.shiftsWorked || 0) + 1 },
         dependability: Math.min(100, p.dependability + 2),
         happiness: Math.min(100, p.happiness + 1),
       }));
@@ -292,10 +293,10 @@ export const gameReducer = (state, action) => {
         // Hard requirement checks (instant disqualification)
         const employer = LOCATION_EMPLOYER_NAME[job.location] || job.title;
         if (job.requirements?.experience) {
-          const weeksWorked = player.job?.weeksWorked || 0;
-          if (weeksWorked < job.requirements.experience) {
-            let s = log(stateAfterTime, `Rejected from ${employer}! Need ${job.requirements.experience} weeks of experience.`);
-            return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — need ${job.requirements.experience} weeks of experience.` } };
+          const shiftsWorked = player.job?.shiftsWorked || 0;
+          if (shiftsWorked < job.requirements.experience) {
+            let s = log(stateAfterTime, `Rejected from ${employer}! Need ${job.requirements.experience} shifts of experience.`);
+            return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — need ${job.requirements.experience} shifts of experience.` } };
           }
         }
         if (job.requirements?.education && !meetsEducation(player.education, job.requirements.education)) {
@@ -333,11 +334,11 @@ export const gameReducer = (state, action) => {
         }
 
         // Hired! Preserve experience within same career track
-        const prevWeeksWorked = (player.job?.type === job.type) ? (player.job?.weeksWorked || 0) : 0;
+        const prevShiftsWorked = (player.job?.type === job.type) ? (player.job?.shiftsWorked || 0) : 0;
         let s = log(stateAfterTime, `${player.name} hired at ${employer} as ${job.title}!`);
         s = updateActivePlayer(s, p => ({
           ...p,
-          job: { ...job, weeksWorked: prevWeeksWorked },
+          job: { ...job, shiftsWorked: prevShiftsWorked },
           happiness: Math.min(100, p.happiness + 5), // morale boost from getting hired
         }));
         return { ...s, lastJobResult: { success: true, message: `${employer} hired you as ${job.title} at $${job.wage}/hr! +5 happiness!` } };
@@ -345,9 +346,9 @@ export const gameReducer = (state, action) => {
 
       // Promotion path — no time cost, no rejection
       if (job.requirements?.experience) {
-        const weeksWorked = player.job?.weeksWorked || 0;
-        if (weeksWorked < job.requirements.experience) {
-          return { ...log(state, `Need ${job.requirements.experience} weeks of experience for promotion.`), lastJobResult: { success: false, message: `Need ${job.requirements.experience} weeks of experience.` } };
+        const shiftsWorked = player.job?.shiftsWorked || 0;
+        if (shiftsWorked < job.requirements.experience) {
+          return { ...log(state, `Need ${job.requirements.experience} shifts of experience for promotion.`), lastJobResult: { success: false, message: `Need ${job.requirements.experience} shifts of experience.` } };
         }
       }
       if (job.requirements?.education && !meetsEducation(player.education, job.requirements.education)) {
@@ -360,11 +361,11 @@ export const gameReducer = (state, action) => {
       if (job.requirements?.dependability && player.dependability < job.requirements.dependability) {
         return { ...log(state, `Need ${job.requirements.dependability} dependability for promotion.`), lastJobResult: { success: false, message: `Need ${job.requirements.dependability} dependability.` } };
       }
-      const prevWeeksWorked = (player.job?.type === job.type) ? (player.job?.weeksWorked || 0) : 0;
+      const prevShiftsWorked = (player.job?.type === job.type) ? (player.job?.shiftsWorked || 0) : 0;
       let s = log(state, `${player.name} promoted to ${job.title}!`);
       s = updateActivePlayer(s, p => ({
         ...p,
-        job: { ...job, weeksWorked: prevWeeksWorked },
+        job: { ...job, shiftsWorked: prevShiftsWorked },
         happiness: Math.min(100, p.happiness + 10), // big morale boost from promotion
       }));
       return { ...s, lastJobResult: { success: true, message: `Promoted to ${job.title} at $${job.wage}/hr! +10 happiness! 🎉` } };
@@ -407,7 +408,8 @@ export const gameReducer = (state, action) => {
         relaxation: newRelax,
         happiness: Math.min(100, p.happiness + happGain),
       }));
-      return log(s, `Rested ${hours}h at home. +${relaxGain} relaxation${bonusMsg} (now ${newRelax}). +${happGain} happiness.`);
+      s = log(s, `Rested ${hours}h at home. +${relaxGain} relaxation${bonusMsg} (now ${newRelax}). +${happGain} happiness.`);
+      return autoEndIfNeeded(s);
     }
 
     // ── Read a book at the library ────────────────────────────────────────────
@@ -427,7 +429,8 @@ export const gameReducer = (state, action) => {
         book.relaxGain ? `+${book.relaxGain} relaxation` : '',
         book.depGain ? `+${book.depGain} dependability` : '',
       ].filter(Boolean).join(', ');
-      return log(s, `Read "${book.title}". ${bookEffects}.`);
+      s = log(s, `Read "${book.title}". ${bookEffects}.`);
+      return autoEndIfNeeded(s);
     }
 
     // ── Buy item ──────────────────────────────────────────────────────────────
@@ -586,14 +589,17 @@ export const gameReducer = (state, action) => {
       const qty = player.portfolio?.[symbol] || 0;
       if (qty < 1) return log(state, "No shares to sell.");
       const earnings = Math.floor(state.market[symbol] * qty);
-      const basePrice = stocksData.find(s => s.symbol === symbol)?.basePrice ?? state.market[symbol];
-      const costBasis = basePrice * qty;
+      // True P/L vs recorded purchase cost (audit M3); basePrice only as
+      // legacy-save fallback.
+      const fallbackBasis = (stocksData.find(s => s.symbol === symbol)?.basePrice ?? state.market[symbol]) * qty;
+      const costBasis = player.stockCostBasis?.[symbol] ?? fallbackBasis;
       const profitLoss = earnings - costBasis;
       const plText = profitLoss >= 0 ? `+$${profitLoss} profit` : `-$${Math.abs(profitLoss)} loss`;
-      let s = log(state, `Sold all ${qty} shares of ${symbol} for $${earnings}. (${plText})`);
+      let s = log(state, `Sold all ${qty} shares of ${symbol} for $${earnings}. (${plText} vs what you paid)`);
       s = updateActivePlayer(s, p => {
         const { [symbol]: _removed, ...rest } = p.portfolio;
-        return { ...p, money: p.money + earnings, portfolio: rest };
+        const { [symbol]: _removedBasis, ...restBasis } = (p.stockCostBasis || {});
+        return { ...p, money: p.money + earnings, portfolio: rest, stockCostBasis: restBasis };
       });
       return s;
     }
@@ -715,7 +721,15 @@ export const gameReducer = (state, action) => {
 
       const currentQty = player.portfolio[symbol] || 0;
       let s = log(state, `Bought ${quantity} shares of ${symbol} for $${cost}.`);
-      s = updateActivePlayer(s, p => ({ ...p, money: p.money - cost, portfolio: { ...p.portfolio, [symbol]: currentQty + quantity } }));
+      // Record what was actually paid so P/L can be honest (audit M3) —
+      // profit/loss vs basePrice told players they were "+11%" the moment
+      // they bought into a Boom.
+      s = updateActivePlayer(s, p => ({
+        ...p,
+        money: p.money - cost,
+        portfolio: { ...p.portfolio, [symbol]: currentQty + quantity },
+        stockCostBasis: { ...(p.stockCostBasis || {}), [symbol]: ((p.stockCostBasis || {})[symbol] || 0) + cost },
+      }));
       return s;
     }
 
@@ -727,11 +741,21 @@ export const gameReducer = (state, action) => {
 
       const currentPrice = state.market[symbol];
       const earnings = Math.floor(currentPrice * quantity);
-      const basePrice = stocksData.find(s => s.symbol === symbol)?.basePrice ?? currentPrice;
-      const profitLoss = (currentPrice - basePrice) * quantity;
-      const plText = profitLoss >= 0 ? `+$${profitLoss.toFixed(2)} profit` : `-$${Math.abs(profitLoss).toFixed(2)} loss`;
-      let s = log(state, `Sold ${quantity} shares of ${symbol} for $${earnings}. (${plText})`);
-      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: currentQty - quantity } }));
+      // True P/L vs what the player paid (avg-cost). Legacy saves without a
+      // recorded basis fall back to basePrice — the old (wrong) assumption.
+      const fallbackBasis = (stocksData.find(s => s.symbol === symbol)?.basePrice ?? currentPrice) * currentQty;
+      const totalBasis = player.stockCostBasis?.[symbol] ?? fallbackBasis;
+      const basisRemoved = Math.round(totalBasis * (quantity / currentQty));
+      const profitLoss = earnings - basisRemoved;
+      const plText = profitLoss >= 0 ? `+$${profitLoss} profit` : `-$${Math.abs(profitLoss)} loss`;
+      let s = log(state, `Sold ${quantity} shares of ${symbol} for $${earnings}. (${plText} vs what you paid)`);
+      s = updateActivePlayer(s, p => {
+        const remainingQty = currentQty - quantity;
+        const basis = { ...(p.stockCostBasis || {}) };
+        if (remainingQty > 0) basis[symbol] = totalBasis - basisRemoved;
+        else delete basis[symbol];
+        return { ...p, money: p.money + earnings, portfolio: { ...p.portfolio, [symbol]: remainingQty }, stockCostBasis: basis };
+      });
       return s;
     }
 

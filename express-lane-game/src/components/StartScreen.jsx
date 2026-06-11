@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY_PRESETS } from '../engine/constants';
+import { SAVE_KEY } from '../engine/persistence';
 
 const EMOJI_OPTIONS = [
   '😎', '🤠', '🥸', '🤓', '😈', '🤑', '🥳', '😏',
@@ -27,7 +28,7 @@ const STEPS = ['Goals', 'Difficulty', 'Players', 'Avatars'];
 
 const StartScreen = () => {
   const { state, initGame, startGame, resetGame } = useGame();
-  const hasSave = !!localStorage.getItem('jones_v2_state');
+  const hasSave = !!localStorage.getItem(SAVE_KEY);
   const [step, setStep] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
   const [playerCount, setPlayerCount] = useState(1);

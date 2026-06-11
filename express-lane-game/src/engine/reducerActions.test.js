@@ -166,7 +166,7 @@ describe('BUY_ITEM employee discount (audit B1)', () => {
 describe('WORK pay matches calcShiftEarnings preview (audit M1)', () => {
   const workState = (economy) => {
     const s = { ...buildInitialState('normal', 1), gameStatus: 'playing', economy };
-    s.players[0].job = { title: 'Cashier', wage: 12, location: 'megamart', type: 'service', weeksWorked: 0 };
+    s.players[0].job = { title: 'Cashier', wage: 12, location: 'megamart', type: 'service', shiftsWorked: 0 };
     return s;
   };
 
@@ -186,5 +186,71 @@ describe('WORK pay matches calcShiftEarnings preview (audit M1)', () => {
     const s = workState('Depression');
     const out = gameReducer(s, { type: 'PART_TIME_WORK' });
     expect(out.players[0].money - s.players[0].money).toBe(calcShiftEarnings(12, 4, 'Depression'));
+  });
+});
+
+// M3: stock P/L was computed against basePrice, not what the player paid.
+describe('stock cost basis (audit M3)', () => {
+  const buy = (s, symbol, quantity) => gameReducer(s, { type: 'BUY_STOCK', symbol, quantity });
+
+  it('records what was paid on buy', () => {
+    let s = playing();
+    const sym = Object.keys(s.market)[0];
+    s = { ...s, market: { ...s.market, [sym]: 120 } };
+    const out = buy(s, sym, 3);
+    expect(active(out).stockCostBasis[sym]).toBe(360);
+  });
+
+  it('accumulates basis across multiple buys at different prices', () => {
+    let s = playing();
+    s.players[0].money = 10000;
+    const sym = Object.keys(s.market)[0];
+    s = { ...s, market: { ...s.market, [sym]: 100 } };
+    let out = buy(s, sym, 2); // $200
+    out = { ...out, market: { ...out.market, [sym]: 150 } };
+    out = buy(out, sym, 2); // $300
+    expect(active(out).stockCostBasis[sym]).toBe(500);
+  });
+
+  it('logs true P/L on SELL_STOCK_ALL — buying high then selling lower is a loss', () => {
+    let s = playing();
+    s.players[0].money = 10000;
+    const sym = Object.keys(s.market)[0];
+    s = { ...s, market: { ...s.market, [sym]: 150 } };
+    let out = buy(s, sym, 2); // paid $300
+    out = { ...out, market: { ...out.market, [sym]: 100 } };
+    out = gameReducer(out, { type: 'SELL_STOCK_ALL', symbol: sym }); // gets $200
+    expect(out.history[0]).toMatch(/-\$100 loss/);
+    expect(active(out).stockCostBasis[sym]).toBeUndefined();
+  });
+
+  it('removes proportional basis on partial SELL_STOCK (avg-cost)', () => {
+    let s = playing();
+    s.players[0].money = 10000;
+    const sym = Object.keys(s.market)[0];
+    s = { ...s, market: { ...s.market, [sym]: 100 } };
+    let out = buy(s, sym, 4); // basis $400
+    out = gameReducer(out, { type: 'SELL_STOCK', symbol: sym, quantity: 2 });
+    expect(active(out).stockCostBasis[sym]).toBe(200);
+    expect(active(out).portfolio[sym]).toBe(2);
+  });
+});
+
+// M12: REST and READ_BOOK previously skipped autoEndIfNeeded, leaving a 0h
+// player parked without the walk-home flow every other action triggers.
+describe('REST/READ_BOOK auto-end at 0h (audit M12)', () => {
+  it('REST down to 0h flags awaitingEndWeek', () => {
+    let s = playing();
+    s.players[0].timeRemaining = 2;
+    const out = gameReducer(s, { type: 'REST', hours: 2 });
+    expect(active(out).timeRemaining).toBe(0);
+    expect(out.awaitingEndWeek).toBe(true);
+  });
+  it('READ_BOOK down to 0h flags awaitingEndWeek', () => {
+    let s = playing();
+    s.players[0].timeRemaining = 3;
+    const out = gameReducer(s, { type: 'READ_BOOK', book: { title: 'Test', hours: 3, happinessGain: 1 } });
+    expect(active(out).timeRemaining).toBe(0);
+    expect(out.awaitingEndWeek).toBe(true);
   });
 });

@@ -299,51 +299,61 @@ export function rollRandomEvent(players) {
   const event = eligibleEvents[Math.floor(Math.random() * eligibleEvents.length)];
   if (!event) return { pendingEvent: null };
 
+  // sentiment is explicit ('good' | 'bad' | 'neutral') — the modal must never
+  // infer tone by string-scanning effectDesc, which mislabeled rent hikes as
+  // celebrations because "rent +$40/wk" contains a '+' (audit bug M5).
   let effectDesc = '';
+  let sentiment = 'neutral';
   switch (event.effect.type) {
     case 'money':
       ep.money = Math.max(0, ep.money + event.effect.value);
       effectDesc = event.effect.value >= 0 ? `+$${event.effect.value}` : `-$${Math.abs(event.effect.value)}`;
+      sentiment = event.effect.value >= 0 ? 'good' : 'bad';
       break;
     case 'time_loss':
       ep.maxTime = Math.max(20, ep.maxTime - Math.floor(ep.maxTime * event.effect.value));
       ep.timeRemaining = ep.maxTime;
       effectDesc = `-${Math.floor(event.effect.value * 100)}% time next week`;
+      sentiment = 'bad';
       break;
     case 'rent_increase': {
       const extra = Math.floor(ep.housing.rent * event.effect.value);
       // Skip if rent hike would push rent unreasonably high (>$200 increase cap)
-      if (extra > 200) { effectDesc = 'landlord backed down (unit controlled)'; break; }
+      if (extra > 200) { effectDesc = 'landlord backed down (unit controlled)'; sentiment = 'neutral'; break; }
       ep.money = Math.max(0, ep.money - extra);
       ep.housing = { ...ep.housing, rent: ep.housing.rent + extra };
       effectDesc = `rent +$${extra}/wk (now $${ep.housing.rent}/wk)`;
+      sentiment = 'bad';
       break;
     }
     case 'savings_interest_bonus': {
       const bonus = Math.floor(ep.savings * event.effect.value);
       ep.savings += bonus;
       effectDesc = `+$${bonus} savings bonus`;
+      sentiment = 'good';
       break;
     }
     case 'savings_loss': {
       const loss = Math.floor(ep.savings * event.effect.value);
       ep.savings = Math.max(0, ep.savings - loss);
       effectDesc = `-$${loss} from savings`;
+      sentiment = 'bad';
       break;
     }
     case 'happiness':
       ep.happiness = Math.min(100, Math.max(0, ep.happiness + event.effect.value));
       effectDesc = `${event.effect.value > 0 ? '+' : ''}${event.effect.value} happiness`;
+      sentiment = event.effect.value > 0 ? 'good' : 'bad';
       break;
     case 'job_loss':
-      if (ep.job) { ep.job = null; effectDesc = 'you lost your job!'; }
+      if (ep.job) { ep.job = null; effectDesc = 'you lost your job!'; sentiment = 'bad'; }
       else effectDesc = 'no effect';
       break;
     default: break;
   }
 
   return {
-    pendingEvent: { title: event.title, description: event.description, effectDesc, playerName: ep.name },
+    pendingEvent: { title: event.title, description: event.description, effectDesc, sentiment, playerName: ep.name },
   };
 }
 
