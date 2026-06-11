@@ -38,7 +38,7 @@ const ACCENT_FOR = {
 export const ShopNode = ({
   id, config, isCurrent, isTraveling, isJoneses, isWarn,
   badge, isJob, promoReady,
-  onClick, travelHours, sizeClass = 'w-[88px] h-[88px]',
+  onClick, travelHours, sizeClass = 'w-[72px] h-[72px] sm:w-[88px] sm:h-[88px]',
 }) => {
   const accent = ACCENT_FOR[id] || config.color;
   const warnLabel = isCurrent ? '' : isWarn ? ' — needs attention' : promoReady ? ' — promotion available' : '';
@@ -50,8 +50,10 @@ export const ShopNode = ({
       aria-label={`${config.label}${isCurrent ? ' — current location' : travelHours != null ? ` — travel ${travelHours}h` : ''}${warnLabel}`}
       className={`ds-shop ${sizeClass} ${isCurrent ? 'current' : ''} ${isJoneses ? 'joneses' : ''} ${isWarn ? 'warn' : ''} ${isTraveling ? 'pointer-events-none opacity-60' : ''}`}
       style={{
-        left: `${config.pos.x}%`,
-        top: `${config.pos.y}%`,
+        // clamp keeps pole/side shops fully inside the safe area on narrow
+        // phones instead of clipping at the viewport edge (audit B4)
+        left: `clamp(38px, ${config.pos.x}%, calc(100% - 38px))`,
+        top: `clamp(38px, ${config.pos.y}%, calc(100% - 38px))`,
         ...(isJob && !isCurrent ? { boxShadow: `0 0 0 2px ${accent}, var(--sh-1)` } : null),
       }}
       data-shop-id={id}
@@ -64,8 +66,8 @@ export const ShopNode = ({
       />
       {isJoneses && (
         <span
-          className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[8px] font-display font-bold tracking-wider uppercase whitespace-nowrap"
-          style={{ background: 'var(--accent)', color: '#fff' }}
+          className="absolute -top-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[10px] font-display font-bold tracking-wider uppercase whitespace-nowrap"
+          style={{ background: 'var(--accent-strong)', color: '#fff' }}
         >
           Joneses
         </span>
@@ -84,8 +86,8 @@ export const ShopNode = ({
           style={{ background: 'var(--money)', color: '#fff', boxShadow: '0 2px 6px rgba(16,168,118,0.5)' }}
         >⬆</span>
       )}
-      <span className="text-[26px] leading-none" aria-hidden="true">{config.emoji}</span>
-      <span className={`text-[10px] font-semibold leading-tight ${isCurrent ? 'text-white/90' : ''}`}>{config.label}</span>
+      <span className="text-[22px] sm:text-[26px] leading-none" aria-hidden="true">{config.emoji}</span>
+      <span className={`text-[9px] sm:text-[10px] font-semibold leading-tight ${isCurrent ? 'text-white/90' : ''}`}>{config.label}</span>
       {!isCurrent && travelHours != null && (
         <span
           className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-[2px] rounded-full font-display font-bold text-[9px] tracking-wide whitespace-nowrap"
@@ -132,8 +134,10 @@ export const PlayerToken = ({ locationId, isMoving, label, emoji, accent = 'var(
     <div
       className="absolute pointer-events-none"
       style={{
-        left: `${config.pos.x}%`,
-        top: `${config.pos.y + offsetY * 0.6}%`,
+        // clamp keeps tokens (esp. the Joneses at the ring's bottom pole)
+        // inside the visible map bounds (audit UX11)
+        left: `clamp(24px, ${config.pos.x}%, calc(100% - 24px))`,
+        top: `clamp(24px, ${Math.min(96, config.pos.y + offsetY * 0.6)}%, calc(100% - 26px))`,
         transform: 'translate(-50%, -50%)',
         zIndex,
         transition: 'left 0.6s cubic-bezier(0.4,0,0.2,1), top 0.6s cubic-bezier(0.4,0,0.2,1)',
@@ -153,8 +157,8 @@ export const PlayerToken = ({ locationId, isMoving, label, emoji, accent = 'var(
       </div>
       {suffix && (
         <div
-          className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-[1px] rounded-full font-display font-bold text-[8px] tracking-wide whitespace-nowrap"
-          style={{ background: accent, color: '#fff' }}
+          className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-[1px] rounded-full font-display font-bold text-[10px] tracking-wide whitespace-nowrap"
+          style={{ background: accent === 'var(--debt)' ? 'var(--debt-ink)' : accent, color: '#fff' }}
         >
           {suffix}
         </div>

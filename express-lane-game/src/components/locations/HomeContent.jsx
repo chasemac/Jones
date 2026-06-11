@@ -49,6 +49,27 @@ const HomeContent = ({ state, actions }) => {
           </div>
         )}
 
+        {/* Hunger consequence preview — its own warn strip, not a caption
+            riding on the CTA (audit B5: the warning is a consequence, not a
+            call to action, and white-on-coral failed WCAG AA). */}
+        {(() => {
+          const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
+          const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
+          let warnText = null;
+          if (!hasFood && nextHunger >= 80) warnText = `Starving next week — −20h penalty! Buy food first.`;
+          else if (!hasFood && nextHunger >= 50) warnText = `No food — hunger hits ${nextHunger}, −10h penalty`;
+          else if (!hasFood && player.hunger >= 25) warnText = `No food bought — hunger will rise to ${nextHunger}`;
+          if (!warnText) return null;
+          return (
+            <div
+              className="rounded-xl px-3 py-2 text-[11px] font-bold text-center"
+              style={{ background: 'rgba(244,184,42,0.18)', border: '1px solid rgba(244,184,42,0.5)', color: 'var(--warn-ink)' }}
+            >
+              ⚠️ {warnText}
+            </div>
+          );
+        })()}
+
         {/* The big end-week CTA */}
         <button
           onClick={() => { actions.endWeek(); }}
@@ -60,14 +81,7 @@ const HomeContent = ({ state, actions }) => {
             <span className="text-[12px] font-normal" style={{ opacity: 0.8 }}>({player.timeRemaining}h left)</span>
           </div>
           <div className="text-[10px] font-normal" style={{ opacity: 0.85 }}>
-            {(() => {
-              const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
-              const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
-              if (!hasFood && nextHunger >= 80) return '⚠️ Starving next week — −20h penalty!';
-              if (!hasFood && nextHunger >= 50) return `⚠️ No food — hunger hits ${nextHunger}, −10h penalty`;
-              if (!hasFood && player.hunger >= 25) return `⚠️ No food bought — hunger will rise to ${nextHunger}`;
-              return 'Rent, interest, hunger & happiness resolve at week end';
-            })()}
+            Rent, interest, hunger & happiness resolve at week end
           </div>
         </button>
 

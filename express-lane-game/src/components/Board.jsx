@@ -417,8 +417,9 @@ const Board = () => {
         </div>
       )}
 
-      {/* Padded map area — keeps buildings away from container edges */}
-      <div className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24">
+      {/* Padded map area — keeps buildings away from container edges and
+          above the measured HUD height (audit B4/M10) */}
+      <div className="elg-map-area">
         {/* Map background */}
         <MapBackground />
 
@@ -532,8 +533,9 @@ const Board = () => {
       <RingTips player={state.player} week={state.week} />
       <NotificationFeed history={state.history} onOpenLog={() => setShowLog(true)} />
 
-      {/* Location panel — centered overlay sitting in the middle of the ring,
-          so the 12 shops stay visible around the perimeter. */}
+      {/* Location panel — full-width bottom sheet on phones (audit M6),
+          centered overlay inside the ring at ≥640px so the 12 shops stay
+          visible around the perimeter. */}
       {showPanel && !isMoving && !state.awaitingEndWeek && !showHandoff && (() => {
         const { player } = state;
         const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
@@ -542,19 +544,8 @@ const Board = () => {
         const isStranded = !isAtHomeBase && player.timeRemaining < effectiveStepsToHome && !state.awaitingEndWeek;
         const fare = rideFare(player.currentLocation, homeTarget);
         return (
-          <div
-            className="absolute inset-x-2 sm:inset-x-5 top-2 bottom-[5.3rem] sm:bottom-24 z-20 pointer-events-none flex items-center justify-center"
-          >
-            {/* Pad the inner area enough that ring shops at the poles stay
-                visible around the panel. 13% inset clears the top/bottom/side
-                pole shops (at 8% / 92% with shop half-width ~5%). */}
-            <div
-              className="pointer-events-auto h-full mx-auto"
-              style={{
-                width: 'min(560px, calc(100% - 26%))',
-                maxHeight: 'calc(100% - 26%)',
-              }}
-            >
+          <div className="elg-panel-wrap z-20 pointer-events-none">
+            <div className="elg-panel-box pointer-events-auto">
               <LocationPanel
                 locationId={player.currentLocation}
                 player={player}

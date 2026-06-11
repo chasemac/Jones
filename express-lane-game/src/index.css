@@ -14,11 +14,14 @@
   /* Ink */
   --ink: #1A1816;
   --ink-2: #3A3630;
-  --muted: #7B756C;
+  /* ≥4.5:1 on --surface-2 tinted cards (WCAG AA, audit UX12) */
+  --muted: #6B655C;
+  /* Decorative only — reserve for text ≥12px (audit UX12) */
   --muted-2: #A39C91;
 
   /* Accents */
-  --brand: #FF6B4A;        /* coral — primary CTA */
+  --brand: #FF6B4A;        /* coral — brand hue (decorative; fails AA with white text) */
+  --brand-strong: #C73E12; /* coral CTA fill — ≥4.5:1 with white text (audit B5) */
   --brand-ink: #BC3617;
   --money: #10A876;        /* teal — success/money */
   --money-ink: #0B6E4F;
@@ -27,7 +30,13 @@
   --warn: #F4B82A;
   --warn-ink: #8A6510;
   --info: #3B82F6;
-  --accent: #7C5CFF;       /* Joneses violet */
+  --accent: #7C5CFF;       /* Joneses violet (decorative) */
+  --accent-strong: #6A47F0;/* Joneses violet — ≥4.5:1 with white text (audit UX11) */
+
+  /* Real HUD height, written by a ResizeObserver in HUD.jsx. Anything that
+     must sit above the HUD (map safe area, Tips/Jones/Log buttons) anchors
+     to this var instead of guessing a fixed offset (audit B3/B4). */
+  --hud-h: 5.3rem;
 
   /* Radii */
   --radius-lg: 18px;
@@ -114,8 +123,8 @@ body {
 .ds-btn:active:not(:disabled) { transform: scale(0.97); }
 .ds-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ds-btn-primary {
-  background: var(--brand); border-color: var(--brand); color: #fff;
-  box-shadow: 0 4px 14px rgba(255,107,74,0.35);
+  background: var(--brand-strong); border-color: var(--brand-strong); color: #fff;
+  box-shadow: 0 4px 14px rgba(199,62,18,0.35);
 }
 .ds-btn-dark {
   background: var(--ink); border-color: var(--ink); color: #fff;
@@ -223,6 +232,41 @@ body {
   background: #F5F0FF;
 }
 .ds-shop.warn { border-color: var(--warn); box-shadow: 0 0 0 2px rgba(244,184,42,0.20), var(--sh-1); }
+
+/* ─── Board layout anchored to the real HUD height (audit B3/B4/M6/M10) ──
+   --hud-h is written by a ResizeObserver in HUD.jsx, so these areas always
+   clear the HUD no matter how tall it renders on a given device. */
+
+/* Map safe area: on phones also reserve room for the Tips/Jones/Log row. */
+.elg-map-area {
+  position: absolute;
+  left: 0.5rem; right: 0.5rem; top: 0.5rem;
+  bottom: calc(var(--hud-h) + 3.6rem);
+}
+@media (min-width: 640px) {
+  .elg-map-area { left: 1.25rem; right: 1.25rem; bottom: calc(var(--hud-h) + 0.7rem); }
+}
+
+/* Location panel: full-width bottom sheet below 640px (audit M6),
+   centered overlay inside the ring at ≥640px. */
+.elg-panel-wrap {
+  position: absolute;
+  left: 0; right: 0; top: 10%;
+  bottom: var(--hud-h);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.elg-panel-box { width: 100%; height: 100%; }
+.elg-panel-box > .ds-card { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+@media (min-width: 640px) {
+  .elg-panel-wrap {
+    left: 1.25rem; right: 1.25rem; top: 0.5rem;
+    bottom: calc(var(--hud-h) + 0.7rem);
+    align-items: center;
+  }
+  /* 26% inset clears the ring shops at the poles (at 8% / 92%). */
+  .elg-panel-box { width: min(560px, 74%); max-height: 74%; margin: 0 auto; }
+  .elg-panel-box > .ds-card { border-radius: var(--radius-lg); }
+}
 
 /* Animations */
 @keyframes ds-float-up {

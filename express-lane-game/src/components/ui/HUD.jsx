@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DIFFICULTY_PRESETS, calculateNetWorth } from '../../engine/constants';
 import { calcShiftEarnings } from '../../engine/economyModel';
 import stocksData from '../../data/stocks.json';
@@ -29,8 +29,58 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
   const oldNW = snap ? calculateNetWorth(snap) : null;
   const nwDelta = oldNW != null ? netWorth - oldNW : 0;
 
+  // Publish the HUD's REAL rendered height as --hud-h on :root. The map safe
+  // area and the Tips/Jones/Log buttons anchor to this var, so nothing can
+  // hide behind the HUD no matter how tall it grows on a phone (audit B3/B4).
+  const hudRef = useRef(null);
+  useEffect(() => {
+    const el = hudRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const write = () => root.style.setProperty('--hud-h', `${el.offsetHeight}px`);
+    write();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(write);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Bag / Goals / Mute — rendered in the desktop right column AND in the
+  // mobile second row (audit B2).
+  const actionButtons = (
+    <div className="flex gap-1.5">
+      <button
+        onClick={onOpenInventory}
+        className="ds-btn"
+        title="Inventory (I)"
+        style={{ padding: '8px 12px', minHeight: 38 }}
+      >
+        <span className="text-base">🎒</span>
+        <span className="hidden sm:inline text-[11px] font-display">Bag</span>
+      </button>
+      <button
+        onClick={onOpenGoals}
+        className="ds-btn"
+        title="Goals (G)"
+        style={{ padding: '8px 12px', minHeight: 38 }}
+      >
+        <span className="text-base">🎯</span>
+        <span className="hidden sm:inline text-[11px] font-display">Goals</span>
+      </button>
+      <button
+        onClick={onToggleMute}
+        className="ds-btn"
+        title={muted ? 'Unmute (M)' : 'Mute (M)'}
+        style={{ padding: '8px 12px', minHeight: 38 }}
+      >
+        <span className="text-base">{muted ? '🔇' : '🔊'}</span>
+      </button>
+    </div>
+  );
+
   return (
     <div
+      ref={hudRef}
       className="absolute bottom-0 left-0 right-0 z-30 backdrop-blur"
       style={{
         background: 'rgba(255,255,255,0.92)',
@@ -54,7 +104,10 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
       <div
         className={`px-3 md:px-4 pt-3 ${isMultiplayer ? 'pb-[max(0.55rem,env(safe-area-inset-bottom))]' : 'pb-[max(0.7rem,env(safe-area-inset-bottom))]'}`}
       >
-        <div className={`flex items-stretch gap-2 md:gap-3 ${isMultiplayer ? 'min-h-[4.6rem]' : 'min-h-[5rem]'}`}>
+        {/* Mobile (<md): explicit 2-row grid — row 1 = avatar | cash | time,
+            row 2 = needs pills | Bag/Goals/Mute. Desktop (md+): single row
+            with the needs grid + right column (audit B2). */}
+        <div className={`flex flex-wrap items-stretch gap-x-2 gap-y-1.5 md:gap-3 ${isMultiplayer ? 'md:min-h-[4.6rem]' : 'md:min-h-[5rem]'}`}>
 
           {/* Player avatar + identity */}
           <div className="flex flex-col items-center justify-center min-w-[58px] md:min-w-[72px] gap-0.5">
@@ -76,7 +129,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
           </div>
 
           {/* Cash readout */}
-          <div className="flex flex-col justify-center min-w-[100px]">
+          <div className="flex flex-col justify-center min-w-[96px]">
             <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--muted)' }}>Cash</div>
             <div
               className="font-display font-bold text-xl md:text-2xl leading-tight font-num"
@@ -103,8 +156,9 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             </div>
           </div>
 
-          {/* Time meter */}
-          <div className="flex flex-col justify-center flex-1 min-w-0 gap-1">
+          {/* Time meter — min-width guarantees the bar can never collapse to
+              zero on a narrow phone (audit B2); flex-wrap absorbs overflow. */}
+          <div className="flex flex-col justify-center flex-1 min-w-[120px] gap-1">
             <div className="flex items-center justify-between gap-2">
               <span
                 className={`text-[10px] font-semibold uppercase tracking-wider ${isLowTime ? 'animate-pulse' : ''}`}
@@ -131,27 +185,11 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
               <Meter label="Relax" value={player.relaxation ?? 50} fillClass="ds-fill-relax" danger={(player.relaxation ?? 50) <= 20} />
               <Meter label="Happy" value={player.happiness} fillClass="ds-fill-happy" danger={player.happiness < 25} />
             </div>
-            {/* Mobile compact badges */}
-            <div className="flex flex-wrap gap-1 md:hidden mt-0.5">
-              {(player.hunger ?? 0) >= 60 && (
-                <span className="ds-pill ds-pill-warn animate-pulse" style={{ padding: '1px 6px', fontSize: 9 }}>
-                  🍕 {player.hunger}
-                </span>
-              )}
-              {(player.relaxation ?? 50) <= 20 && (
-                <span className="ds-pill ds-pill-warn" style={{ padding: '1px 6px', fontSize: 9 }}>🛁 {player.relaxation ?? 50}</span>
-              )}
-              {player.happiness < 25 && (
-                <span className="ds-pill ds-pill-debt animate-pulse" style={{ padding: '1px 6px', fontSize: 9 }}>💔 {player.happiness}</span>
-              )}
-              {!player.job && (
-                <span className="ds-pill" style={{ padding: '1px 6px', fontSize: 9 }}>No job</span>
-              )}
-            </div>
           </div>
 
-          {/* Right: identity + actions */}
-          <div className="flex flex-col items-end justify-center gap-1.5 shrink-0">
+          {/* Desktop right column: identity + actions (hidden on mobile —
+              the second HUD row below replaces it; audit B2) */}
+          <div className="hidden md:flex flex-col items-end justify-center gap-1.5 shrink-0">
             <div className="flex items-center gap-2 text-[10px]" style={{ color: 'var(--muted)' }}>
               <span className="font-num font-semibold">🎓 {player.education}</span>
               <span className="font-num font-semibold">
@@ -173,37 +211,32 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
                 </span>
               )}
             </div>
-            <div className="flex gap-1.5">
-              <button
-                onClick={onOpenInventory}
-                className="ds-btn"
-                title="Inventory (I)"
-                style={{ padding: '8px 12px', minHeight: 38 }}
-              >
-                <span className="text-base">🎒</span>
-                <span className="hidden sm:inline text-[11px] font-display">Bag</span>
-              </button>
-              <button
-                onClick={onOpenGoals}
-                className="ds-btn"
-                title="Goals (G)"
-                style={{ padding: '8px 12px', minHeight: 38 }}
-              >
-                <span className="text-base">🎯</span>
-                <span className="hidden sm:inline text-[11px] font-display">Goals</span>
-              </button>
-              <button
-                onClick={onToggleMute}
-                className="ds-btn"
-                title={muted ? 'Unmute (M)' : 'Mute (M)'}
-                style={{ padding: '8px 12px', minHeight: 38 }}
-              >
-                <span className="text-base">{muted ? '🔇' : '🔊'}</span>
-              </button>
-            </div>
+            {actionButtons}
             <div className="hidden md:block text-[10px] text-right" style={{ color: 'var(--muted)' }}>
               ⌨ I G L M W E R S N · goal {goals?.happiness ?? 80}
             </div>
+          </div>
+
+          {/* Mobile row 2: fixed-height needs pills (scroll on overflow, never
+              stack) + the Bag/Goals/Mute actions (audit B2). */}
+          <div className="flex md:hidden basis-full items-center justify-between gap-2">
+            <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap min-h-[2rem]" style={{ scrollbarWidth: 'none' }}>
+              {(player.hunger ?? 0) >= 60 && (
+                <span className="ds-pill ds-pill-warn animate-pulse shrink-0" style={{ padding: '2px 7px', fontSize: 10 }}>
+                  🍕 Hunger {player.hunger}
+                </span>
+              )}
+              {(player.relaxation ?? 50) <= 20 && (
+                <span className="ds-pill ds-pill-warn shrink-0" style={{ padding: '2px 7px', fontSize: 10 }}>🛁 Relax {player.relaxation ?? 50}</span>
+              )}
+              {player.happiness < 25 && (
+                <span className="ds-pill ds-pill-debt animate-pulse shrink-0" style={{ padding: '2px 7px', fontSize: 10 }}>💔 Happy {player.happiness}</span>
+              )}
+              {!player.job && (
+                <span className="ds-pill shrink-0" style={{ padding: '2px 7px', fontSize: 10 }}>No job</span>
+              )}
+            </div>
+            <div className="shrink-0">{actionButtons}</div>
           </div>
         </div>
       </div>
