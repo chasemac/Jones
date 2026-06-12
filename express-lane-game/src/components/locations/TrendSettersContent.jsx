@@ -113,10 +113,10 @@ const TrendSettersContent = ({ state, actions }) => {
                     >
                       {wear < 30 ? '⚠️ Needs replacing!' : wear < 60 ? 'Getting worn' : 'Good condition'}
                     </span>
-                    <span style={{ color: 'var(--muted-2)' }}>{wear}% · ~{Math.ceil(wear / 7)} wks left</span>
+                    <span style={{ color: 'var(--muted)' }}>≈ {Math.ceil(wear / 7)} wks left</span>
                   </div>
                   <div className="ds-meter-bar" style={{ height: 6 }}>
-                    <span style={{ width: `${wear}%`, background: wear < 30 ? 'var(--debt)' : wear < 60 ? 'var(--warn)' : 'var(--money)' }} />
+                    <span style={{ width: `${Math.min(100, Math.round((wear / 150) * 100))}%`, background: wear < 30 ? 'var(--debt)' : wear < 60 ? 'var(--warn)' : 'var(--money)' }} />
                   </div>
                   <div className="text-[10px] mt-1 font-display font-bold" style={{ color: '#9d174d' }}>🔄 Replace — ${price}</div>
                 </div>

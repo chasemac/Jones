@@ -297,3 +297,15 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Visible keyboard focus on a busy board — the 1px UA outline disappears
+   against card shadows (audit UX15). */
+.ds-shop:focus-visible,
+.ds-btn:focus-visible,
+.ds-btn-ghost:focus-visible,
+.ds-pill:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--info, #2563eb);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

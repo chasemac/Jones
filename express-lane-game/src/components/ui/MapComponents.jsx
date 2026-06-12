@@ -210,7 +210,10 @@ export const LocationPanel = ({
           </div>
           <div className="flex items-center gap-2">
             <button onClick={onRideHome} className="ds-btn ds-btn-warn !py-1.5 !px-3 !text-[11px]">🚗 Ride home · ${rideFare}</button>
-            <button onClick={onClose} className="ds-btn-ghost text-[11px] underline">walk it →</button>
+            {/* State the consequence before the click (audit UX13) */}
+            <button onClick={onClose} className="ds-btn-ghost text-[11px] underline">
+              walk — uses your last {player.timeRemaining}h, week ends →
+            </button>
           </div>
         </div>
       )}

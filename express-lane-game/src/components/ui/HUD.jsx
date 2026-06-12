@@ -181,7 +181,9 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             </div>
             {/* Quick needs */}
             <div className="hidden md:grid grid-cols-3 gap-2 mt-1">
-              <Meter label="Hunger" value={player.hunger ?? 0} fillClass="ds-fill-hunger" danger={(player.hunger ?? 0) >= 80} />
+              {/* Fullness = 100 − hunger so every meter reads "full = good" —
+                  mixed polarity quietly mis-teaches dashboard reading (audit UX8) */}
+              <Meter label="Fullness" value={100 - (player.hunger ?? 0)} fillClass="ds-fill-hunger" danger={(player.hunger ?? 0) >= 80} />
               <Meter label="Relax" value={player.relaxation ?? 50} fillClass="ds-fill-relax" danger={(player.relaxation ?? 50) <= 20} />
               <Meter label="Happy" value={player.happiness} fillClass="ds-fill-happy" danger={player.happiness < 25} />
             </div>
@@ -223,7 +225,7 @@ const HUD = ({ state, onOpenInventory, onOpenGoals, onToggleMute }) => {
             <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap min-h-[2rem]" style={{ scrollbarWidth: 'none' }}>
               {(player.hunger ?? 0) >= 60 && (
                 <span className="ds-pill ds-pill-warn animate-pulse shrink-0" style={{ padding: '2px 7px', fontSize: 10 }}>
-                  🍕 Hunger {player.hunger}
+                  🍕 Fullness {100 - (player.hunger ?? 0)}
                 </span>
               )}
               {(player.relaxation ?? 50) <= 20 && (

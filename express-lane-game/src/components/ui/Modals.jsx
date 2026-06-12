@@ -194,15 +194,17 @@ const InventorySection = ({ title, items, pawnRate }) => {
             <div className="text-xs text-slate-400">{item.effect}</div>
             {item.clothingWear !== undefined && (
               <div className="mt-0.5">
+                {/* Weeks-of-life, not a fake percent — fresh clothing starts at
+                    wear 150, so "150% durability" was nonsense (audit UX10). */}
                 <div className="flex items-center gap-1">
                   <div className="flex-grow h-1.5 bg-slate-200 rounded-full overflow-hidden w-20">
                     <div
                       className={`h-full rounded-full ${item.clothingWear <= 20 ? 'bg-red-500' : item.clothingWear <= 40 ? 'bg-orange-400' : 'bg-green-500'}`}
-                      style={{ width: `${item.clothingWear}%` }}
+                      style={{ width: `${Math.min(100, Math.round((item.clothingWear / 150) * 100))}%` }}
                     />
                   </div>
                   <span className={`text-[9px] font-bold ${item.clothingWear <= 20 ? 'text-red-600' : 'text-slate-400'}`}>
-                    {item.clothingWear <= 20 ? '⚠️ ' : ''}{item.clothingWear}% durability
+                    {item.clothingWear <= 20 ? '⚠️ ' : ''}≈ {Math.ceil(item.clothingWear / 7)} wk{Math.ceil(item.clothingWear / 7) !== 1 ? 's' : ''} left
                   </span>
                 </div>
               </div>

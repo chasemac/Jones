@@ -45,7 +45,11 @@ const HomeContent = ({ state, actions }) => {
               boxShadow: 'var(--sh-2)',
             }}
           >
-            🏆 All goals met — sleep to win!
+            {/* In multiplayer, victory is only evaluated after ALL players end
+                the week — don't over-promise (audit QA9). */}
+            🏆 All goals met — {state.players?.length > 1
+              ? 'sleep to lock in your win (final results when everyone ends the week)'
+              : 'sleep to win!'}
           </div>
         )}
 
