@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hydrateSavedState, SAVE_KEY } from './persistence';
+import { hydrateSavedState, peekSaveSummary, SAVE_KEY } from './persistence';
 
 describe('SAVE_KEY', () => {
   it('is the canonical localStorage key', () => {
@@ -57,5 +57,38 @@ describe('hydrateSavedState', () => {
     const s = hydrateSavedState({ players: [{}], lastJobResult: { success: true }, awaitingEndWeek: true });
     expect(s.lastJobResult).toBeNull();
     expect(s.awaitingEndWeek).toBe(false);
+  });
+});
+
+describe('peekSaveSummary (resume card, audit M8)', () => {
+  it('returns null for missing or empty raw value', () => {
+    expect(peekSaveSummary(null)).toBeNull();
+    expect(peekSaveSummary('')).toBeNull();
+  });
+
+  it('returns null for corrupt JSON or non-object saves without throwing', () => {
+    expect(peekSaveSummary('{not json')).toBeNull();
+    expect(peekSaveSummary('"just a string"')).toBeNull();
+    expect(peekSaveSummary('42')).toBeNull();
+    expect(peekSaveSummary('null')).toBeNull();
+  });
+
+  it('summarizes week, player count, and active-player money', () => {
+    const raw = JSON.stringify({
+      week: 9,
+      playerCount: 3,
+      activePlayerIndex: 1,
+      players: [{ money: 100 }, { money: 250 }, { money: 5 }],
+    });
+    expect(peekSaveSummary(raw)).toEqual({ week: 9, playerCount: 3, money: 250 });
+  });
+
+  it('falls back to player[0] money and players.length for legacy saves', () => {
+    const raw = JSON.stringify({ players: [{ money: 77 }, { money: 12 }] });
+    expect(peekSaveSummary(raw)).toEqual({ week: 1, playerCount: 2, money: 77 });
+  });
+
+  it('reports null money when the save has no players', () => {
+    expect(peekSaveSummary(JSON.stringify({ week: 4 }))).toEqual({ week: 4, playerCount: 1, money: null });
   });
 });

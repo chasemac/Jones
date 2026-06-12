@@ -16,6 +16,28 @@ export const SAVE_KEY = 'jones_v2_state';
  * @param {object|null} saved - Parsed JSON from localStorage.
  * @returns {object|null} A playable state, or null if the save is unusable.
  */
+/**
+ * Lightweight, display-only summary of a raw save string for the
+ * "Welcome back" resume card (audit M8). Never throws; full hydration
+ * (with migrations) is hydrateSavedState's job.
+ * @param {string|null} raw - Raw JSON string from localStorage, or null.
+ * @returns {{week:number, playerCount:number, money:number|null}|null}
+ */
+export const peekSaveSummary = (raw) => {
+  try {
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object') return null;
+    return {
+      week: saved.week || 1,
+      playerCount: Math.max(1, saved.playerCount || saved.players?.length || 1),
+      money: saved.players?.[saved.activePlayerIndex ?? 0]?.money ?? saved.players?.[0]?.money ?? null,
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const hydrateSavedState = (saved) => {
   if (!saved || typeof saved !== 'object') return null;
 

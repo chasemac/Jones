@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../context/GameContext';
 import { DIFFICULTY_PRESETS } from '../engine/constants';
-import { SAVE_KEY } from '../engine/persistence';
+import { SAVE_KEY, peekSaveSummary } from '../engine/persistence';
 
 const EMOJI_OPTIONS = [
   '😎', '🤠', '🥸', '🤓', '😈', '🤑', '🥳', '😏',
@@ -28,7 +28,10 @@ const STEPS = ['Goals', 'Difficulty', 'Players', 'Avatars'];
 
 const StartScreen = () => {
   const { state, initGame, startGame, resetGame } = useGame();
-  const hasSave = !!localStorage.getItem(SAVE_KEY);
+  // Lightweight peek at the save for the "Welcome back" card (audit M8) —
+  // full hydration happens in GameContext; here we only need display facts.
+  const savedGame = peekSaveSummary(localStorage.getItem(SAVE_KEY));
+  const hasSave = !!savedGame;
   const [step, setStep] = useState(1);
   const [selectedDifficulty, setSelectedDifficulty] = useState(state.difficulty || 'normal');
   const [playerCount, setPlayerCount] = useState(1);
@@ -57,7 +60,9 @@ const StartScreen = () => {
         <div className="absolute right-[10%] top-24 h-32 w-32 rounded-full bg-sky-300/20 blur-3xl" />
         <div className="absolute bottom-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-indigo-400/10 blur-3xl" />
       </div>
-      <div className="relative mx-auto my-auto w-full max-w-2xl rounded-[2rem] border border-white/15 bg-white/92 px-4 pt-4 pb-36 shadow-[0_30px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:px-7 sm:pt-7 sm:pb-36">
+      {/* Bottom padding must clear the tallest sticky footer (3 stacked buttons
+          when a save exists) or step content hides behind it at 375px (audit UX21). */}
+      <div className={`relative mx-auto my-auto w-full max-w-2xl rounded-[2rem] border border-white/15 bg-white/92 px-4 pt-4 shadow-[0_30px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:px-7 sm:pt-7 ${hasSave ? 'pb-52' : 'pb-36'}`}>
 
         {/* Title */}
         <div className="mb-5 text-center">
@@ -99,12 +104,19 @@ const StartScreen = () => {
         {step === 1 && (
           <div>
             {hasSave && (
-              <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left shadow-sm">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-wide text-emerald-700">Save Found</div>
-                  <div className="text-sm text-emerald-900">Jump back into your last run or start fresh below.</div>
+              <div className="mb-4 rounded-2xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3 text-left shadow-md">
+                <div className="text-xs font-black uppercase tracking-wide text-emerald-700">Welcome back</div>
+                <div className="text-sm font-bold text-emerald-900 mt-0.5">
+                  Week {savedGame.week}
+                  {savedGame.money != null && <> · ${savedGame.money.toLocaleString()}</>}
+                  {' '}· {savedGame.playerCount} player{savedGame.playerCount !== 1 ? 's' : ''}
                 </div>
-                <div className="rounded-full bg-white px-3 py-1 text-[10px] font-black text-emerald-700 shadow-sm">Ready</div>
+                <button
+                  onClick={handleResume}
+                  className="mt-2 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl shadow transition active:scale-95 min-h-[48px]"
+                >
+                  ▶ Resume Saved Game
+                </button>
               </div>
             )}
 
@@ -163,13 +175,15 @@ const StartScreen = () => {
                   >
                     <div className="text-2xl mb-1">{meta.icon}</div>
                     <div className="font-black text-sm">{preset.label}</div>
-                    <div className="text-[9px] text-slate-500 mt-0.5 leading-tight">{meta.flavor}</div>
-                    <div className="mt-2 space-y-0.5 text-[9px] text-slate-600">
+                    {/* Win targets are the real difficulty signal — primary row,
+                        not 9px fine print (audit UX18). */}
+                    <div className="mt-1.5 space-y-0.5 text-[12px] font-bold text-slate-700 leading-snug">
                       <div>💰 ${preset.goals.wealth.toLocaleString()}</div>
                       <div>😊 {preset.goals.happiness} happiness</div>
-                      <div>🎓 {meta.educationLabel}</div>
-                      <div>🎯 {preset.goals.careerDependability} dep</div>
+                      <div>🎯 {preset.goals.careerDependability} reliability</div>
+                      <div className="text-[10px] font-semibold text-slate-600">🎓 {meta.educationLabel}</div>
                     </div>
+                    <div className="text-[9px] text-slate-500 mt-1.5 leading-tight">{meta.flavor}</div>
                   </button>
                 );
               })}
@@ -213,19 +227,29 @@ const StartScreen = () => {
                     <div className="text-[10px] font-bold text-slate-500 mb-2">Player {i + 1}</div>
                   )}
                   <div className="flex flex-wrap gap-1.5">
-                    {EMOJI_OPTIONS.map(emoji => (
-                      <button
-                        key={emoji}
-                        onClick={() => setPlayerEmoji(i, emoji)}
-                        className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all active:scale-90 shadow-sm ${
-                          playerEmojis[i] === emoji
-                            ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
-                            : 'bg-white border-2 border-transparent hover:border-slate-300'
-                        }`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+                    {EMOJI_OPTIONS.map(emoji => {
+                      // In hot-seat play the emoji IS the player's identity —
+                      // duplicates break the handoff screen's only cue (audit UX17).
+                      const takenBy = playerEmojis.findIndex((e, j) => e === emoji && j !== i && j < playerCount);
+                      const taken = takenBy !== -1;
+                      return (
+                        <button
+                          key={emoji}
+                          onClick={() => !taken && setPlayerEmoji(i, emoji)}
+                          disabled={taken}
+                          title={taken ? `Taken by Player ${takenBy + 1}` : undefined}
+                          className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all active:scale-90 shadow-sm ${
+                            playerEmojis[i] === emoji
+                              ? 'bg-indigo-100 border-2 border-indigo-500 scale-110'
+                              : taken
+                                ? 'bg-slate-100 border-2 border-transparent opacity-35 cursor-not-allowed'
+                                : 'bg-white border-2 border-transparent hover:border-slate-300'
+                          }`}
+                        >
+                          {emoji}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -236,27 +260,39 @@ const StartScreen = () => {
         {/* ── Footer navigation ── */}
         <div className="sticky bottom-0 -mx-4 sm:-mx-7 mt-4 border-t border-slate-200 bg-white/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:px-7">
           {step === 1 ? (
+            /* With a save present, Resume is the hero (card above) and the
+               footer demotes new-game to a secondary action (audit M8) —
+               mid-session reloads on shared devices invited accidental restarts. */
             <div className="flex flex-col gap-2">
-              <div className="mb-1 text-[10px] text-center font-semibold uppercase tracking-[0.18em] text-slate-400">New Game Setup</div>
-              <button
-                onClick={() => setStep(2)}
-                className="bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base sm:text-lg py-3.5 rounded-2xl shadow-[0_16px_35px_rgba(79,70,229,0.35)] transition active:scale-95 min-h-[52px]"
-              >
-                Next: Choose Difficulty →
-              </button>
-              {hasSave && (
+              {hasSave ? (
                 <>
                   <button
                     onClick={handleResume}
-                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-2xl shadow transition active:scale-95 min-h-[48px]"
+                    className="bg-[linear-gradient(135deg,#059669,#10b981)] hover:brightness-110 text-white font-black text-base sm:text-lg py-3.5 rounded-2xl shadow-[0_16px_35px_rgba(5,150,105,0.35)] transition active:scale-95 min-h-[52px]"
                   >
-                    ▶ Resume Saved Game
+                    ▶ Resume — Week {savedGame.week}
+                  </button>
+                  <button
+                    onClick={() => setStep(2)}
+                    className="bg-white border-2 border-slate-200 hover:border-slate-400 text-slate-600 font-bold py-3 rounded-2xl shadow-sm transition active:scale-95 min-h-[48px]"
+                  >
+                    Start a new game →
                   </button>
                   <button
                     onClick={resetGame}
                     className="text-slate-400 hover:text-red-500 text-xs underline py-1"
                   >
                     Delete Save Data
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="mb-1 text-[10px] text-center font-semibold uppercase tracking-[0.18em] text-slate-400">New Game Setup</div>
+                  <button
+                    onClick={() => setStep(2)}
+                    className="bg-[linear-gradient(135deg,#4f46e5,#2563eb)] hover:brightness-110 text-white font-black text-base sm:text-lg py-3.5 rounded-2xl shadow-[0_16px_35px_rgba(79,70,229,0.35)] transition active:scale-95 min-h-[52px]"
+                  >
+                    Next: Choose Difficulty →
                   </button>
                 </>
               )}
