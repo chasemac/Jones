@@ -508,22 +508,55 @@ export const WeekSummaryModal = ({ summary, onClose }) => {
                   {p.netWorthDelta >= 0 ? '+' : '-'}${Math.abs(Math.round(p.netWorthDelta)).toLocaleString()}
                 </span>
               </div>
+              {/* Receipt: causes, not just outcomes (audit M7). One row per
+                  money event, then ONE takeaway line — never a lecture. */}
+              {p.receipt && (
+                <div className="text-[10px] font-mono rounded-lg bg-white border border-slate-200 px-2 py-1.5 mb-1.5 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Earned{p.receipt.shifts > 0 ? ` (${p.receipt.shifts} shift${p.receipt.shifts !== 1 ? 's' : ''})` : ''}</span>
+                    <span className={`font-bold ${p.receipt.earned > 0 ? 'text-green-600' : 'text-slate-400'}`}>+${p.receipt.earned}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Rent{p.receipt.rentDebt > 0 ? ' (part became debt!)' : ''}</span>
+                    <span className="font-bold text-red-500">−${p.receipt.rent}</span>
+                  </div>
+                  {p.receipt.subscriptions > 0 && (
+                    <div className="flex justify-between"><span className="text-slate-500">Subscriptions</span><span className="font-bold text-red-500">−${p.receipt.subscriptions}</span></div>
+                  )}
+                  {p.receipt.doctor > 0 && (
+                    <div className="flex justify-between"><span className="text-slate-500">Doctor (exhaustion)</span><span className="font-bold text-red-500">−${p.receipt.doctor}</span></div>
+                  )}
+                  {p.receipt.debtInterest > 0 && (
+                    <div className="flex justify-between"><span className="text-slate-500">Debt interest</span><span className="font-bold text-red-500">−${p.receipt.debtInterest}</span></div>
+                  )}
+                  {p.receipt.savingsInterest > 0 && (
+                    <div className="flex justify-between"><span className="text-slate-500">Savings interest</span><span className="font-bold text-green-600">+${p.receipt.savingsInterest}</span></div>
+                  )}
+                  {p.receipt.equityGain > 0 && (
+                    <div className="flex justify-between"><span className="text-slate-500">Home equity</span><span className="font-bold text-green-600">+${p.receipt.equityGain}</span></div>
+                  )}
+                  <div className="flex justify-between border-t border-slate-200 pt-0.5 mt-0.5">
+                    <span className="text-slate-700 font-bold">Net</span>
+                    <span className={`font-black ${p.receipt.net >= 0 ? 'text-green-600' : 'text-red-500'}`}>{p.receipt.net >= 0 ? '+' : '−'}${Math.abs(p.receipt.net)}</span>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] font-mono">
-                <span className="text-slate-500">💰 <span className="text-slate-700 font-bold">${Math.round(p.money).toLocaleString()}</span></span>
-                <span className="text-slate-500">😊 <span className={`font-bold ${p.happiness < 30 ? 'text-red-500' : p.happiness >= 75 ? 'text-green-600' : 'text-slate-700'}`}>{p.happiness}/100</span></span>
-                <span className="text-slate-500">🎯 Dep <span className="text-slate-700 font-bold">{p.dependability}</span></span>
+                <span className="text-slate-500">💰 Cash <span className="text-slate-700 font-bold">${Math.round(p.money).toLocaleString()}</span></span>
+                <span className="text-slate-500">😊 Happy <span className={`font-bold ${p.happiness < 30 ? 'text-red-500' : p.happiness >= 75 ? 'text-green-600' : 'text-slate-700'}`}>{p.happiness}/100</span></span>
+                <span className="text-slate-500" title="Show up to work, build trust, get promoted">🎯 Reliability <span className="text-slate-700 font-bold">{p.dependability}</span></span>
                 <span className="text-slate-400 truncate">💼 {p.job}</span>
-                <span className="text-slate-500">🍕 <span className={`font-bold ${(p.hunger ?? 0) >= 80 ? 'text-red-500' : (p.hunger ?? 0) >= 50 ? 'text-orange-500' : 'text-green-600'}`}>{p.hunger ?? 0}</span></span>
-                <span className="text-slate-500">🛁 <span className={`font-bold ${(p.relaxation ?? 50) <= 20 ? 'text-red-500' : 'text-teal-600'}`}>{p.relaxation ?? 50}</span></span>
-                <span className="text-slate-500">💵 <span className={`font-bold ${p.netWorth >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(p.netWorth).toLocaleString()}</span></span>
+                {/* Fullness = 100 − hunger, so every meter reads "full = good" (audit UX8) */}
+                <span className="text-slate-500">🍕 Fullness <span className={`font-bold ${(p.hunger ?? 0) >= 80 ? 'text-red-500' : (p.hunger ?? 0) >= 50 ? 'text-orange-500' : 'text-green-600'}`}>{100 - (p.hunger ?? 0)}/100</span></span>
+                <span className="text-slate-500">🛁 Relax <span className={`font-bold ${(p.relaxation ?? 50) <= 20 ? 'text-red-500' : 'text-teal-600'}`}>{p.relaxation ?? 50}/100</span></span>
+                <span className="text-slate-500">🏦 Net worth <span className={`font-bold ${p.netWorth >= 0 ? 'text-green-600' : 'text-red-500'}`}>${Math.round(p.netWorth).toLocaleString()}</span></span>
               </div>
               {p.currentCourse && (
                 <div className="text-[9px] text-blue-500 font-bold mt-1">
                   📚 Studying: {p.currentCourse.title} ({Math.round((p.currentCourse.progress / p.currentCourse.totalHours) * 100)}%)
                 </div>
               )}
-              {p.netWorthDelta > 100 && <div className="text-[9px] text-green-600 font-bold mt-1">🔥 Great week! Big gains!</div>}
-              {p.netWorthDelta < -200 && <div className="text-[9px] text-red-500 font-bold mt-1">😰 Rough week — expenses piled up</div>}
+              {p.takeaway && <div className="text-[9px] text-indigo-600 font-bold mt-1">{p.takeaway}</div>}
               {(p.hunger ?? 0) >= 80 && <div className="text-[9px] text-red-500 font-bold mt-1 animate-pulse">🍽️ Starving! Buy food next week!</div>}
             </div>
           ))}

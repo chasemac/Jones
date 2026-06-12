@@ -46,6 +46,8 @@ export const buildPlayer = (index, startingMoney, emoji) => ({
   inventory: [],
   weekDone: false, // has this player ended their turn this week?
   ateFoodThisWeek: false, // true if any food (immediate or plan) was purchased this week
+  earnedThisWeek: 0,  // wages earned this week — feeds the week-summary receipt (audit M7)
+  shiftsThisWeek: 0,  // shifts (incl. gigs) worked this week — receipt context
 });
 
 // ─── Initial State Builder ────────────────────────────────────────────────────
@@ -242,6 +244,8 @@ export const gameReducer = (state, action) => {
         job: { ...p.job, shiftsWorked: newShiftsWorked },
         dependability: Math.min(100, p.dependability + depBonus + loyaltyBonus),
         happiness: Math.max(0, Math.min(100, p.happiness + happinessEffect)),
+        earnedThisWeek: (p.earnedThisWeek || 0) + earnings,
+        shiftsThisWeek: (p.shiftsThisWeek || 0) + 1,
       }));
       return autoEndIfNeeded(s);
     }
@@ -261,6 +265,8 @@ export const gameReducer = (state, action) => {
         job: { ...p.job, shiftsWorked: (p.job?.shiftsWorked || 0) + 1 },
         dependability: Math.min(100, p.dependability + 2),
         happiness: Math.min(100, p.happiness + 1),
+        earnedThisWeek: (p.earnedThisWeek || 0) + earnings,
+        shiftsThisWeek: (p.shiftsThisWeek || 0) + 1,
       }));
       return autoEndIfNeeded(s);
     }
@@ -273,7 +279,7 @@ export const gameReducer = (state, action) => {
 
       const earnings = gigEarnings(state.economy);
       let s = log(state, `Completed gig delivery. Earned $${earnings}. +2 happiness.`);
-      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, timeRemaining: p.timeRemaining - 4, dependability: Math.min(100, p.dependability + 1), happiness: Math.min(100, p.happiness + 2) }));
+      s = updateActivePlayer(s, p => ({ ...p, money: p.money + earnings, timeRemaining: p.timeRemaining - 4, dependability: Math.min(100, p.dependability + 1), happiness: Math.min(100, p.happiness + 2), earnedThisWeek: (p.earnedThisWeek || 0) + earnings, shiftsThisWeek: (p.shiftsThisWeek || 0) + 1 }));
       return autoEndIfNeeded(s);
     }
 

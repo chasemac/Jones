@@ -208,3 +208,69 @@ describe('rollRandomEvent sentiment (audit M5)', () => {
     expect(fired).toBeGreaterThan(10); // sanity: events actually fired
   });
 });
+
+// M7: the week summary must report causes (receipt), not just outcomes.
+import { processPlayerWeekEnd as processForReceipt, chooseTakeaway, buildWeekSummary as buildSummaryForReceipt } from './weekEndModel';
+
+describe('week receipt (audit M7)', () => {
+  const basePlayer = () => ({
+    name: 'P1', emoji: '😎', money: 1000, savings: 0, debt: 0, happiness: 50,
+    dependability: 50, relaxation: 50, hunger: 0, maxTime: 60, timeRemaining: 0,
+    housing: { id: 'shared_apt', rent: 200, homeType: 'apartment', security: 'Low' },
+    hasChosenHousing: true, inventory: [], job: null, portfolio: {},
+    earnedThisWeek: 88, shiftsThisWeek: 1,
+  });
+
+  it('captures earned, rent, debt interest, and net', () => {
+    const p = { ...basePlayer(), debt: 1000 };
+    const { player } = processForReceipt(p, 2);
+    expect(player.weekReceipt.earned).toBe(88);
+    expect(player.weekReceipt.shifts).toBe(1);
+    expect(player.weekReceipt.rent).toBe(200);
+    expect(player.weekReceipt.debtInterest).toBe(50); // 5% of 1000
+    expect(player.weekReceipt.net).toBe(88 - 200 - 50);
+    // weekly trackers reset for the new week
+    expect(player.earnedThisWeek).toBe(0);
+    expect(player.shiftsThisWeek).toBe(0);
+  });
+
+  it('captures subscriptions and savings interest', () => {
+    const p = { ...basePlayer(), savings: 1000, inventory: [{ id: 'streaming', name: 'Streaming', weeklyFee: 10 }] };
+    const { player } = processForReceipt(p, 2);
+    expect(player.weekReceipt.subscriptions).toBe(10);
+    expect(player.weekReceipt.savingsInterest).toBe(15); // 1.5%
+  });
+
+  it('flows the receipt + takeaway into the week summary lines', () => {
+    const p = { ...basePlayer(), debt: 5000 };
+    const { player } = processForReceipt(p, 2);
+    const summary = buildSummaryForReceipt(2, [player], null, [player]);
+    expect(summary.lines[0].receipt).toBeTruthy();
+    expect(typeof summary.lines[0].takeaway).toBe('string');
+  });
+});
+
+describe('chooseTakeaway (audit M7)', () => {
+  const r = (over = {}) => ({
+    earned: 0, shifts: 0, rent: 200, rentDebt: 0, subscriptions: 0, doctor: 0,
+    debtInterest: 0, savingsInterest: 0, equityGain: 0, spoiled: false, net: 0, ...over,
+  });
+
+  it('debt interest exceeding wages is the headline lesson', () => {
+    expect(chooseTakeaway(r({ earned: 88, debtInterest: 122 }))).toMatch(/debt charged you more/i);
+  });
+  it('spoiled groceries beat everything', () => {
+    expect(chooseTakeaway(r({ spoiled: true, debtInterest: 999, earned: 1 }))).toMatch(/spoiled/i);
+  });
+  it('rent eating all wages is called out', () => {
+    expect(chooseTakeaway(r({ earned: 150, rent: 200 }))).toMatch(/rent took everything/i);
+  });
+  it('savings working for you is celebrated', () => {
+    expect(chooseTakeaway(r({ earned: 300, rent: 200, savingsInterest: 45, net: 145 }))).toMatch(/savings earned \$45/i);
+  });
+  it('returns exactly one line or null — never a lecture', () => {
+    const t = chooseTakeaway(r());
+    expect(t === null || (typeof t === 'string' && !t.includes('\n'))).toBe(true);
+    expect(chooseTakeaway(null)).toBeNull();
+  });
+});

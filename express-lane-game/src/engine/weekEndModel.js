@@ -27,12 +27,25 @@ export function processPlayerWeekEnd(player, currentWeek) {
   const np = { ...player };
   const logEntries = [];
 
+  // Receipt: the money story of this week's end, consumed by the
+  // week-summary modal (audit M7 — report causes, not just outcomes).
+  const receipt = {
+    earned: np.earnedThisWeek || 0,
+    shifts: np.shiftsThisWeek || 0,
+    rent: 0, rentDebt: 0, subscriptions: 0, doctor: 0,
+    debtInterest: 0, savingsInterest: 0, equityGain: 0, spoiled: false,
+  };
+  np.earnedThisWeek = 0;
+  np.shiftsThisWeek = 0;
+
   // 1. Rent
+  receipt.rent = np.housing.rent;
   const moneyAfterRent = np.money - np.housing.rent;
   if (moneyAfterRent < 0) {
     const shortfall = Math.abs(moneyAfterRent);
     logEntries.push(`${np.name}: couldn't pay rent! $${shortfall} debt added.`);
     np.debt += shortfall;
+    receipt.rentDebt = shortfall;
     np.money = 0;
     np.happiness = Math.max(0, np.happiness - 5);
   } else {
@@ -62,6 +75,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
     if (item.weeklyHappinessBoost) happinessDelta += item.weeklyHappinessBoost;
     if (item.weeklyFee) {
       np.money = Math.max(0, np.money - item.weeklyFee);
+      receipt.subscriptions += item.weeklyFee;
       logEntries.push(`${np.name}: ${item.name} -$${item.weeklyFee}.`);
     }
   }
@@ -85,6 +99,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
   const equityMult = (jobLoc === 'public_library' && perk?.equityMultiplier) ? perk.equityMultiplier : 1;
   const equityGain = Math.floor(baseEquity * equityMult);
   if (equityGain > 0) {
+    receipt.equityGain = equityGain;
     np.housingEquity = (np.housingEquity || 0) + equityGain;
     const bonusNote = equityMult > 1 ? ` (${perk.label} bonus!)` : '';
     logEntries.push(`${np.name}: housing equity +$${equityGain}${bonusNote} (total: $${np.housingEquity}).`);
@@ -137,6 +152,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
   if (np.relaxation <= 0) {
     const hasInsurance = np.inventory.some(i => i.id === 'health_insurance');
     const doctorCost = hasInsurance ? 50 : 200;
+    receipt.doctor = doctorCost;
     np.money = Math.max(0, np.money - doctorCost);
     np.relaxation = 30;
     np.maxTimeReduction = (np.maxTimeReduction || 0) + 5;
@@ -148,6 +164,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
   if (np.debt > 0) {
     const interest = Math.floor(np.debt * 0.05);
     np.debt += interest;
+    receipt.debtInterest = interest;
     logEntries.push(`${np.name}: debt interest -$${interest}.`);
   }
 
@@ -156,6 +173,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
     const savingsRate = (jobLoc === 'neobank' && perk?.savingsRate) ? perk.savingsRate : BASE_SAVINGS_RATE;
     const interest = Math.floor(np.savings * savingsRate);
     np.savings += interest;
+    receipt.savingsInterest = interest;
     const rateNote = savingsRate > BASE_SAVINGS_RATE ? ' (Financial Insider bonus!)' : '';
     if (interest > 0) logEntries.push(`${np.name}: savings +$${interest} interest.${rateNote}`);
   }
@@ -195,6 +213,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
     } else {
       np.inventory = np.inventory.filter(i => i.id !== 'groceries');
       np.hunger = Math.min(100, np.hunger + 50);
+      receipt.spoiled = true;
       logEntries.push(`${np.name}: groceries spoiled (no fridge)! Food poisoning — sick next week.`);
     }
   }
@@ -238,7 +257,32 @@ export function processPlayerWeekEnd(player, currentWeek) {
   np.currentLocation = np.hasChosenHousing ? 'home' : 'leasing_office';
   np.weekDone = false;
 
+  // Net change on a net-worth basis: cash earned minus the week's charges,
+  // plus interest/equity that accrued. (Rent shortfall is already inside rent.)
+  receipt.net = receipt.earned - receipt.rent - receipt.subscriptions - receipt.doctor
+    - receipt.debtInterest + receipt.savingsInterest + receipt.equityGain;
+  np.weekReceipt = receipt;
+
   return { player: np, logEntries };
+}
+
+/**
+ * Pick exactly ONE teachable takeaway line from a week receipt (audit M7).
+ * Receipts over lectures: the dominant line item is the lesson. Returns a
+ * short string, or null when there's nothing worth saying.
+ */
+export function chooseTakeaway(receipt) {
+  if (!receipt) return null;
+  const { earned, rent, debtInterest, savingsInterest, spoiled, doctor, net } = receipt;
+  if (spoiled) return '💡 Groceries spoiled without a fridge — that food was money in the trash.';
+  if (debtInterest > 0 && debtInterest >= earned && earned > 0) return '💡 Your debt charged you more than your job paid you.';
+  if (debtInterest > 0 && earned === 0) return `💡 Debt interest cost $${debtInterest} this week — and nothing came in.`;
+  if (doctor > 0) return `💡 Burning out cost $${doctor} at the doctor — rest is cheaper.`;
+  if (earned > 0 && rent >= earned) return '💡 Rent took everything you earned this week — and then some.';
+  if (savingsInterest > 0 && savingsInterest >= debtInterest && savingsInterest >= 10) return `💡 Your savings earned $${savingsInterest} without you lifting a finger.`;
+  if (net > 0) return `💡 You ended the week up $${net}. Keep that gap growing.`;
+  if (net < 0 && rent > 0) return `💡 Biggest cost this week: rent ($${rent}).`;
+  return null;
 }
 
 /**
@@ -434,6 +478,9 @@ export function buildWeekSummary(week, updatedPlayers, weekStartSnapshot, fallba
         netWorthDelta: newNetWorth - oldNetWorth,
         job: p.job?.title || 'Unemployed',
         currentCourse: p.currentCourse ?? null,
+        // Money story for the receipt UI (audit M7)
+        receipt: p.weekReceipt ?? null,
+        takeaway: chooseTakeaway(p.weekReceipt),
       };
     }),
   };
