@@ -1,5 +1,6 @@
 import React from 'react';
 import { adjustedPrice } from '../../engine/economyModel';
+import { forecastHunger } from '../../engine/weekEndModel';
 import { CAREER_PERKS, gigEarnings } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge } from '../ui/GameWidgets';
@@ -72,7 +73,7 @@ const QuickEatsContent = ({ state, actions }) => {
         {!storedMeal && (
           <div className="mt-2 text-[10px] grid grid-cols-2 gap-1.5">
             {(() => {
-              const hungerInc = player.housing?.homeType === 'luxury_condo' ? 20 : 25;
+              const hungerInc = forecastHunger(player) - (player.hunger ?? 0);
               const withMeal = Math.max(0, Math.min(100, player.hunger + hungerInc - 55));
               const withoutFood = Math.min(100, player.hunger + hungerInc);
               return (

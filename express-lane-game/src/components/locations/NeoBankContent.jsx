@@ -1,5 +1,6 @@
 import React from 'react';
 import { adjustedPrice, calcShiftEarnings } from '../../engine/economyModel';
+import { MAX_DEBT, DEBT_INTEREST_RATE } from '../../engine/constants';
 import { getNextPromotion } from '../../engine/jobModel';
 import { DIFFICULTY_PRESETS, calculateNetWorth, CAREER_PERKS, BASE_SAVINGS_RATE } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
@@ -208,17 +209,17 @@ const NeoBankContent = ({ state, actions }) => {
           <div className="ds-eyebrow mt-2 mb-1">Borrow</div>
           <div className="grid grid-cols-4 gap-1">
             {AMOUNTS.map(amt => (
-              <AmountBtn key={amt} amt={amt} onClick={() => actions.bankTransaction('borrow', amt)} disabled={player.debt + amt > 5000} tone="debt" />
+              <AmountBtn key={amt} amt={amt} onClick={() => actions.bankTransaction('borrow', amt)} disabled={player.debt + amt > MAX_DEBT} tone="debt" />
             ))}
           </div>
-          <div className="text-[10px] mt-1" style={{ color: 'var(--debt-ink)' }}>⚠️ Max $5,000 debt · 5%/wk interest</div>
+          <div className="text-[10px] mt-1" style={{ color: 'var(--debt-ink)' }}>⚠️ Max ${MAX_DEBT.toLocaleString()} debt · {DEBT_INTEREST_RATE * 100}%/wk interest</div>
           {player.debt > 0 && (
             <div className="text-[10px] mt-0.5 font-bold space-y-0.5">
               <div style={{ color: 'var(--debt-ink)' }}>
-                Costing you: ${Math.round(player.debt * 0.05).toLocaleString()}/wk
+                Costing you: ${Math.round(player.debt * DEBT_INTEREST_RATE).toLocaleString()}/wk
               </div>
               <div className="font-normal" style={{ color: 'var(--debt-ink)', opacity: 0.7 }}>
-                In 10 weeks your ${player.debt.toLocaleString()} becomes ${Math.round(player.debt * Math.pow(1.05, 10)).toLocaleString()}
+                In 10 weeks your ${player.debt.toLocaleString()} becomes ${Math.round(player.debt * Math.pow(1 + DEBT_INTEREST_RATE, 10)).toLocaleString()}
               </div>
             </div>
           )}

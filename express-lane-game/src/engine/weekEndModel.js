@@ -13,11 +13,28 @@ import {
   CAREER_PERKS,
   calculateNetWorth,
   BASE_SAVINGS_RATE,
+  DEBT_INTEREST_RATE,
+  DOCTOR_COST,
+  DOCTOR_COST_INSURED,
+  WEEKLY_HUNGER_INCREASE,
+  WEEKLY_HUNGER_INCREASE_LUXURY,
+  HUNGER_THRESHOLDS,
+  HUNGER_PENALTIES,
+  CLOTHING_WEAR_PER_WEEK,
+  WEEKLY_EVENT_CHANCE,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
 
 const BASE_MAX_TIME = 60;
+
+/**
+ * Hunger the player will have after the coming week-end upkeep (before any
+ * food is consumed). Single source for the Home/Quick Eats forecast panels —
+ * was hand-duplicated in three components (audit A12).
+ */
+export const forecastHunger = (player) =>
+  Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? WEEKLY_HUNGER_INCREASE_LUXURY : WEEKLY_HUNGER_INCREASE));
 
 /**
  * Process a single player's end-of-week upkeep.
@@ -54,7 +71,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
   }
 
   // 2. Hunger increase
-  const hungerIncrease = np.housing.homeType === 'luxury_condo' ? 20 : 25;
+  const hungerIncrease = np.housing.homeType === 'luxury_condo' ? WEEKLY_HUNGER_INCREASE_LUXURY : WEEKLY_HUNGER_INCREASE;
   np.hunger = Math.min(100, np.hunger + hungerIncrease);
 
   // 3. Happiness
@@ -125,7 +142,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
   const wornOut = [];
   np.inventory = np.inventory.map(item => {
     if (item.clothingWear !== undefined) {
-      const newWear = item.clothingWear - 7;
+      const newWear = item.clothingWear - CLOTHING_WEAR_PER_WEEK;
       if (newWear <= 0) { wornOut.push(item); return null; }
       return { ...item, clothingWear: newWear };
     }
@@ -151,7 +168,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
   // 3e. Relaxation bottomed out → forced doctor visit
   if (np.relaxation <= 0) {
     const hasInsurance = np.inventory.some(i => i.id === 'health_insurance');
-    const doctorCost = hasInsurance ? 50 : 200;
+    const doctorCost = hasInsurance ? DOCTOR_COST_INSURED : DOCTOR_COST;
     receipt.doctor = doctorCost;
     np.money = Math.max(0, np.money - doctorCost);
     np.relaxation = 30;
@@ -162,7 +179,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
 
   // 4. Debt interest
   if (np.debt > 0) {
-    const interest = Math.floor(np.debt * 0.05);
+    const interest = Math.floor(np.debt * DEBT_INTEREST_RATE);
     np.debt += interest;
     receipt.debtInterest = interest;
     logEntries.push(`${np.name}: debt interest -$${interest}.`);
@@ -227,21 +244,21 @@ export function processPlayerWeekEnd(player, currentWeek) {
   let hungryPenalty = 0;
 
   if (ateThisWeek) {
-    if (np.hunger >= 80 + hungerBonus) {
-      hungryPenalty = 20;
+    if (np.hunger >= HUNGER_THRESHOLDS.starving + hungerBonus) {
+      hungryPenalty = HUNGER_PENALTIES.severe;
       logEntries.push(`${np.name}: starving despite eating! -20h next week.`);
     }
   } else if (ateImmediateFood) {
-    if (np.hunger >= 80 + hungerBonus)      hungryPenalty = 10;
-    else if (np.hunger >= 50 + hungerBonus) hungryPenalty = 5;
+    if (np.hunger >= HUNGER_THRESHOLDS.starving + hungerBonus)      hungryPenalty = HUNGER_PENALTIES.medium;
+    else if (np.hunger >= HUNGER_THRESHOLDS.hungry + hungerBonus) hungryPenalty = HUNGER_PENALTIES.light;
     if (hungryPenalty > 0) {
       np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: true, playerName: np.name };
       logEntries.push(`${np.name}: only had snacks — still hungry! -${hungryPenalty}h next week.`);
     }
   } else {
-    if (np.hunger >= 80 + hungerBonus)      hungryPenalty = 20;
-    else if (np.hunger >= 50 + hungerBonus) hungryPenalty = 10;
-    else if (np.hunger >= 25 + hungerBonus) hungryPenalty = 5;
+    if (np.hunger >= HUNGER_THRESHOLDS.starving + hungerBonus)      hungryPenalty = HUNGER_PENALTIES.severe;
+    else if (np.hunger >= HUNGER_THRESHOLDS.hungry + hungerBonus) hungryPenalty = HUNGER_PENALTIES.medium;
+    else if (np.hunger >= HUNGER_THRESHOLDS.peckish + hungerBonus) hungryPenalty = HUNGER_PENALTIES.light;
     if (hungryPenalty > 0) {
       np.hungerWarning = { hunger: np.hunger, penalty: hungryPenalty, hadSomeFood: false, playerName: np.name };
       logEntries.push(`${np.name}: went hungry (no food bought)! -${hungryPenalty}h next week.`);
@@ -325,7 +342,7 @@ export function tickMarket(currentMarket, economy) {
  * Returns { pendingEvent } or { pendingEvent: null } if no event fires.
  */
 export function rollRandomEvent(players) {
-  if (Math.random() >= 0.4) return { pendingEvent: null };
+  if (Math.random() >= WEEKLY_EVENT_CHANCE) return { pendingEvent: null };
 
   const ep = players[Math.floor(Math.random() * players.length)];
   const hasCar = ep.inventory.some(i => i.id === 'car');

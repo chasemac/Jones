@@ -6,8 +6,43 @@
  * for evaluating player eligibility against job requirements.
  */
 
-import { meetsEducation } from './constants';
+import { meetsEducation, CAREER_PERKS, JOB_BASE_REJECTION, JOB_DEP_REJECTION_DIVISOR, JOB_DEP_REJECTION_CAP } from './constants';
 import jobsData from '../data/jobs.json';
+
+const REJECTION_MESSAGES = [
+  (employer) => `${employer} went with another candidate.`,
+  (employer) => `${employer} said they'll keep your résumé on file. (They won't.)`,
+  (employer) => `${employer} ghosted you after the interview.`,
+  (employer) => `${employer} said you were overqualified. Sure.`,
+  (employer) => `${employer} passed this time. Try again.`,
+];
+
+/**
+ * Final probabilistic-rejection chance for a qualified applicant.
+ * Higher dependability and the Coffee Shop networking perk improve odds.
+ * Pure — exposed separately so the UI can show "hire chance" some day.
+ */
+export const applicationRejectionChance = (player, job) => {
+  const baseChance = job.rejectionChance || JOB_BASE_REJECTION;
+  const depBonus = Math.min(JOB_DEP_REJECTION_CAP, player.dependability / JOB_DEP_REJECTION_DIVISOR);
+  const coffeeNetworking = player.job?.location === 'coffee_shop' ? (CAREER_PERKS.coffee_shop.rejectionReduction || 0) : 0;
+  return baseChance * (1 - depBonus) * (1 - coffeeNetworking);
+};
+
+/**
+ * Probabilistic application roll for a QUALIFIED applicant (hard requirements
+ * already checked). Audit A7: extracted from the reducer with injectable RNG
+ * so the rejection curve is unit-testable.
+ * @returns {{ rejected: boolean, message: string|null, chance: number }}
+ */
+export const rollApplication = (player, job, employer, rng = Math.random) => {
+  const chance = applicationRejectionChance(player, job);
+  if (rng() < chance) {
+    const message = REJECTION_MESSAGES[Math.floor(rng() * REJECTION_MESSAGES.length)](employer);
+    return { rejected: true, message, chance };
+  }
+  return { rejected: false, message: null, chance };
+};
 
 /**
  * Metadata labels for career track types.

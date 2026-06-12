@@ -1,8 +1,9 @@
 import React from 'react';
 import { calcShiftEarnings } from '../../engine/economyModel';
+import { forecastHunger } from '../../engine/weekEndModel';
 import { getJobLocation } from '../../engine/jobModel';
 import { homeEmoji } from '../../engine/boardModel';
-import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getCareerPerk, CAREER_PERKS } from '../../engine/constants';
+import { DIFFICULTY_PRESETS, calculateNetWorth, meetsEducation, getCareerPerk, CAREER_PERKS, BASE_SAVINGS_RATE, DEBT_INTEREST_RATE } from '../../engine/constants';
 import JobsHereCard from '../ui/JobsHereCard';
 import { EconomyWageBadge } from '../ui/GameWidgets';
 import WorkShiftPanel from '../ui/WorkShiftPanel';
@@ -21,7 +22,7 @@ const HomeContent = ({ state, actions }) => {
   const hasLaptop = player.inventory.some(i => i.id === 'laptop');
   const hasHotTub = player.inventory.some(i => i.id === 'hot_tub');
   const careerPerk = getCareerPerk(player);
-  const savingsRate = player.job?.location === 'neobank' ? (CAREER_PERKS.neobank.savingsRate || 0.015) : 0.015;
+  const savingsRate = player.job?.location === 'neobank' ? (CAREER_PERKS.neobank.savingsRate || BASE_SAVINGS_RATE) : BASE_SAVINGS_RATE;
 
   const goals = DIFFICULTY_PRESETS[state.difficulty].goals;
   const netWorth = calculateNetWorth(player);
@@ -58,7 +59,7 @@ const HomeContent = ({ state, actions }) => {
             call to action, and white-on-coral failed WCAG AA). */}
         {(() => {
           const hasFood = player.inventory.some(i => i.type === 'weekly_meal' || i.type === 'food_storage' || i.type === 'weekly_coffee');
-          const nextHunger = Math.min(100, (player.hunger ?? 0) + (player.housing?.homeType === 'luxury_condo' ? 20 : 25));
+          const nextHunger = forecastHunger(player);
           let warnText = null;
           if (!hasFood && nextHunger >= 80) warnText = `Starving next week — −20h penalty! Buy food first.`;
           else if (!hasFood && nextHunger >= 50) warnText = `No food — hunger hits ${nextHunger}, −10h penalty`;
@@ -175,7 +176,7 @@ const HomeContent = ({ state, actions }) => {
             <span style={{ color: 'var(--muted)' }}>🍕 Hunger</span>
             {(() => {
               const hunger = player.hunger ?? 0;
-              const hungerInc = player.housing?.homeType === 'luxury_condo' ? 20 : 25;
+              const hungerInc = forecastHunger(player) - (player.hunger ?? 0);
               const meal = player.inventory.find(i => i.type === 'weekly_meal');
               const coffee = player.inventory.find(i => i.type === 'weekly_coffee');
               const hasFridge = player.inventory.some(i => i.id === 'refrigerator' || i.id === 'freezer');
@@ -195,7 +196,7 @@ const HomeContent = ({ state, actions }) => {
           {(() => {
             const rent = player.housing?.rent ?? 0;
             const weeklyFees = player.inventory.reduce((sum, i) => sum + (i.weeklyFee || 0), 0);
-            const debtInterest = player.debt > 0 ? Math.floor(player.debt * 0.05) : 0;
+            const debtInterest = player.debt > 0 ? Math.floor(player.debt * DEBT_INTEREST_RATE) : 0;
             const savingsInterest = player.savings > 0 ? Math.floor(player.savings * savingsRate) : 0;
             const totalOut = rent + weeklyFees + debtInterest;
             const totalIn = savingsInterest;

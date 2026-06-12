@@ -41,6 +41,42 @@ export const BASE_SAVINGS_RATE = 0.015;
 // Gig-work payout (Dash gig / smartphone delivery) for the current economy.
 export const gigEarnings = (economy) => Math.floor(60 * (ECONOMY_WAGE_MULTIPLIER[economy] || 1));
 
+// ─── Core money/upkeep tuning (audit A13: single source of truth) ─────────────
+// Weekly interest charged on outstanding debt (5%/wk).
+export const DEBT_INTEREST_RATE = 0.05;
+// Hard cap on total debt — loans that would exceed it are denied.
+export const MAX_DEBT = 5000;
+// Forced doctor visit when relaxation bottoms out.
+export const DOCTOR_COST = 200;
+export const DOCTOR_COST_INSURED = 50;
+// Hunger added at each week end (luxury condos have better kitchens).
+export const WEEKLY_HUNGER_INCREASE = 25;
+export const WEEKLY_HUNGER_INCREASE_LUXURY = 20;
+// Hunger thresholds → next-week hour penalties (see weekEndModel matrix).
+export const HUNGER_THRESHOLDS = { peckish: 25, hungry: 50, starving: 80 };
+export const HUNGER_PENALTIES = { light: 5, medium: 10, severe: 20 };
+// Clothing wears 7 points/week; fresh clothing starts at 150 (≈21 weeks).
+export const CLOTHING_WEAR_PER_WEEK = 7;
+export const CLOTHING_FRESH_WEAR = 150;
+// Trade-in credit when upgrading vehicles.
+export const VEHICLE_TRADE_IN_RATE = 0.5;
+// Job applications: base rejection odds, dependability divisor, max reduction.
+export const JOB_BASE_REJECTION = 0.25;
+export const JOB_DEP_REJECTION_DIVISOR = 150;
+export const JOB_DEP_REJECTION_CAP = 0.7;
+// Hours consumed per study session.
+export const STUDY_SESSION_HOURS = 10;
+// Chance a random life event fires at week end.
+export const WEEKLY_EVENT_CHANCE = 0.4;
+// Wild Willy mugging odds/fractions (TRAVEL rolls).
+export const WILD_WILLY = {
+  blacksMarketChance: { Low: 0.3, Medium: 0.1, High: 0 },
+  bankChance: { Low: 0.2, Medium: 0.05, High: 0 },
+  bankCashTrigger: 500, // only ambushes bank leavers carrying more than this
+  blacksStealFraction: 0.5,
+  bankStealFraction: 0.3,
+};
+
 // ─── Economy States ───────────────────────────────────────────────────────────
 export const ECONOMY_STATES = ['Depression', 'Normal', 'Boom'];
 

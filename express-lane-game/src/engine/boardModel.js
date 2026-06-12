@@ -7,7 +7,45 @@
  * Players may own vehicles that reduce travel time.
  */
 
-import { LOCATION_ORDER, travelCost } from './constants';
+import { LOCATION_ORDER, travelCost, WILD_WILLY } from './constants';
+
+/**
+ * Wild Willy mugging roll for a player LEAVING their current location
+ * (audit A7 — extracted from the reducer so the branches are unit-testable
+ * with an injected RNG).
+ *
+ * @param {object} player - The traveling player (currentLocation = where they're leaving FROM).
+ * @param {function} rng - Random source, defaults to Math.random (inject for tests).
+ * @returns {null | { stolen: number, happinessDelta: number, log: string }}
+ *   null when nothing happens; stolen=0 with a log when Willy is deterred/foiled.
+ */
+export const rollWildWilly = (player, rng = Math.random) => {
+  const security = player.housing?.security || 'High';
+  const hasSuit = player.inventory.some(i => i.id === 'suit');
+
+  if (player.currentLocation === 'blacks_market') {
+    const chance = WILD_WILLY.blacksMarketChance[security] || 0;
+    if (chance > 0 && rng() < chance) {
+      if (hasSuit) return { stolen: 0, happinessDelta: 0, log: `👹 Wild Willy saw your suit and backed off.` };
+      const stolen = Math.floor(player.money * WILD_WILLY.blacksStealFraction);
+      if (stolen > 0) return { stolen, happinessDelta: -5, log: `👹 WILD WILLY stole $${stolen} from you! -5 happiness.` };
+      return { stolen: 0, happinessDelta: 0, log: `👹 Wild Willy tried to rob you, but you're broke!` };
+    }
+    return null;
+  }
+
+  if (player.currentLocation === 'neobank' && player.money > WILD_WILLY.bankCashTrigger) {
+    const chance = WILD_WILLY.bankChance[security] || 0;
+    if (chance > 0 && rng() < chance) {
+      if (hasSuit) return { stolen: 0, happinessDelta: 0, log: `👹 Wild Willy clocked your suit and kept walking.` };
+      const stolen = Math.floor(player.money * WILD_WILLY.bankStealFraction);
+      return { stolen, happinessDelta: -5, log: `👹 WILD WILLY ambushed you leaving the bank! Stole $${stolen}! -5 happiness.` };
+    }
+    return null;
+  }
+
+  return null;
+};
 
 /**
  * Compute the ordered list of intermediate locations the player token

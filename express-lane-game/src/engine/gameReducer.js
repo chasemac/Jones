@@ -10,9 +10,14 @@ import {
   CAREER_PERKS,
   rideFare,
   gigEarnings,
+  MAX_DEBT,
+  VEHICLE_TRADE_IN_RATE,
+  CLOTHING_FRESH_WEAR,
+  STUDY_SESSION_HOURS,
 } from './constants';
 import { calcShiftEarnings, perkDiscountFor } from './economyModel';
-import { getTravelBonus, ringPath } from './boardModel';
+import { getTravelBonus, ringPath, rollWildWilly } from './boardModel';
+import { rollApplication } from './jobModel';
 import { processPlayerWeekEnd, advanceEconomy, tickMarket, rollRandomEvent, advanceJones, buildWeekSummary } from './weekEndModel';
 import stocksData from '../data/stocks.json';
 
@@ -175,34 +180,16 @@ export const gameReducer = (state, action) => {
 
       let s = state;
 
-      // Wild Willy: deterred by a suit
-      const hasSuit = player.inventory.some(i => i.id === 'suit');
-
-      // 30% chance when leaving Black's Market in Low-security housing, 10% in Medium
-      const blacksChance = player.housing.security === 'Low' ? 0.3 : player.housing.security === 'Medium' ? 0.1 : 0;
-      if (player.currentLocation === 'blacks_market' && blacksChance > 0 && Math.random() < blacksChance) {
-        if (hasSuit) {
-          s = log(s, `👹 Wild Willy saw your suit and backed off.`);
-        } else {
-          const stolen = Math.floor(player.money * 0.5);
-          if (stolen > 0) {
-            s = log(s, `👹 WILD WILLY stole $${stolen} from you! -5 happiness.`);
-            s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen, happiness: Math.max(0, p.happiness - 5) }));
-          } else {
-            s = log(s, `👹 Wild Willy tried to rob you, but you're broke!`);
-          }
-        }
-      }
-
-      // 20% chance when leaving NeoBank with >$500 in Low-security housing, 5% in Medium
-      const bankChance = player.housing.security === 'Low' ? 0.2 : player.housing.security === 'Medium' ? 0.05 : 0;
-      if (player.currentLocation === 'neobank' && bankChance > 0 && player.money > 500 && Math.random() < bankChance) {
-        if (hasSuit) {
-          s = log(s, `👹 Wild Willy clocked your suit and kept walking.`);
-        } else {
-          const stolen = Math.floor(activePlayer(s).money * 0.3);
-          s = log(s, `👹 WILD WILLY ambushed you leaving the bank! Stole $${stolen}! -5 happiness.`);
-          s = updateActivePlayer(s, p => ({ ...p, money: p.money - stolen, happiness: Math.max(0, p.happiness - 5) }));
+      // Wild Willy mugging roll — pure, injectable-RNG helper (audit A7/A13)
+      const willy = rollWildWilly(player, action.rng);
+      if (willy) {
+        s = log(s, willy.log);
+        if (willy.stolen > 0 || willy.happinessDelta !== 0) {
+          s = updateActivePlayer(s, p => ({
+            ...p,
+            money: p.money - willy.stolen,
+            happiness: Math.max(0, p.happiness + willy.happinessDelta),
+          }));
         }
       }
 
@@ -319,24 +306,13 @@ export const gameReducer = (state, action) => {
           return { ...s, lastJobResult: { success: false, message: `${employer} rejected you — need ${job.requirements.dependability} dependability.` } };
         }
 
-        // Probabilistic rejection — even qualified applicants can be turned down.
-        // Higher dependability improves your odds.
-        const baseChance = job.rejectionChance || 0.25;
-        const depBonus = Math.min(0.7, player.dependability / 150); // max 70% reduction at high dep
-        // Coffee shop perk: networking reduces rejection chance further
-        const coffeeNetworking = player.job?.location === 'coffee_shop' ? (CAREER_PERKS.coffee_shop.rejectionReduction || 0) : 0;
-        const finalRejectionChance = baseChance * (1 - depBonus) * (1 - coffeeNetworking);
-        if (Math.random() < finalRejectionChance) {
-          const rejectionMessages = [
-            `${employer} went with another candidate.`,
-            `${employer} said they'll keep your résumé on file. (They won't.)`,
-            `${employer} ghosted you after the interview.`,
-            `${employer} said you were overqualified. Sure.`,
-            `${employer} passed this time. Try again.`,
-          ];
-          const msg = rejectionMessages[Math.floor(Math.random() * rejectionMessages.length)];
+        // Probabilistic rejection — pure, injectable-RNG helper (audit A7).
+        // Even qualified applicants can be turned down; dependability and the
+        // Coffee Shop networking perk improve the odds.
+        const roll = rollApplication(player, job, employer, action.rng);
+        if (roll.rejected) {
           let s = log(stateAfterTime, `Rejected by ${employer}.`);
-          return { ...s, lastJobResult: { success: false, message: msg } };
+          return { ...s, lastJobResult: { success: false, message: roll.message } };
         }
 
         // Hired! Preserve experience within same career track
@@ -536,7 +512,7 @@ export const gameReducer = (state, action) => {
       if (alreadyOwned && !isWornClothing && item.type !== 'food') return log(state, `You already own ${item.name}.`);
       // If replacing worn clothing, remove the old one and add fresh
       if (isWornClothing) {
-        const fresh = { ...item, clothingWear: 150 };
+        const fresh = { ...item, clothingWear: CLOTHING_FRESH_WEAR };
         let s = log(state, `Replaced ${item.name} with fresh clothing. ($${item.cost})`);
         s = updateActivePlayer(s, p => ({
           ...p,
@@ -549,7 +525,7 @@ export const gameReducer = (state, action) => {
       if (item.type === 'vehicle') {
         const existingVehicle = player.inventory.find(i => i.type === 'vehicle' && i.id !== item.id);
         if (existingVehicle) {
-          const tradeIn = Math.floor(existingVehicle.cost * 0.5);
+          const tradeIn = Math.floor(existingVehicle.cost * VEHICLE_TRADE_IN_RATE);
           let s = log(state, `Traded in ${existingVehicle.name} ($${tradeIn} credit) for ${item.name}. +5 happiness!`);
           s = updateActivePlayer(s, p => ({
             ...p,
@@ -625,7 +601,7 @@ export const gameReducer = (state, action) => {
       if (player.money < course.cost) return log(state, "Not enough money for tuition.");
 
       const techBonus = player.job?.location === 'tech_store' ? (CAREER_PERKS.tech_store.studyBonus || 0) : 0;
-      const sessionsNeeded = Math.ceil(course.totalHours / (10 + player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0) + techBonus));
+      const sessionsNeeded = Math.ceil(course.totalHours / (STUDY_SESSION_HOURS + player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0) + techBonus));
       let s = log(state, `${player.name} enrolled in ${course.title}. Tuition: $${course.cost}. ~${sessionsNeeded} study sessions needed.`);
       s = updateActivePlayer(s, p => ({ ...p, money: p.money - course.cost, currentCourse: { ...course, progress: 0 } }));
       return s;
@@ -635,17 +611,17 @@ export const gameReducer = (state, action) => {
     case 'STUDY': {
       const player = activePlayer(state);
       if (!player.currentCourse) return log(state, "Not enrolled in any course.");
-      if (player.timeRemaining < 10) return log(state, "Need 10 hours to study.");
+      if (player.timeRemaining < STUDY_SESSION_HOURS) return log(state, `Need ${STUDY_SESSION_HOURS} hours to study.`);
 
       // Extra credit: laptop and textbooks each add bonus progress
       const studyBonus = player.inventory.reduce((sum, item) => sum + (item.studyBonus || 0), 0);
       // Tech store perk: tech savvy adds extra study progress
       const techBonus = player.job?.location === 'tech_store' ? (CAREER_PERKS.tech_store.studyBonus || 0) : 0;
-      const newProgress = player.currentCourse.progress + 10 + studyBonus + techBonus;
+      const newProgress = player.currentCourse.progress + STUDY_SESSION_HOURS + studyBonus + techBonus;
 
       if (newProgress >= player.currentCourse.totalHours) {
         let s = log(state, `🎓 ${player.name} completed ${player.currentCourse.title}! Earned: ${player.currentCourse.degree}. +10 happiness!`);
-        s = updateActivePlayer(s, p => ({ ...p, education: p.currentCourse.degree, currentCourse: null, timeRemaining: p.timeRemaining - 10, happiness: Math.min(100, p.happiness + 10) }));
+        s = updateActivePlayer(s, p => ({ ...p, education: p.currentCourse.degree, currentCourse: null, timeRemaining: p.timeRemaining - STUDY_SESSION_HOURS, happiness: Math.min(100, p.happiness + 10) }));
         s = { ...s, lastJobResult: { success: true, message: `🎓 Graduated with a ${player.currentCourse.degree}! +10 happiness!` } };
         return autoEndIfNeeded(s);
       }
@@ -654,7 +630,7 @@ export const gameReducer = (state, action) => {
       let s = log(state, `Studied 10hrs. Progress: ${newProgress}/${player.currentCourse.totalHours} (${pctDone}%)`);
       // Small happiness boost from studying — learning is fulfilling
       const studyHappy = pctDone >= 75 ? 3 : 1;
-      s = updateActivePlayer(s, p => ({ ...p, timeRemaining: p.timeRemaining - 10, currentCourse: { ...p.currentCourse, progress: newProgress }, happiness: Math.min(100, p.happiness + studyHappy) }));
+      s = updateActivePlayer(s, p => ({ ...p, timeRemaining: p.timeRemaining - STUDY_SESSION_HOURS, currentCourse: { ...p.currentCourse, progress: newProgress }, happiness: Math.min(100, p.happiness + studyHappy) }));
       return autoEndIfNeeded(s);
     }
 
@@ -700,9 +676,9 @@ export const gameReducer = (state, action) => {
         money -= payAmount; debt -= payAmount;
         msg = debt === 0 ? `Repaid $${payAmount}! Debt-free! 🎉` : `Repaid $${payAmount} of debt.`;
       } else if (transactionType === 'borrow') {
-        // Loan cap: max $5000 total debt
-        if (debt + amount > 5000) {
-          return { ...log(state, `Loan denied! Borrowing $${amount} would exceed the $5000 debt cap.`), lastJobResult: { success: false, message: `Loan denied — max $5,000 debt. Current: $${debt}.` } };
+        // Loan cap (MAX_DEBT)
+        if (debt + amount > MAX_DEBT) {
+          return { ...log(state, `Loan denied! Borrowing $${amount} would exceed the $${MAX_DEBT} debt cap.`), lastJobResult: { success: false, message: `Loan denied — max $${MAX_DEBT.toLocaleString()} debt. Current: $${debt}.` } };
         }
         debt += amount; money += amount;
         msg = `Borrowed $${amount}.`;

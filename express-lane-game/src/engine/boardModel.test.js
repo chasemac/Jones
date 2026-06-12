@@ -151,3 +151,53 @@ describe('LIBRARY_LOCATION_GROUPS', () => {
     }
   });
 });
+
+// A7: Wild Willy extracted from the reducer with injectable RNG.
+import { rollWildWilly } from './boardModel';
+import { WILD_WILLY } from './constants';
+
+describe('rollWildWilly (audit A7)', () => {
+  const player = (over = {}) => ({
+    money: 1000, inventory: [],
+    housing: { security: 'Low' },
+    currentLocation: 'blacks_market',
+    ...over,
+  });
+  const always = () => 0;   // rng below every threshold → event fires
+  const never = () => 0.99; // rng above every threshold → no event
+
+  it('robs half the cash leaving Black\'s Market in Low security', () => {
+    const r = rollWildWilly(player(), always);
+    expect(r.stolen).toBe(Math.floor(1000 * WILD_WILLY.blacksStealFraction));
+    expect(r.happinessDelta).toBe(-5);
+  });
+
+  it('a suit deters him (no money lost)', () => {
+    const r = rollWildWilly(player({ inventory: [{ id: 'suit' }] }), always);
+    expect(r.stolen).toBe(0);
+    expect(r.log).toMatch(/suit/i);
+  });
+
+  it('never strikes in High-security housing', () => {
+    expect(rollWildWilly(player({ housing: { security: 'High' } }), always)).toBeNull();
+  });
+
+  it('bank ambush only triggers above the cash threshold', () => {
+    const atBank = player({ currentLocation: 'neobank', money: WILD_WILLY.bankCashTrigger });
+    expect(rollWildWilly(atBank, always)).toBeNull(); // exactly $500 — safe
+    const rich = player({ currentLocation: 'neobank', money: 1000 });
+    const r = rollWildWilly(rich, always);
+    expect(r.stolen).toBe(Math.floor(1000 * WILD_WILLY.bankStealFraction));
+  });
+
+  it('returns null when the roll misses or location is elsewhere', () => {
+    expect(rollWildWilly(player(), never)).toBeNull();
+    expect(rollWildWilly(player({ currentLocation: 'home' }), always)).toBeNull();
+  });
+
+  it('broke victims lose nothing but get mocked', () => {
+    const r = rollWildWilly(player({ money: 0 }), always);
+    expect(r.stolen).toBe(0);
+    expect(r.log).toMatch(/broke/i);
+  });
+});

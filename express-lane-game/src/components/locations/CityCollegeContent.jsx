@@ -1,6 +1,6 @@
 import React from 'react';
 import { adjustedPrice } from '../../engine/economyModel';
-import { meetsEducation } from '../../engine/constants';
+import { meetsEducation, STUDY_SESSION_HOURS } from '../../engine/constants';
 import itemsData from '../../data/items.json';
 import educationData from '../../data/education.json';
 import jobsData from '../../data/jobs.json';
@@ -57,7 +57,7 @@ const CityCollegeContent = ({ state, actions }) => {
             className="w-full font-display font-bold py-2 rounded-lg disabled:opacity-50 text-[13px] transition active:scale-[0.99]"
             style={{ background: 'var(--warn)', color: 'var(--ink)', minHeight: 44 }}
           >
-            📖 Study {10 + studyBonus}h
+            📖 Study {STUDY_SESSION_HOURS + studyBonus}h
             <span className="ml-1 text-[11px] font-normal" style={{ opacity: 0.7 }}>({player.timeRemaining}h left)</span>
           </button>
         </div>
@@ -118,7 +118,7 @@ const CityCollegeContent = ({ state, actions }) => {
           const canEnroll = eduOk && itemOk;
           const alreadyDone = meetsEducation(player.education, course.degree);
           const isActive = player.currentCourse?.id === course.id;
-          const hrsPerSession = 10 + studyBonus;
+          const hrsPerSession = STUDY_SESSION_HOURS + studyBonus;
           const sessionsNeeded = Math.ceil(course.totalHours / hrsPerSession);
           const canAfford = player.money >= course.cost;
 
