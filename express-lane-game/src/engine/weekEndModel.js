@@ -22,6 +22,7 @@ import {
   HUNGER_PENALTIES,
   CLOTHING_WEAR_PER_WEEK,
   WEEKLY_EVENT_CHANCE,
+  homeBase,
 } from './constants';
 import eventsData from '../data/events.json';
 import stocksData from '../data/stocks.json';
@@ -271,7 +272,7 @@ export function processPlayerWeekEnd(player, currentWeek) {
 
   // Reset for next week
   np.timeRemaining = np.maxTime;
-  np.currentLocation = np.hasChosenHousing ? 'home' : 'leasing_office';
+  np.currentLocation = homeBase(np);
   np.weekDone = false;
 
   // Net change on a net-worth basis: cash earned minus the week's charges,

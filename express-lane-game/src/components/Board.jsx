@@ -1,6 +1,6 @@
 import React, { Component, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useGame } from '../context/GameContext';
-import { LOCATION_ORDER, rideFare } from '../engine/constants';
+import { LOCATION_ORDER, rideFare, homeBase } from '../engine/constants';
 import { getNextPromotion, getJobLocation } from '../engine/jobModel';
 import { effectiveTravelCost, getTravelBonus, ringPath, LOCATIONS_CONFIG, homeEmoji } from '../engine/boardModel';
 import { MapBackground, ShopNode, PlayerToken, FloatingMoney, LocationPanel } from './ui/MapComponents';
@@ -49,6 +49,20 @@ const Board = () => {
   const [floats, setFloats] = useState([]);
   const [weekFlash, setWeekFlash] = useState(false);
   const [lotteryResult, setLotteryResult] = useState(null); // {win: bool}
+  // Jackpot splash: the roll happens in the reducer now (audit A6); watch the
+  // one-shot result signal instead of receiving a callback from the shop.
+  const lastLotterySeq = useRef(state.lastLotteryResult?.seq || 0);
+  const showLotterySplash = useEffectEvent((win) => {
+    setLotteryResult({ win });
+    setTimeout(() => setLotteryResult(null), 2000);
+  });
+  useEffect(() => {
+    const r = state.lastLotteryResult;
+    if (r && r.seq !== lastLotterySeq.current) {
+      lastLotterySeq.current = r.seq;
+      showLotterySplash(r.win);
+    }
+  }, [state.lastLotteryResult]);
   const [endWeekHint, setEndWeekHint] = useState(false);
   const [showHandoff, setShowHandoff] = useState(false);
   const animTimers = useRef([]);
@@ -177,7 +191,7 @@ const Board = () => {
     if (!state.awaitingEndWeek) return;
 
     const from = state.player.currentLocation;
-    const home = state.player.hasChosenHousing ? 'home' : 'leasing_office';
+    const home = state.player.hasChosenHousing ? 'home' : 'leasing_office'; // = homeBase(); inlined to keep effect deps narrow
     animateEndWeek(from, home);
 
     return () => {
@@ -329,7 +343,7 @@ const Board = () => {
       case 'trendsetters':   return <TrendSettersContent state={state} actions={actions} />;
       case 'megamart':       return <MegaMartContent state={state} actions={actions} />;
       case 'coffee_shop':    return <CoffeeShopContent state={state} actions={actions} />;
-      case 'blacks_market':  return <BlacksMarketContent state={state} actions={actions} onLotteryResult={(win) => { setLotteryResult({ win }); setTimeout(() => setLotteryResult(null), 2000); }} />;
+      case 'blacks_market':  return <BlacksMarketContent state={state} actions={actions} />;
       case 'grocery_store':  return <GroceryStoreContent state={state} actions={actions} />;
       case 'city_college':   return <CityCollegeContent state={state} actions={actions} />;
       case 'tech_store':     return <TechStoreContent state={state} actions={actions} />;
@@ -538,7 +552,7 @@ const Board = () => {
           visible around the perimeter. */}
       {showPanel && !isMoving && !state.awaitingEndWeek && !showHandoff && (() => {
         const { player } = state;
-        const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
+        const homeTarget = homeBase(player);
         const isAtHomeBase = ['home', 'leasing_office'].includes(player.currentLocation);
         const effectiveStepsToHome = effectiveTravelCost(player.currentLocation, homeTarget, player.inventory);
         const isStranded = !isAtHomeBase && player.timeRemaining < effectiveStepsToHome && !state.awaitingEndWeek;

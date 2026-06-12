@@ -90,6 +90,7 @@ export const hydrateSavedState = (saved) => {
     pendingEvent: saved.pendingEvent && typeof saved.pendingEvent === 'object' ? saved.pendingEvent : null,
     weekSummary: saved.weekSummary && typeof saved.weekSummary === 'object' ? saved.weekSummary : null,
     lastJobResult: null,
+    lastLotteryResult: null,
     awaitingEndWeek: false,
   };
 };

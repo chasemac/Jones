@@ -254,3 +254,37 @@ describe('REST/READ_BOOK auto-end at 0h (audit M12)', () => {
     expect(out.awaitingEndWeek).toBe(true);
   });
 });
+
+// A6: lottery odds/payout/roll moved from the component into the engine.
+import { LOTTERY } from './constants';
+
+describe('BUY_LOTTERY (audit A6)', () => {
+  it('jackpot: charges the ticket, grants happiness, signals the splash', () => {
+    const out = gameReducer(playing(), { type: 'BUY_LOTTERY', rng: () => 0 });
+    expect(active(out).money).toBe(1000 - LOTTERY.cost);
+    expect(active(out).happiness).toBe(Math.min(100, 50 + LOTTERY.winHappiness));
+    expect(out.lastLotteryResult).toMatchObject({ win: true, seq: 1 });
+    expect(out.history[0]).toMatch(/JACKPOT/);
+  });
+
+  it('loss: charges the ticket and dings happiness', () => {
+    const out = gameReducer(playing(), { type: 'BUY_LOTTERY', rng: () => 0.99 });
+    expect(active(out).money).toBe(1000 - LOTTERY.cost);
+    expect(active(out).happiness).toBe(50 + LOTTERY.loseHappiness);
+    expect(out.lastLotteryResult).toMatchObject({ win: false });
+  });
+
+  it('refuses broke players', () => {
+    let s = playing();
+    s.players[0].money = LOTTERY.cost - 1;
+    const out = gameReducer(s, { type: 'BUY_LOTTERY', rng: () => 0 });
+    expect(active(out).money).toBe(LOTTERY.cost - 1);
+    expect(out.lastLotteryResult).toBeUndefined();
+  });
+
+  it('seq increments so back-to-back identical results still trigger the splash', () => {
+    let out = gameReducer(playing(), { type: 'BUY_LOTTERY', rng: () => 0.99 });
+    out = gameReducer(out, { type: 'BUY_LOTTERY', rng: () => 0.99 });
+    expect(out.lastLotteryResult.seq).toBe(2);
+  });
+});

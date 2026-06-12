@@ -14,6 +14,8 @@ import {
   VEHICLE_TRADE_IN_RATE,
   CLOTHING_FRESH_WEAR,
   STUDY_SESSION_HOURS,
+  LOTTERY,
+  homeBase,
 } from './constants';
 import { calcShiftEarnings, perkDiscountFor } from './economyModel';
 import { getTravelBonus, ringPath, rollWildWilly } from './boardModel';
@@ -546,6 +548,25 @@ export const gameReducer = (state, action) => {
       return s;
     }
 
+    // ── Lottery (Black's Market) ──────────────────────────────────────────────
+    // Odds, payout, and the roll live HERE, not in the component (audit A6).
+    case 'BUY_LOTTERY': {
+      const player = activePlayer(state);
+      if (player.money < LOTTERY.cost) return log(state, 'Not enough money for a lottery ticket.');
+      const win = (action.rng || Math.random)() < LOTTERY.odds;
+      const happinessDelta = win ? LOTTERY.winHappiness : LOTTERY.loseHappiness;
+      let s = log(state, win
+        ? `🎰 JACKPOT! +${LOTTERY.winHappiness} happiness!`
+        : `🎰 No luck. ${LOTTERY.loseHappiness} happiness.`);
+      s = updateActivePlayer(s, p => ({
+        ...p,
+        money: p.money - LOTTERY.cost,
+        happiness: Math.max(0, Math.min(100, p.happiness + happinessDelta)),
+      }));
+      // One-shot UI signal for the jackpot splash (cleared on hydrate).
+      return { ...s, lastLotteryResult: { win, seq: (state.lastLotteryResult?.seq || 0) + 1 } };
+    }
+
     // ── Sell item ─────────────────────────────────────────────────────────────
     case 'SELL_ITEM': {
       const { item } = action;
@@ -744,7 +765,7 @@ export const gameReducer = (state, action) => {
     // ── Ride Home (stranded escape hatch) ────────────────────────────────────
     case 'RIDE_HOME': {
       const player = activePlayer(state);
-      const homeTarget = player.hasChosenHousing ? 'home' : 'leasing_office';
+      const homeTarget = homeBase(player);
       const fare = rideFare(player.currentLocation, homeTarget);
       let s = log(state, `🚗 Called a ride home — $${fare} fare. -3 dependability, -2 happiness.`);
       s = updateActivePlayer(s, p => ({

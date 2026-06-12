@@ -90,6 +90,7 @@ export const GameProvider = ({ children }) => {
     rest: (hours = 2) => dispatch({ type: 'REST', hours }),
     readBook: (book) => dispatch({ type: 'READ_BOOK', book }),
     buyItem: (item) => { playSound('coin'); dispatch({ type: 'BUY_ITEM', item }); },
+    buyLottery: () => { playSound('coin'); dispatch({ type: 'BUY_LOTTERY' }); },
     sellItem: (item) => dispatch({ type: 'SELL_ITEM', item }),
     enroll: (course) => { playSound('success'); dispatch({ type: 'ENROLL', course }); },
     study: () => dispatch({ type: 'STUDY' }),

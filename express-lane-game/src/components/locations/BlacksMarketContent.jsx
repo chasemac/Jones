@@ -1,9 +1,9 @@
 import React from 'react';
 import { adjustedPrice } from '../../engine/economyModel';
-import { UNSELLABLE_TYPES, ECONOMY_PAWN_MULTIPLIER } from '../../engine/constants';
+import { UNSELLABLE_TYPES, ECONOMY_PAWN_MULTIPLIER, LOTTERY } from '../../engine/constants';
 import itemsData from '../../data/items.json';
 
-const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
+const BlacksMarketContent = ({ state, actions }) => {
   const { player, economy } = state;
   const concertTicket = itemsData.find(i => i.id === 'concert_ticket');
   const concertPrice = adjustedPrice(concertTicket.cost, economy);
@@ -107,25 +107,16 @@ const BlacksMarketContent = ({ state, actions, onLotteryResult }) => {
         </div>
 
         <button
-          onClick={() => {
-            if (player.money >= 10) {
-              const win = Math.random() < 0.05;
-              actions.buyItem({
-                id: `lottery_${Date.now()}`, name: 'Lottery Ticket', cost: 10, type: 'entertainment',
-                happinessBoost: win ? 50 : -2, relaxationBoost: 0,
-              });
-              onLotteryResult?.(win);
-            }
-          }}
-          disabled={player.money < 10}
+          onClick={() => actions.buyLottery()}
+          disabled={player.money < LOTTERY.cost}
           className="w-full p-3 rounded-xl disabled:opacity-50 mb-2 text-[13px] transition active:scale-[0.99] text-left"
           style={{ background: 'rgba(244,184,42,0.08)', border: '1px solid rgba(244,184,42,0.35)' }}
         >
           <div className="flex justify-between items-center">
             <span className="font-display font-bold" style={{ color: 'var(--ink)' }}>🎰 Lottery Ticket</span>
-            <span className="font-num font-bold" style={{ color: 'var(--ink)' }}>$10</span>
+            <span className="font-num font-bold" style={{ color: 'var(--ink)' }}>${LOTTERY.cost}</span>
           </div>
-          <div className="text-[11px] mt-0.5" style={{ color: 'var(--warn-ink)' }}>5% jackpot: +50 😊 · otherwise −2 😊</div>
+          <div className="text-[11px] mt-0.5" style={{ color: 'var(--warn-ink)' }}>{LOTTERY.odds * 100}% jackpot: +{LOTTERY.winHappiness} 😊 · otherwise {LOTTERY.loseHappiness} 😊</div>
         </button>
 
         <button

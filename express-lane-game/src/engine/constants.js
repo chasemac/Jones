@@ -68,6 +68,10 @@ export const JOB_DEP_REJECTION_CAP = 0.7;
 export const STUDY_SESSION_HOURS = 10;
 // Chance a random life event fires at week end.
 export const WEEKLY_EVENT_CHANCE = 0.4;
+// Lottery (Black's Market) — odds/payout config; rolled in the reducer,
+// never in a component (audit A6).
+export const LOTTERY = { cost: 10, odds: 0.05, winHappiness: 50, loseHappiness: -2 };
+
 // Wild Willy mugging odds/fractions (TRAVEL rolls).
 export const WILD_WILLY = {
   blacksMarketChance: { Low: 0.3, Medium: 0.1, High: 0 },
@@ -137,6 +141,10 @@ export const DIFFICULTY_PRESETS = {
   },
 };
 
+// Where a player's week starts/ends: home once they've chosen housing,
+// otherwise the Leasing Office (audit A12 — was a ternary in 4 files).
+export const homeBase = (player) => (player.hasChosenHousing ? 'home' : 'leasing_office');
+
 // ─── Location Order (board loop) ─────────────────────────────────────────────
 export const LOCATION_ORDER = [
   'leasing_office',
@@ -177,15 +185,6 @@ export const LOCATION_EMPLOYER_NAME = {
   neobank: 'NeoBank',
   public_library: 'City Works',
   home: 'Remote',
-};
-
-// Job types → fallback work location (job.location takes priority in practice)
-export const JOB_WORK_LOCATION = {
-  service: 'coffee_shop',
-  tech: 'tech_store',
-  corporate: 'neobank',
-  gig: 'quick_eats',
-  trade: 'public_library',
 };
 
 // ─── Career Perks ────────────────────────────────────────────────────────────
