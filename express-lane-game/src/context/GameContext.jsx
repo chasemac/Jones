@@ -67,8 +67,13 @@ export const GameProvider = ({ children }) => {
     prevStatus.current = state.gameStatus;
   }, [state.gameStatus]);
 
-  // ── Action creators (stable refs via useCallback not needed — tiny wrappers) ─
-  const actions = {
+  // ── Action creators ──────────────────────────────────────────────────────────
+  // Memoized once: dispatch is stable, and `muted` is read through a ref so
+  // ~25 closures + the context value aren't rebuilt on every dispatch
+  // (audit A14 — this was defeating any future React.memo).
+  const mutedRef = React.useRef(muted);
+  useEffect(() => { mutedRef.current = muted; }, [muted]);
+  const actions = React.useMemo(() => ({
     initGame: (difficulty, playerCount, playerEmojis) => dispatch({ type: 'INIT_GAME', difficulty, playerCount: playerCount || 1, playerEmojis }),
     startGame: () => dispatch({ type: 'START_GAME' }),
     resetGame: () => {
@@ -100,14 +105,20 @@ export const GameProvider = ({ children }) => {
     dismissHungerWarning: () => dispatch({ type: 'DISMISS_HUNGER_WARNING' }),
     dismissClothingWarning: () => dispatch({ type: 'DISMISS_CLOTHING_WARNING' }),
     toggleMute: () => { setMutedState(toggleMute()); },
-    getMuted: () => muted,
-  };
+    getMuted: () => mutedRef.current,
+  }), []);
 
   // Derived helpers consumed by UI
   const activePlayer = state.players?.[state.activePlayerIndex] ?? state.players?.[0];
-  const enrichedState = { ...state, player: activePlayer, muted };
+  const enrichedState = React.useMemo(
+    () => ({ ...state, player: activePlayer, muted }),
+    [state, activePlayer, muted],
+  );
 
-  const value = { state: enrichedState, dispatch, ...actions };
+  const value = React.useMemo(
+    () => ({ state: enrichedState, dispatch, ...actions }),
+    [enrichedState, actions],
+  );
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };
