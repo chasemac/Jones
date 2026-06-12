@@ -201,8 +201,10 @@ const Board = () => {
   }, [state.awaitingEndWeek, state.player.currentLocation, state.player.hasChosenHousing]);
 
   // ── Keyboard shortcuts ───────────────────────────────────────────────────────
-  useEffect(() => {
-    const handler = (e) => {
+  // useEffectEvent so the document listener is attached ONCE — the old
+  // version depended on the whole `state` object and re-subscribed on every
+  // dispatch (audit A11). The handler still always sees fresh state/props.
+  const onShortcutKey = useEffectEvent((e) => {
       // Ignore when typing in an input
       if (
         e.target.tagName === 'INPUT' ||
@@ -286,10 +288,12 @@ const Board = () => {
         }
         default: break;
       }
-    };
+  });
+  useEffect(() => {
+    const handler = (e) => onShortcutKey(e);
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [dismissClothingWarning, dismissEvent, dismissHungerWarning, dismissWeekSummary, endWeek, modalOpen, notification, partTimeWork, rest, showGoals, showInventory, showLog, showHandoff, showPanel, state, study, toggleMute, work, network]);
+  }, []);
 
   const handleTravel = (id) => {
     if (state.player.currentLocation === id) {
